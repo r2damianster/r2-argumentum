@@ -1,0 +1,81 @@
+# Reglas de puntaje — fórmula única
+
+Todo el puntaje sigue una sola fórmula, no valores sueltos, para que sea una norma clara y defendible ante los estudiantes.
+
+## Fórmula base (argumentos de estudiantes)
+
+```
+valor de una posición (1ra, 2da, 3ra) = valor_base(posición) × descuento_ronda × descuento_vía
+
+valor_base(posición 1) = 10
+valor_base(posición 2) = 8
+valor_base(posición 3) = 3
+
+descuento_ronda = 1.0   si la posición se completa en Ronda 1
+descuento_ronda = 0.7   si se completa en Ronda 2 (retrasar cuesta 30%)
+
+descuento_vía = 1.0     si el argumento pasa validación de Groq (1er o 2do intento)
+descuento_vía = 0.5     si entra por revisión manual de un co-moderador
+                        (tras 2 intentos fallidos de Groq)
+```
+
+Todos los valores se redondean al entero más cercano, con mínimo de 1 punto (nunca 0, para no eliminar el incentivo a participar tarde).
+
+### Por qué 0.7 en Ronda 2
+
+Reproduce el ancla ya fijada para el caso de "cero argumentos en Ronda 1": 10 × 0.7 = 7. El mismo multiplicador se aplica de forma consistente a las demás posiciones, en vez de definir un número distinto para cada caso.
+
+## Tabla resultante
+
+| Caso | Qué completa en Ronda 2 | Puntaje de Ronda 2 | Total posible |
+|---|---|---|---|
+| 3 argumentos en R1 | ninguno | — | 21 |
+| 2 argumentos en R1 | posición 3 | 3 × 0.7 = 2 | 18 + 2 = 20 |
+| 1 argumento en R1 | posiciones 2 y 3 | 8 × 0.7 = 6, 3 × 0.7 = 2 | 10 + 6 + 2 = 18 |
+| 0 argumentos en R1 | solo posición 1 (no recupera 2 y 3) | 10 × 0.7 = 7 | 7 |
+
+Quien no entra nada en Ronda 1 solo recupera la posición 1 en Ronda 2 — la inacción total se penaliza más que la inacción parcial.
+
+### Ingreso vía co-moderador
+
+Se aplica el descuento de vía (× 0.5) sobre el valor ya calculado, incluyendo el descuento de ronda si corresponde:
+
+```
+posición 1 en R1 vía co-moderador = 10 × 0.5 = 5
+posición 1 en R2 vía co-moderador = 7 × 0.5 = 4 (redondeado)
+```
+
+## Puntaje de conexiones
+
+```
+puntajeConexion.aceptaSugerenciaGroq
+puntajeConexion.conexionManualPropia
+puntajeConexion.conexionRechazadaYCorregida   // valora el acto de corregir, no solo aceptar
+```
+
+Valores concretos configurables por Programa — mantener la misma escala relativa que el puntaje de argumentos (aceptar/conectar vale menos que producir un argumento nuevo válido, pero más que cero).
+
+## Puntaje de co-moderadores
+
+Mismos órdenes de magnitud que el puntaje de estudiantes, para que el rol sea comparable en valor, no un premio de consolación. Premia criterio, no volumen de acciones:
+
+| Acción | Puntos | Condición |
+|---|---|---|
+| Caso escalado resuelto, ratificado luego por el moderador | +8 | requiere ratificación — evita autoservicio |
+| Falta detectada con justificación escrita, no revertida | +6 | la justificación es obligatoria |
+| Reclasificación correcta de un tipo de relación autodeclarado | +5 | — |
+| Feedback usado por el estudiante para reformular con éxito | +4 | mide impacto real, no cantidad de comentarios |
+| Coincide con otro revisor en una revisión cruzada aleatoria | +3 | bono pasivo anticorrupción/anti-sesgo |
+| Falta marcada sin justificación, o revertida por el moderador | −5 | desincentiva farmear puntaje marcando de más |
+
+La "revisión cruzada aleatoria" consiste en que el sistema, ocasionalmente y sin avisar, hace que dos co-moderadores revisen el mismo caso — si coinciden, ambos ganan el bono de consistencia. Sirve como auditoría automática sin que el profesor tenga que revisar todo manualmente.
+
+## Ranking visible — por postura, con tiers, no puntaje numérico
+
+```
+tercio superior del grupo de esa postura   → 🥇 Sólido
+tercio medio                                → 🥈 Consistente
+tercio inferior                             → 🥉 En desarrollo
+```
+
+Se usan **cortes por percentil dentro de cada postura**, no umbrales numéricos fijos. Esto evita que quien defiende la postura "más difícil" quede sistemáticamente peor ubicado, y hace que el ranking se adapte automáticamente a cualquier tabla de puntaje que un Programa distinto configure, sin tener que recalibrar los cortes cada vez.
