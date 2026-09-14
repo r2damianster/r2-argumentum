@@ -4,8 +4,8 @@ Decisiones abiertas o trabajo técnico que todavía no se ha hecho. No empezar a
 
 ## Próximo paso inmediato
 
-- **Modelo de eventos completo** sobre Ably: `turn.offered`, `turn.accepted`, `turn.rejected`, `turn.timeout`, `argument.submit_attempt`, `argument.submitted`, `argument.validated`, `link.created`, `link.suggested`, `score.updated`, más los eventos de cambio de fase (`phase.started`, `phase.closed`). Definir payload exacto de cada uno.
-- **Estructura de archivos del código** (carpetas de frontend estudiante/profesor, módulo de conexión a Ably, módulo de llamadas a Groq, módulo de carga/validación de Programa).
+- ~~Modelo de eventos completo~~ — cerrado, ver `09-modelo-de-eventos.md`.
+- **Estructura de archivos del código** (carpetas de frontend host/player, módulo de conexión a Ably, función serverless de token de Ably en Vercel, módulo de llamadas a Groq, módulo de carga/validación de Programa).
 
 ## Decisiones abiertas (no bloquean el arranque, pero hay que resolverlas pronto)
 
