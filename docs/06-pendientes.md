@@ -5,7 +5,10 @@ Decisiones abiertas o trabajo técnico que todavía no se ha hecho. No empezar a
 ## Próximo paso inmediato
 
 - ~~Modelo de eventos completo~~ — cerrado, ver `09-modelo-de-eventos.md`.
-- **Estructura de archivos del código** (carpetas de frontend host/player, módulo de conexión a Ably, función serverless de token de Ably en Vercel, módulo de llamadas a Groq, módulo de carga/validación de Programa).
+- ~~Estructura de archivos del código~~ — cerrado. Scaffold funcional: `host.html`/`player.html` (Vite multi-page), `src/host` y `src/player` (React), `src/shared` (cliente Ably, nombres de eventos, fórmula de puntaje, colores, carga de Programa), `api/` (funciones serverless: `ably-token.js`, `groq-validar-argumento.js`, `groq-sugerir-conexiones.js`). `npm run build` y `npm run dev` verificados funcionando.
+- **Pendiente crítico y bloqueante para probar tiempo real:** crear la key de Ably correcta (Publish+Subscribe+Presence+History, restringida a `debate:*`, ver `07-acceso-y-paginas.md`) y cargarla como `ABLY_API_KEY` en Vercel. Las dos keys creadas antes (Subscribe-only y Root) quedaron expuestas en el chat de esta sesión — deben revocarse en el dashboard de Ably si no se ha hecho ya, sin importar cuál se use finalmente.
+- **Pendiente relacionado:** cargar `GROQ_API_KEY` en Vercel (console.groq.com) para que `/api/groq-validar-argumento` y `/api/groq-sugerir-conexiones` funcionen.
+- Sin estas dos variables de entorno, el scaffold actual compila y las pantallas de login/ingreso funcionan, pero no hay conexión real a Ably ni validación real de Groq — son los siguientes dos requisitos para pasar de scaffold a MVP funcional.
 
 ## Decisiones abiertas (no bloquean el arranque, pero hay que resolverlas pronto)
 

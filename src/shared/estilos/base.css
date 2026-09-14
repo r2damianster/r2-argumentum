@@ -1,0 +1,156 @@
+:root {
+  --color-marca: #0d9488;
+  --color-marca-oscuro: #0f766e;
+  --color-fondo: #f8fafc;
+  --color-texto: #0f172a;
+  --color-borde: #cbd5e1;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+}
+
+main {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  min-height: 100vh;
+}
+
+.portada {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 16px;
+  display: block;
+  margin: 0 auto 16px;
+}
+
+h1 {
+  font-size: 1.5rem;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+h2 {
+  font-size: 1.1rem;
+  text-align: center;
+  color: #475569;
+  margin-top: 0;
+}
+
+.acceso-reservado {
+  text-align: center;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+input {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--color-borde);
+  font-size: 1rem;
+}
+
+fieldset {
+  border: 1px solid var(--color-borde);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+legend {
+  font-weight: 600;
+  padding: 0 6px;
+}
+
+button {
+  font-family: inherit;
+}
+
+button[type='submit'] {
+  background: var(--color-marca);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button[type='submit']:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.boton-sorpreendeme {
+  background: white;
+  border: 1px solid var(--color-marca);
+  color: var(--color-marca-oscuro);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.grilla-de-emojis {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+
+.grilla-de-emojis button {
+  font-size: 1.4rem;
+  padding: 8px 0;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: white;
+  cursor: pointer;
+}
+
+.emoji-seleccionado {
+  border-color: var(--color-marca) !important;
+  background: #ccfbf1 !important;
+}
+
+.texto-de-ayuda {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.mensaje-de-error {
+  color: #dc2626;
+  font-size: 0.9rem;
+}
+
+footer {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 32px;
+}
