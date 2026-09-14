@@ -143,6 +143,23 @@ button[type='submit']:disabled {
   margin: 0;
 }
 
+.tarjeta-de-sala {
+  text-align: center;
+  border: 1px solid var(--color-borde);
+  border-radius: 16px;
+  padding: 20px;
+  margin: 20px 0;
+  background: white;
+}
+
+.codigo-de-sala {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--color-marca-oscuro);
+  margin: 4px 0 16px;
+}
+
 .mensaje-de-error {
   color: #dc2626;
   font-size: 0.9rem;

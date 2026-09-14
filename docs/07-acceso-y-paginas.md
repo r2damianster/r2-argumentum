@@ -9,6 +9,7 @@ Consistente con otro proyecto del usuario, **R2 Quiz** (consola de host reservad
 - Credencial **hardcodeada en el código**, sin backend de autenticación real. Aceptable porque no se maneja información sensible ni datos personales protegidos — mismo criterio ya validado en R2 Quiz ("no es peligroso porque no tendremos nada relevante ahí").
 - Imagen de portada de esta consola: `public/avatar.png`.
 - Desde aquí el profesor: crea/carga un Programa de Debate, controla el avance de fases, proyecta el grafo en vivo, ve el ranking por postura, sortea co-moderadores.
+- **Código de sala + QR**, mismo patrón que R2 Quiz: al abrir la sesión se genera un código de 4 dígitos y un QR que enlaza a `/player.html?sala={codigo}`. El estudiante escanea y entra con el código ya prellenado — no necesita tipearlo. Implementado con `qrcode.react` (`src/host/App.jsx`).
 
 ### Copy de referencia (mismo molde que R2 Quiz)
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // Mismo set de emojis que R2 Quiz, ver docs/07-acceso-y-paginas.md.
 const EMOJIS_DISPONIBLES = [
@@ -15,6 +15,14 @@ export default function App() {
   const [nombre, setNombre] = useState('');
   const [emojiElegido, setEmojiElegido] = useState('');
   const [yaIngreso, setYaIngreso] = useState(false);
+
+  useEffect(() => {
+    const parametros = new URLSearchParams(window.location.search);
+    const salaDesdeQR = parametros.get('sala');
+    if (salaDesdeQR) {
+      setCodigoDeSala(salaDesdeQR);
+    }
+  }, []);
 
   function elegirEmojiAlAzar() {
     const indiceAleatorio = Math.floor(Math.random() * EMOJIS_DISPONIBLES.length);

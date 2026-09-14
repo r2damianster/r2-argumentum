@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 
 // Credencial hardcodeada a propósito, mismo criterio que R2 Quiz (ver docs/07-acceso-y-paginas.md):
 // esta consola no maneja información sensible, así que no requiere autenticación real.
@@ -55,10 +56,27 @@ export default function App() {
   );
 }
 
+function generarCodigoDeSala() {
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
 function ConsolaDelHost() {
+  const codigoDeSala = useMemo(() => generarCodigoDeSala(), []);
+  const urlDeIngreso = `${window.location.origin}/player.html?sala=${codigoDeSala}`;
+
   return (
     <main>
       <h1>Consola del host</h1>
+
+      <section className="tarjeta-de-sala">
+        <p className="texto-de-ayuda">Código de sala</p>
+        <p className="codigo-de-sala">{codigoDeSala}</p>
+        <QRCodeSVG value={urlDeIngreso} size={180} bgColor="#ffffff" fgColor="#0f172a" />
+        <p className="texto-de-ayuda">
+          Los estudiantes escanean el QR o entran en <code>/player.html</code> e ingresan el código.
+        </p>
+      </section>
+
       <p className="texto-de-ayuda">
         Por construir: creación/carga del Programa de Debate, control de fases, grafo argumental en vivo,
         ranking por postura, sorteo de co-moderadores.
