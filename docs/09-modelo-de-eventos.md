@@ -94,6 +94,39 @@ argument.validated {   // publicado después, por un co-moderador
 
 `argument.submit_attempt` y `argument.validation_result` son el ciclo de validación de forma (checkpoint 1 de Groq). Solo tras un `aprobado: true` (o una escalada a co-moderador) se publica `argument.submitted`.
 
+## Bids de intervención
+
+Ver `04-roles-y-turnos.md` para el flujo completo. Corren en paralelo al turno principal, no lo interrumpen.
+
+```
+bid.submitted {
+  bidId, participantId, tipoDeBid: "desmontar" | "fortalecer",
+  argumentoObjetivoId, texto, ronda, turnoPrincipalId, timestamp
+}
+
+bid.vote_comoderador {
+  bidId, coModeradorId,        // presente en el payload por necesidad de puntaje,
+                                // la UI nunca lo muestra (ver nota de anonimidad en 04)
+  voto: "aprueba" | "rechaza",
+  timestamp
+}
+
+bid.evaluacion_expirada { bidId }   // se agotó tiempoLimiteEvaluacionBid sin quórum completo
+
+topic.bids_cerrados {
+  turnoPrincipalId, listaDeBidIds,
+  cerradoPor: "agotamiento" | "moderador",
+  timestamp
+}
+
+bid.decision_moderador {
+  bidId, decisionFinal: "aprobado" | "rechazado",
+  timestamp
+}
+```
+
+Si `decisionFinal: "aprobado"`, se publica inmediatamente un `argument.submitted` normal (texto = el del bid, sin pasar por Groq) y los `score.updated` correspondientes: uno para el participante (fórmula de posición, igual que cualquier argumento) y uno por cada co-moderador cuyo voto coincidió con la decisión final (+5, ver `05-reglas-de-puntaje.md`).
+
 ## Conexiones
 
 ```

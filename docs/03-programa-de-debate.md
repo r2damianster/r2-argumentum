@@ -66,9 +66,15 @@ tiers: ["Sólido", "Consistente", "En desarrollo"]
 ### F. Reglas de turno
 
 ```
-mecanismoTurno: "ruleta_ponderada"     // pesa por quién ha hablado menos
+mecanismoTurno: "ruleta_ponderada_con_prioridad_a_no_participantes"
+                                        // prioridad absoluta a quien no ha tenido turno principal;
+                                        // agotado ese grupo, pesa por quién ha hablado menos
 timeoutAceptacion: 20                  // segundos antes de reintentar con otro
 maxRechazosAntesDeForzar: 3            // tras N rechazos, la oferta ya no se puede rechazar
+
+tiempoLimiteEvaluacionBid: 20          // segundos para que un co-moderador vote un bid
+duracionMaximaIntervencionPrincipal: 90  // segundos, temporizador de facilitación (no forzado)
+duracionMaximaIntervencionBid: 45        // segundos, ídem para un bid aprobado
 ```
 
 ### G. Reglas de conexión libre

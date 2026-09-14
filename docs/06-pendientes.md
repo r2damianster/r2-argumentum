@@ -21,6 +21,7 @@ Decisiones abiertas o trabajo técnico que todavía no se ha hecho. No empezar a
 
 ## Mecánicas de fases futuras (explícitamente fuera de v1)
 
+- **Bid de tipo "agregar argumento nuevo"** (pedir turno para sumar un argumento propio sin apuntar a nadie, no solo desmontar/fortalecer) — se descartó de v1 por riesgo de perder profundidad en la discusión; posible v2 si el flujo de desmontar/fortalecer funciona bien en aula.
 - Reconocimiento de voz en vivo (Web Speech API) como alternativa/complemento a escribir el argumento.
 - Modo torneo (argumentos anónimos, adivinar autor/postura).
 - "Argumento fantasma" (desafío del sistema tras una intervención).

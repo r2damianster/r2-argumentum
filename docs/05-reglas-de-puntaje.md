@@ -62,6 +62,7 @@ Mismos órdenes de magnitud que el puntaje de estudiantes, para que el rol sea c
 | Acción | Puntos | Condición |
 |---|---|---|
 | Caso escalado resuelto, ratificado luego por el moderador | +8 | requiere ratificación — evita autoservicio |
+| Voto en un bid de intervención coincide con la decisión final del moderador | +5 | ver `04-roles-y-turnos.md`, mecánica de bids desmontar/fortalecer |
 | Falta detectada con justificación escrita, no revertida | +6 | la justificación es obligatoria |
 | Reclasificación correcta de un tipo de relación autodeclarado | +5 | — |
 | Feedback usado por el estudiante para reformular con éxito | +4 | mide impacto real, no cantidad de comentarios |
