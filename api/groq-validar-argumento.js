@@ -30,15 +30,17 @@ ${ejemplosFormateados}
 Devuelve SOLO JSON válido con esta forma exacta:
 {"aprobado": boolean, "motivo": "máximo 20 palabras", "sugerenciaDeCorreccion": "vacío si aprobado es true"}`;
 
+  let respuestaGroq;
+  let datos;
   try {
-    const respuestaGroq = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    respuestaGroq = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-70b-versatile',
+        model: 'openai/gpt-oss-20b',
         messages: [
           { role: 'system', content: promptSistema },
           { role: 'user', content: texto },
@@ -48,11 +50,21 @@ Devuelve SOLO JSON válido con esta forma exacta:
         response_format: { type: 'json_object' },
       }),
     });
+    datos = await respuestaGroq.json();
+  } catch (error) {
+    response.status(502).json({ error: 'No se pudo contactar a Groq', detalle: String(error) });
+    return;
+  }
 
-    const datos = await respuestaGroq.json();
+  if (!respuestaGroq.ok) {
+    response.status(502).json({ error: 'Groq devolvió un error', detalle: datos });
+    return;
+  }
+
+  try {
     const resultado = JSON.parse(datos.choices[0].message.content);
     response.status(200).json(resultado);
   } catch (error) {
-    response.status(500).json({ error: 'No se pudo validar el argumento con Groq' });
+    response.status(502).json({ error: 'Groq no devolvió JSON válido', detalle: datos });
   }
 }

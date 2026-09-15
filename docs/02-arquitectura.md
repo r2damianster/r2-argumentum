@@ -11,7 +11,7 @@ Sistema basado en eventos, no un CRUD de estudiantes/argumentos/calificaciones. 
 | Frontend estudiante | React + Vite, mobile-first | Botones grandes, bottom sheets, escritura de argumentos |
 | Frontend profesor | React + Vite | Proyección: grafo en vivo, ranking por postura, control de fases |
 | Tiempo real | Ably (canales, presence) | Sincroniza turnos, argumentos y conexiones entre todos los clientes conectados |
-| IA asistencial | Groq (Llama 3.1) | Valida forma de un argumento; sugiere conexiones en lote |
+| IA asistencial | Groq (`openai/gpt-oss-20b` / `openai/gpt-oss-120b`) | Valida forma de un argumento; sugiere conexiones en lote |
 | Persistencia de sesión | Ninguna — event log de Ably + export JSON/PDF al cierre | Evita dependencia de base de datos en el MVP |
 | Persistencia de Programas | Archivo JSON exportable/importable | Plantillas reutilizables entre sesiones y cursos |
 

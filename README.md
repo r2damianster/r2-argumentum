@@ -16,7 +16,7 @@ No se registra solo quién habla, sino cómo se relacionan los argumentos entre 
 |---|---|
 | Frontend | React + Vite (mobile-first para estudiantes, pantalla de proyección para el profesor) |
 | Tiempo real | Ably (canales pub/sub + presence) — sin base de datos para el estado de la sesión en vivo |
-| IA asistencial | Groq (Llama 3.1) — valida forma de los argumentos y sugiere conexiones; nunca puntúa de forma autoritativa sin confirmación humana |
+| IA asistencial | Groq (`openai/gpt-oss-20b` para validar, `openai/gpt-oss-120b` para sugerir conexiones) — nunca puntúa de forma autoritativa sin confirmación humana |
 | Persistencia de sesión | Event log de Ably + export JSON/PDF al cierre |
 | Persistencia de plantillas | "Programas de Debate" como archivos JSON exportables/importables (v1, sin backend) |
 
