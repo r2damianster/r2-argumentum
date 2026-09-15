@@ -3,8 +3,8 @@ import { QRCodeSVG } from 'qrcode.react';
 
 // Credencial hardcodeada a propósito, mismo criterio que R2 Quiz (ver docs/07-acceso-y-paginas.md):
 // esta consola no maneja información sensible, así que no requiere autenticación real.
-const USUARIO_VALIDO = 'usuario';
-const CLAVE_VALIDA = 'argumentum';
+const USUARIO_VALIDO = 'arturo.rodriguez@uleam.edu.ec';
+const CLAVE_VALIDA = 'R2ironmaiden';
 
 export default function App() {
   const [autenticado, setAutenticado] = useState(false);
