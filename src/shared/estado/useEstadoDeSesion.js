@@ -59,16 +59,21 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
       await canal.attach();
       canal.subscribe(manejarMensajeEnVivo);
 
-      let pagina = await canal.history({ untilAttach: true, direction: 'forwards' });
+      // Ably solo permite untilAttach con la dirección por defecto (backwards, más reciente
+      // primero) — se junta todo y se invierte al final para procesar en orden cronológico.
+      let pagina = await canal.history({ untilAttach: true });
+      const mensajesDelHistorial = [];
       // eslint-disable-next-line no-constant-condition
       while (true) {
-        for (const mensaje of pagina.items) {
-          procesarMensaje(mensaje);
-        }
+        mensajesDelHistorial.push(...pagina.items);
         if (!pagina.hasNext()) {
           break;
         }
         pagina = await pagina.next();
+      }
+      mensajesDelHistorial.reverse();
+      for (const mensaje of mensajesDelHistorial) {
+        procesarMensaje(mensaje);
       }
 
       backfillCompleto = true;
