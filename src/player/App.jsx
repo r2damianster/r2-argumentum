@@ -49,6 +49,14 @@ function guardarParticipanteActivo(datos) {
   }
 }
 
+function borrarParticipanteActivo() {
+  try {
+    sessionStorage.removeItem(CLAVE_DE_PARTICIPANTE_ACTIVO);
+  } catch {
+    // no-op
+  }
+}
+
 export default function App() {
   const [codigoDeSala, setCodigoDeSala] = useState('');
   const [nombre, setNombre] = useState('');
@@ -80,7 +88,15 @@ export default function App() {
   }
 
   if (participanteActivo) {
-    return <SesionDeParticipante {...participanteActivo} />;
+    return (
+      <SesionDeParticipante
+        {...participanteActivo}
+        onSalir={() => {
+          borrarParticipanteActivo();
+          setParticipanteActivo(null);
+        }}
+      />
+    );
   }
 
   return (
@@ -130,14 +146,31 @@ export default function App() {
   );
 }
 
-function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji }) {
+function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSalir }) {
   const { estado, presencia, publicar, cargando } = useEstadoDeSesion({
     clientId: participantId,
     sessionId: codigoDeSala,
     datosDePresencia: { nombre, emoji },
   });
 
+  if (!cargando && !estado.programa) {
+    return (
+      <main>
+        <h1>R2 Argumentum</h1>
+        <p className="mensaje-de-error">
+          No se pudo recuperar la sesión de la sala {codigoDeSala} — probablemente pasó mucho tiempo desde que
+          empezó y el historial ya expiró. Pedile al moderador el código vigente y volvé a entrar.
+        </p>
+        <button type="button" onClick={onSalir}>
+          Volver a entrar
+        </button>
+      </main>
+    );
+  }
+
   if (cargando || !estado.programa) {
+    // cargando=false con programa=null ya se cubrió arriba (historial expirado);
+    // acá solo queda el caso normal: todavía conectando.
     return (
       <main>
         <h1>R2 Argumentum</h1>

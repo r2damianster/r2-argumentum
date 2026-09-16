@@ -56,9 +56,7 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
     }
 
     async function conectar() {
-      console.log('[r2-argumentum] conectando…', { clientId, sessionId });
       await canal.attach();
-      console.log('[r2-argumentum] canal attached');
       canal.subscribe(manejarMensajeEnVivo);
 
       // Ably solo permite untilAttach con la dirección por defecto (backwards, más reciente
@@ -82,10 +80,8 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
       for (const mensaje of colaDeMensajesEnVivo) {
         procesarMensaje(mensaje);
       }
-      console.log('[r2-argumentum] backfill listo,', mensajesDelHistorial.length, 'eventos');
 
       const miembrosActuales = await canal.presence.get();
-      console.log('[r2-argumentum] presence.get listo,', miembrosActuales.length, 'miembros');
       if (!cancelado) {
         setPresencia(
           miembrosActuales.map((miembro) => ({
@@ -99,7 +95,6 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
 
       if (datosDePresencia) {
         await canal.presence.enter(datosDePresencia);
-        console.log('[r2-argumentum] presence.enter listo');
       }
 
       if (!cancelado) {
