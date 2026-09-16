@@ -171,3 +171,155 @@ footer {
   color: #64748b;
   margin-top: 32px;
 }
+
+/* Consola del host — barra superior y selector de Programa */
+
+.barra-superior {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.barra-superior h1 {
+  text-align: left;
+  margin: 0;
+}
+
+.boton-cerrar-sesion {
+  background: none;
+  border: 1px solid var(--color-borde);
+  color: #475569;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.boton-cerrar-sesion:hover {
+  border-color: #94a3b8;
+  color: var(--color-texto);
+}
+
+.tarjeta-de-programa {
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin: 0 0 16px;
+}
+
+.tarjeta-de-programa h2 {
+  text-align: left;
+  font-size: 1.05rem;
+  color: var(--color-texto);
+  margin: 0 0 4px;
+}
+
+.tarjeta-de-programa > p {
+  margin: 0 0 14px;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.boton-cargar-archivo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--color-fondo);
+  border: 1px dashed var(--color-borde);
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-marca-oscuro);
+  cursor: pointer;
+  text-align: center;
+  margin: 0 0 18px;
+}
+
+.boton-cargar-archivo:hover {
+  border-color: var(--color-marca);
+  background: #f0fdfa;
+}
+
+.boton-cargar-archivo input[type='file'] {
+  /* El input real queda invisible; el label estilizado es lo que se ve. */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.categoria-de-programas {
+  margin-bottom: 16px;
+}
+
+.categoria-de-programas h3 {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-marca-oscuro);
+  margin: 0 0 8px;
+}
+
+.lista-de-programas-de-ejemplo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lista-de-programas-de-ejemplo button {
+  width: 100%;
+  text-align: left;
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  color: var(--color-texto);
+  cursor: pointer;
+}
+
+.lista-de-programas-de-ejemplo button:hover {
+  border-color: var(--color-marca);
+  background: #f0fdfa;
+}
+
+.lista-de-posturas {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lista-de-posturas li {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--color-fondo);
+  border: 1px solid currentColor;
+}
+
+.boton-cambiar-programa {
+  background: none;
+  border: 1px solid var(--color-borde);
+  color: #475569;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}

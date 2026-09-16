@@ -169,7 +169,7 @@ function ConsolaDeSesion({ programa, onCambiarPrograma, onCerrarSesion }) {
             </li>
           ))}
         </ul>
-        <button type="button" onClick={onCambiarPrograma}>
+        <button type="button" className="boton-cambiar-programa" onClick={onCambiarPrograma}>
           Cambiar Programa de Debate
         </button>
       </section>
