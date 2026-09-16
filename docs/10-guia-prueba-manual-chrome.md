@@ -20,6 +20,7 @@ No modifiques código. Esta guía es solo de exploración/uso de la UI vía nave
 
 ## 1. Qué SÍ está implementado (probar esto)
 
+- **Redirect de raíz**: `/` debe redirigir a `/host.html` (configurado en `vercel.json`, solo aplica en producción/Vercel tras deploy — en `npm run dev` local la raíz sigue dando 404, eso es normal).
 - **Login del host**: formulario usuario/clave en `/host.html`, con mensaje de error si falla.
 - **Consola del host tras login**: genera un código de sala de 4 dígitos y un QR que apunta a `/player.html?sala={codigo}`.
 - **Página de participante** (`/player.html`):
