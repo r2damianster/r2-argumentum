@@ -1,0 +1,72 @@
+{
+  "programId": "izquierda-vs-derecha-2026",
+  "titulo": "Izquierda o derecha: ¿el eje sigue explicando la política actual?",
+  "version": "1.0.0",
+  "creadoPor": "arturo.rodriguez@uleam.edu.ec",
+  "fechaCreacion": "2026-09-16",
+
+  "temaCentral": "¿El estado debe priorizar la intervención económica y la redistribución (izquierda) o la libertad de mercado y la responsabilidad individual (derecha) para lograr una sociedad más justa?",
+  "preguntaGuia": "¿Qué modelo produce mejores resultados: más estado o más mercado?",
+  "objetivoAprendizaje": "Pensamiento crítico y contraargumentación: distinguir entre postura ideológica y evidencia empírica, evitar falacias de hombre de paja.",
+  "instruccionesParaEstudiantes": "Defiende tu postura asignada con argumentos que tengan una razón o evidencia explícita (no solo opinión). Puedes conectar tu argumento con el de otro compañero como apoyo, contraargumento, dilema, reformulación o concesión.",
+
+  "posturas": [
+    { "id": "izquierda", "etiqueta": "Más estado / redistribución", "color": "#d1495b" },
+    { "id": "derecha", "etiqueta": "Más mercado / libertad individual", "color": "#1f77b4" },
+    { "id": "matizada", "etiqueta": "Matizada / condicional", "color": "#8a8a8a" }
+  ],
+  "asignacionPostura": "aleatoria",
+  "permiteCambioPostura": false,
+
+  "fases": [
+    { "tipo": "escritura_argumentos", "ronda": 1, "limiteArgumentos": 3, "duracionMin": 12 },
+    { "tipo": "escritura_argumentos", "ronda": 2, "limiteArgumentos": "segun_ronda_1", "duracionMin": 10 },
+    { "tipo": "conexion_sugerida", "disparadoPor": "moderador" },
+    { "tipo": "conexion_libre", "ventanaAbierta": "toda_la_sesion" },
+    { "tipo": "cierre_y_ranking" }
+  ],
+
+  "valoresBasePosicion": [10, 8, 3],
+  "descuentoRonda2": 0.7,
+  "descuentoViaCoModerador": 0.5,
+  "maxIntentosGroqPorArgumento": 2,
+  "puntajeCoModerador": { "bidAprobado": 5, "bidRechazado": 0 },
+  "visualizacionRanking": "por_postura_con_tiers",
+  "tiers": ["Sólido", "Consistente", "En desarrollo"],
+
+  "mecanismoTurno": "ruleta_ponderada_con_prioridad_a_no_participantes",
+  "timeoutAceptacion": 20,
+  "maxRechazosAntesDeForzar": 3,
+  "tiempoLimiteEvaluacionBid": 20,
+  "duracionMaximaIntervencionPrincipal": 90,
+  "duracionMaximaIntervencionBid": 45,
+
+  "maxConexionesSalientesPorArgumento": 1,
+  "requiereSeleccionDeTipo": true,
+
+  "criterioValidacion": "claim_mas_razon",
+  "ejemplosPorTema": [
+    {
+      "malo": "La derecha no le importan los pobres.",
+      "bueno": "Los países con menor carga tributaria corporativa, como Irlanda, atrajeron más inversión extranjera en la última década, porque el menor costo fiscal incentiva la instalación de empresas.",
+      "porque": "El malo es un juicio de intención sin evidencia; el bueno tiene claim + razón verificable."
+    },
+    {
+      "malo": "El socialismo siempre fracasa.",
+      "bueno": "Los países nórdicos combinan alto gasto social con indicadores de bienestar altos, porque financian ese gasto con impuestos progresivos sostenidos y mercados laborales flexibles.",
+      "porque": "El malo generaliza sin definir el término; el bueno da un caso concreto con mecanismo causal."
+    }
+  ],
+  "promptSistemaFase1": "Evalúa si el argumento del estudiante tiene una afirmación (claim) y una razón o evidencia explícita ('porque', 'ya que', dato, ejemplo). No evalúes si estás de acuerdo con la postura política ni si el argumento es 'bueno' en sentido filosófico. Responde solo si cumple el criterio estructural.",
+  "promptSistemaFase2": "A partir de los argumentos de esta fase, sugiere posibles conexiones (apoyo, contraargumento, dilema, reformulación, concesión) entre pares de argumentos de distinta postura o de la misma postura. No decidas cuál es correcta, solo sugiere candidatos para que el moderador confirme.",
+
+  "formulaCoModeradores": "ceil(n * 0.10)_min_1",
+  "topeMaximoCoModeradores": null,
+  "exclusionMutua": true,
+
+  "exportaJSON": { "eventLogCompleto": true, "mapaArgumental": true, "rankingPorPostura": true, "perfilPorEstudiante": true },
+  "exportaPDF": true,
+
+  "canalAbly": "debate:izquierda-vs-derecha-2026:{sessionId}",
+  "duracionTotalEstimada": 45
+}
