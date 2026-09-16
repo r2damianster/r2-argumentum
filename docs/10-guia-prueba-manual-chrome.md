@@ -1,90 +1,86 @@
-# Guía de prueba manual — R2 Argumentum (multi-ventana, Claude en Chrome)
+# Guía de prueba manual — R2 Argumentum (motor real, multi-ventana, Claude en Chrome)
 
-Guía para un agente de Claude con control de Chrome. Objetivo: abrir varias pestañas/ventanas simulando los 3 roles (moderador/host, participante, co-moderador) contra la app corriendo en local, ejercitar lo que YA está implementado, y devolver una lista de fallos/problemas detectados. No inventes funcionalidad ni la pruebes por encima de lo que existe — ver sección "Qué NO probar" abajo.
+Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate real de punta a punta (login del host, Programa, sala, turnos, argumentos validados por Groq, conexiones, bids, co-moderación, puntaje, ranking y export) contra producción, y devolver una lista de fallos/problemas detectados. No inventes funcionalidad ni la pruebes por encima de lo que existe.
 
-## 0. Preparar el entorno (una sola vez)
+## 0. Entorno
 
-Usar la pestaña/entorno que esté disponible — no bloquear la prueba por esto, solo dejar anotado cuál se usó en el reporte final:
+- Usar **producción**: `https://r2-argumentum.vercel.app/`.
+  - Host: `/host.html` — Usuario `arturo.rodriguez@uleam.edu.ec` · Clave `R2ironmaiden`.
+  - Participante: `/player.html`.
+- **No probar contra local (`npm run dev` / `vercel dev`)**: `ABLY_API_KEY` y `GROQ_API_KEY` son variables "Sensitive" en Vercel — nunca se pueden recuperar vía CLI, solo corren en la infraestructura de Vercel. Local no puede ejercitar Groq/Ably.
 
-- **Producción (Vercel)** — normalmente la más accesible sin pasos extra:
-  - Raíz: `https://r2-argumentum.vercel.app/` → debe redirigir a `/host.html`.
-  - Consola del host: `https://r2-argumentum.vercel.app/host.html`
-  - Página de participante: `https://r2-argumentum.vercel.app/player.html`
-- **Local** (si hay acceso a terminal y se corrió `npm run dev`):
-  - Vite normalmente sirve en `http://localhost:5173`. Si el puerto es otro, usar el que reporte la consola.
-  - En local la raíz `/` da 404 (el redirect solo aplica en el deploy de Vercel) — **no reportar esto como fallo si el entorno es local**.
-  - Host: `http://localhost:5173/host.html` · Participante: `http://localhost:5173/player.html`
+## 1. Restricción operativa crítica — leer antes de empezar
 
-Credencial del host (hardcodeada a propósito, ver `docs/07-acceso-y-paginas.md`):
-- Usuario: `arturo.rodriguez@uleam.edu.ec`
-- Clave: `R2ironmaiden`
+**Ably retiene el historial del canal solo ~2 minutos por defecto** (`docs/02-arquitectura.md`). Esto no es un bug, es la arquitectura elegida ("sin base de datos"). Implicaciones para la prueba:
 
-No modifiques código. Esta guía es solo de exploración/uso de la UI vía navegador.
+- **Movete rápido entre pasos.** Si te tomás varios minutos pensando/debuggeando entre acciones, al refrescar o reconectar una pestaña el historial ya expiró y la sesión aparece vacía (host: "La sesión todavía no empezó", puntajes en 0; participante: mensaje "No se pudo recuperar la sesión..."). **Esto NO es un fallo a reportar** si pasaron varios minutos — es el límite documentado. Si pasa con **menos de ~90 segundos** de por medio, sí es sospechoso y merece reportarse.
+- Si una pestaña de host se pierde/recarga y no podés recuperar la sesión, lo más simple es arrancar una sesión **nueva** (nuevo código de sala) y hacer que los participantes reingresen con `?sala={codigoNuevo}`, en vez de pelear por recuperar la vieja.
+- No dejes pasar tiempo muerto largo entre "Iniciar sesión" en el host y que los participantes actúen.
 
-## 1. Qué SÍ está implementado (probar esto)
+## 2. Qué SÍ está implementado — el motor real completo
 
-- **Redirect de raíz**: `/` debe redirigir a `/host.html` (configurado en `vercel.json`, solo aplica en producción/Vercel — ver nota en sección 0 sobre local).
-- **Login del host**: formulario usuario/clave en `/host.html`, con mensaje de error si falla.
-- **Consola del host tras login**: genera un código de sala de 4 dígitos y un QR que apunta a `/player.html?sala={codigo}`.
-- **Página de participante** (`/player.html`):
-  - Si se abre con `?sala=XXXX` en la URL, el campo "Código de sala" se prellena solo.
-  - Campos: código de sala (ahora filtra caracteres no numéricos y limita a 4 dígitos — **fix aplicado**, verificar que ya no se puedan escribir letras), nombre, selección de avatar (grid de emojis + botón "🎲 Sorpréndeme").
-  - Botón "Entrar" deshabilitado hasta llenar código + nombre + emoji.
-  - Al enviar, pasa a una pantalla de "Conectando a la sala..." con el código, nombre y emoji elegidos.
+- **Login + selector de Programa de Debate**: catálogo por categoría (Política, Filosofía) o carga de `.json` propio, con tarjeta de resumen (título/tema/posturas) antes de generar sala.
+- **Código de sala + QR**, persistencia de sesión del host en `sessionStorage` (sobrevive F5, pero el login no — hay que volver a loguearse tras un refresh, es comportamiento esperado).
+- **"Iniciar sesión"** (botón del host): sortea co-moderadores (`ceil(n×0.10)`, mínimo 1) y asigna posturas al resto, arranca la fase `Escritura de argumentos · Ronda 1`.
+- **Ruleta de turnos**: prioridad absoluta a quien no tuvo turno, timeout de aceptación (reoferta a otro), tope de rechazos (fuerza el turno). Ver casos borde en la sección 5.
+- **Escritura de argumento**: tipo (nuevo/contra/refuerzo/dilema/pregunta/concesión) + objetivo si aplica + texto → validación Groq (checkpoint 1: ¿tiene claim + razón?). Si rechaza, muestra motivo y permite reintentar (máx. 2 intentos); al agotar intentos, escala directo a co-moderador (`viaCoModerador: true`).
+- **Grafo argumental en vivo** (React Flow): un nodo por argumento, columnas por postura, color semántico por tipo (`docs/08-identidad-visual.md`), aristas por conexión.
+- **Conexión libre**: un participante conecta uno de sus propios argumentos (sin salida previa) con el de otro, eligiendo tipo de relación.
+- **"Cerrar fase actual"** (host): al cerrar una fase de escritura, dispara automáticamente UNA llamada a Groq (checkpoint 2, sugerencia de conexiones en lote) y avanza a la siguiente fase del Programa.
+- **Sugerencias de Groq**: visibles solo a los 2 participantes dueños de los argumentos involucrados, con botones Aceptar/Rechazar.
+- **Bids de intervención**: mientras alguien tiene el turno, otro participante puede lanzar un bid (Desmontar/Fortalecer) sobre uno de sus argumentos; co-moderadores votan aprueba/rechaza; el host da el veredicto final (`PanelDeDecisionDeBids`), que publica el argumento resultante + puntaje.
+- **Panel de co-moderador**: valida argumentos pendientes (confirma/corrige tipo, marca falta, nota) y vota bids abiertos.
+- **Puntaje en vivo**: se ve en tiempo real en la lista de participantes del host, calculado por la fórmula única (`docs/05-reglas-de-puntaje.md`).
+- **Cierre de sesión + Ranking**: al llegar a la fase `cierre_y_ranking`, el host ve ranking por postura con tiers (🥇 Sólido / 🥈 Consistente / 🥉 En desarrollo) y botón para descargar la sesión completa en `.json`. El participante ve su propio resultado (puntaje + tier).
 
-- **Selector de Programa de Debate en el host**: tras el login aparece una pantalla "Elegí el Programa de Debate a abrir", con:
-  - Botón para cargar un archivo `.json` propio (usa `cargarPrograma()`, muestra error si el JSON es inválido o le faltan campos obligatorios).
-  - Catálogo de programas de ejemplo agrupados por categoría (hoy: **Política** → "Izquierda o derecha…", **Filosofía** → "¿Somos libres? Libre albedrío vs. determinismo"). Clic en un título carga ese Programa.
-  - Al cargar un Programa, se muestra tarjeta con título, tema central y posturas (con su color), y botón "Cambiar Programa de Debate" para volver al selector.
-  - Solo después de elegir Programa aparece el código de sala + QR (antes no).
-- **Botón "Cerrar sesión"** en la barra superior del host (visible en selector y en consola de sesión) — vuelve a la pantalla de login.
+## 3. Bugs ya encontrados y arreglados — verificar que NO reaparezcan (regresión), no "redescubrirlos"
 
-## 2. Qué NO está implementado todavía — no intentar probarlo, no reportarlo como fallo
+Estos 5 ya se arreglaron en una sesión de prueba anterior. Si alguno reaparece, es una regresión real y sí va en la tabla de fallos:
 
-Esto es trabajo pendiente conocido (ver `docs/06-pendientes.md`), no existe UI para ello todavía. Solo anotarlo como "confirmado pendiente" en el reporte si se nota, sin perder tiempo buscándolo:
+1. Historial de Ably no cargaba (incompatibilidad `direction:forwards` + `untilAttach`).
+2. Validación Groq fallaba casi siempre por `max_tokens` insuficiente (truncaba el JSON).
+3. Un error HTTP del validador se mostraba como mensaje de error vacío.
+4. Nodo de argumento "nuevo" se pintaba gris en vez de azul (mismatch de clave de color).
+5. **Deadlock de turnos**: si el único participante elegible dejaba expirar su oferta de turno, quedaba excluido para siempre y la ruleta nunca volvía a ofrecer nada. Este es el más importante de re-verificar (ver caso borde en sección 5).
 
-- **No hay control de fases, grafo argumental, ranking ni sorteo de co-moderadores** — el Programa se carga y muestra su resumen, pero no se puede "avanzar" el debate desde ahí todavía.
-- **No hay rol de co-moderador diferenciado** — todo participante ve la misma pantalla de "Conectando…"; no hay panel de valoración/voto de bids. No puede probarse porque no está construido.
-- **No hay debate real**: sin fases, turnos, escritura de argumentos, conexión libre, grafo, ni ranking. La sesión termina en la pantalla de "Conectando a la sala…" y ahí se acaba lo navegable.
-- No hay conexión real a Ably (presence, turnos, eventos en vivo). El texto "Conectando a la sala…" es un placeholder estático.
-- El código de sala se genera al azar en cada carga de la consola del host — no hay backend que lo persista ni lo valide contra lo que un participante escribe. Un participante puede "entrar" con cualquier código de 4 dígitos porque no hay validación real todavía.
+## 4. Escenario multi-ventana (mínimo 4 pestañas: 1 host + 3 participantes)
 
-## 3. Escenario multi-ventana
+Con solo 2 participantes, `ceil(2×0.10)`=1 co-moderador deja apenas 1 argumentador — insuficiente para probar bids (hace falta alguien con turno + alguien más para lanzar el bid + el co-moderador para votar). Usar 3 participantes da más margen.
 
-Abre pestañas separadas para simular los roles simultáneamente:
+1. **Host**: login → Programa "Izquierda o derecha" (categoría Política) → anotar código de sala.
+2. **Participantes** (3 pestañas): entrar con nombres "Ana", "Luis", "Marta", emojis distintos, mismo código.
+3. **Host**: "Iniciar sesión". Confirmar: 1 co-moderador sorteado, los otros 2 con postura asignada, fase "Escritura de argumentos · Ronda 1" activa.
+4. Quien tenga el turno: Aceptar → escribir un argumento **malo** (sin "porque"/razón) → confirmar rechazo de Groq con motivo → reintentar con uno **bueno** (con razón/evidencia) → confirmar que se publica y aparece en el grafo con el color correcto según su tipo.
+5. El co-moderador: confirmar que ve el argumento en "Argumentos por validar", confirmar la validación → verificar que el puntaje aparece en vivo en el host (fórmula: posición 1, ronda 1, sin descuento = 10 pts).
+6. Repetir turno con el otro participante para tener 2+ argumentos.
+7. **Bid**: mientras alguien tiene el turno, el tercer participante lanza un bid (Desmontar o Fortalecer) sobre un argumento de quien tiene el turno. El co-moderador vota. El host cierra el tópico de bids y da veredicto (Aprobar/Rechazar) desde el panel correspondiente → confirmar que se publica el argumento resultante y el puntaje de quien votó coincidente con la decisión.
+8. **Host**: "Cerrar fase actual" → confirmar (sin errores en consola) que se dispara la llamada a Groq de sugerencias y que aparecen `link.suggested` solo para los 2 dueños involucrados (si hay al menos 2 argumentos).
+9. Un participante: aceptar o rechazar una sugerencia visible.
+10. Conexión libre: un participante conecta un argumento propio ya publicado (sin salida) con el de otro, elige tipo de relación → confirmar arista nueva en el grafo.
+11. Avanzar fases (el Programa tiene Ronda 1 → Ronda 2 → conexión libre → cierre y ranking) hasta llegar a `cierre_y_ranking`. Host: confirmar pantalla de ranking por postura con tiers, botón "Cerrar sesión", luego "Descargar sesión (.json)" → confirmar que el archivo descargado tiene `eventLogCompleto`, `mapaArgumental`, `rankingPorPostura`, `perfilPorEstudiante`.
+12. Participantes: confirmar que ven su propio resultado (puntaje + tier) en vez del formulario de argumento.
 
-1. **Pestaña A — Host/moderador**: ir a `/host.html`, hacer login, elegir un Programa de ejemplo del catálogo (ej. categoría "Política"), confirmar que se muestre la tarjeta con título/tema/posturas, y anotar el código de sala y la URL del QR (`/player.html?sala=XXXX`) que aparece.
-2. **Pestaña B — Participante 1**: abrir la URL exacta del QR anotado en el paso 1 (con `?sala=XXXX`). Verificar que el código venga prellenado. Elegir nombre "Ana" y un emoji manualmente. Entrar.
-3. **Pestaña C — Participante 2**: abrir `/player.html` SIN parámetro de sala. Escribir el código a mano. Usar "🎲 Sorpréndeme" para el avatar. Nombre "Luis". Entrar.
-4. **Pestaña D — Co-moderador (simulado)**: mismo flujo que un participante normal (no hay panel diferenciado todavía) — nombre "Marta", cualquier emoji, cualquier código de 4 dígitos (real o inventado, para confirmar que no hay validación aún).
+## 5. Casos borde importantes
 
-## 4. Casos borde a ejercitar en cada pestaña de participante
+- **Deadlock de turnos (regresión del bug #5)**: dejá expirar una oferta de turno sin aceptar ni rechazar (esperá el timeout, `timeoutAceptacion` del Programa — normalmente 20s) cuando quede un solo participante elegible. Confirmar que la ruleta SÍ vuelve a ofrecerle el turno después (no debe quedar trabada para siempre).
+- Escribir un argumento malo 2 veces seguidas (agotar `maxIntentosGroqPorArgumento`, normalmente 2) → confirmar que escala automáticamente (`viaCoModerador: true`) y aparece marcado como tal en el panel de co-moderador.
+- Refrescar (F5) una pestaña de participante **antes** de que pase mucho tiempo (dentro de ~1 minuto) → debe reconstruir el estado completo sin perder nada. Si pasó mucho tiempo, ver sección 1 (esperado, no reportar).
+- Intentar conectar el mismo argumento propio dos veces (ya tiene salida) → no debe permitirlo / no debe aparecer como opción disponible.
+- Cargar un `.json` de Programa inválido en el host → mensaje de error, no debe avanzar.
+- Responsive: reducir el viewport en la pestaña de participante (entran desde celular vía QR).
 
-- Dejar "código de sala" vacío → botón Entrar debe seguir deshabilitado.
-- Dejar "nombre" vacío → botón Entrar debe seguir deshabilitado.
-- No elegir ningún emoji → botón Entrar debe seguir deshabilitado.
-- Escribir letras/símbolos en el campo de código (ej. `abcXYZ12`) — debe rechazarlos y quedar solo con los dígitos escritos, máximo 4 caracteres. **Regresión a confirmar**: esto falló en una prueba anterior (aceptaba texto libre) y se aplicó un fix — verificar que ya no ocurra.
-- Refrescar la página (F5) después de "Entrar" — ver si se pierde el estado o si mantiene algo por URL.
-- Abrir dos pestañas de participante con el MISMO nombre y MISMO emoji — no hay backend, así que no debería bloquear nada; confirmar que no truena la UI.
-- En el host: recargar `/host.html` — el código de sala cambia (es aleatorio en memoria, no persiste). Confirmar que efectivamente cambia y que el QR se regenera acorde.
-- Login del host con clave incorrecta — confirmar mensaje de error exacto y que no deja pasar.
-- Probar responsive: reducir el viewport (simular móvil) en la pestaña de participante, ya que los estudiantes entran desde celular vía QR.
-- En el host: subir un archivo `.json` inválido (ej. `{"foo":"bar"}`) con "Cargar archivo propio" → debe mostrar mensaje de error y NO avanzar a la tarjeta de Programa.
-- En el host: cargar un Programa de ejemplo, luego "Cambiar Programa de Debate" → debe volver al selector (código de sala anterior se descarta).
-- En el host: "Cerrar sesión" desde el selector de Programa y desde la consola de sesión (con Programa ya cargado) → ambas deben volver al login; loguear de nuevo debe arrancar limpio en el selector de Programa (no debe "recordar" el Programa anterior).
+## 6. Formato de reporte de fallos
 
-## 5. Formato de reporte de fallos
-
-Al terminar, entrega una tabla en markdown, una fila por hallazgo, ordenada de más a menos grave:
+Tabla en markdown, más grave primero:
 
 | # | Pantalla | Pasos para reproducir | Esperado | Obtenido | Severidad (alta/media/baja) |
 |---|----------|------------------------|----------|----------|------------------------------|
 | 1 | ... | ... | ... | ... | ... |
 
-Si algo de la sección "2. Qué NO está implementado" aparece como faltante, NO lo pongas en la tabla de fallos — ponlo aparte, en una lista corta "Pendiente conocido, confirmado en esta prueba".
+- Si algo falla por historial de Ably expirado tras varios minutos de por medio, no lo pongas en la tabla — anotalo aparte como "esperado por retención de Ably".
+- Si alguno de los 5 bugs de la sección 3 reaparece, marcalo como "REGRESIÓN" y ponelo primero en la tabla, severidad alta.
+- Si no hay fallos reales, decilo explícitamente: "Sin fallos detectados en el alcance actual". No inventes hallazgos.
 
-Si no encuentras ningún fallo real, dilo explícitamente: "Sin fallos detectados en el alcance actual" — no inventes hallazgos para llenar la tabla.
+## 7. Cierre
 
-## 6. Cierre
-
-Al final del reporte, agrega una sección "Resumen" de máximo 3 líneas: cuántos fallos altos/medios/bajos, y si el flujo básico host→QR→participante funciona de punta a punta o no.
+Sección "Resumen" de máximo 4 líneas: cuántos fallos por severidad, si hubo regresiones de la sección 3, y si el ciclo completo (turno → argumento → validación → puntaje → bid → cierre → ranking → export) se completó de punta a punta o dónde se cortó.
