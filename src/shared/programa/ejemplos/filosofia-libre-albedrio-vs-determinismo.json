@@ -1,0 +1,73 @@
+{
+  "programId": "libre-albedrio-vs-determinismo-2026",
+  "titulo": "¿Somos libres? Libre albedrío vs. determinismo",
+  "categoria": "Filosofía",
+  "version": "1.0.0",
+  "creadoPor": "arturo.rodriguez@uleam.edu.ec",
+  "fechaCreacion": "2026-09-16",
+
+  "temaCentral": "¿Las decisiones humanas son genuinamente libres, o son el resultado inevitable de causas previas (biológicas, sociales, físicas) que solo no percibimos?",
+  "preguntaGuia": "Si pudiéramos rebobinar el universo exactamente hasta un segundo antes de una decisión tuya, ¿podrías haber decidido distinto?",
+  "objetivoAprendizaje": "Pensamiento crítico y contraargumentación: distinguir una intuición ('se siente libre') de un argumento con razón o mecanismo causal explícito.",
+  "instruccionesParaEstudiantes": "Defiende tu postura asignada con argumentos que tengan una razón o evidencia explícita (no solo intuición o sentido común). Puedes conectar tu argumento con el de otro compañero como apoyo, contraargumento, dilema, reformulación o concesión.",
+
+  "posturas": [
+    { "id": "libertario", "etiqueta": "Libre albedrío existe", "color": "#2a9d8f" },
+    { "id": "determinista", "etiqueta": "Todo está determinado", "color": "#e76f51" },
+    { "id": "compatibilista", "etiqueta": "Matizada / compatibilista", "color": "#8a8a8a" }
+  ],
+  "asignacionPostura": "aleatoria",
+  "permiteCambioPostura": false,
+
+  "fases": [
+    { "tipo": "escritura_argumentos", "ronda": 1, "limiteArgumentos": 3, "duracionMin": 12 },
+    { "tipo": "escritura_argumentos", "ronda": 2, "limiteArgumentos": "segun_ronda_1", "duracionMin": 10 },
+    { "tipo": "conexion_sugerida", "disparadoPor": "moderador" },
+    { "tipo": "conexion_libre", "ventanaAbierta": "toda_la_sesion" },
+    { "tipo": "cierre_y_ranking" }
+  ],
+
+  "valoresBasePosicion": [10, 8, 3],
+  "descuentoRonda2": 0.7,
+  "descuentoViaCoModerador": 0.5,
+  "maxIntentosGroqPorArgumento": 2,
+  "puntajeCoModerador": { "bidAprobado": 5, "bidRechazado": 0 },
+  "visualizacionRanking": "por_postura_con_tiers",
+  "tiers": ["Sólido", "Consistente", "En desarrollo"],
+
+  "mecanismoTurno": "ruleta_ponderada_con_prioridad_a_no_participantes",
+  "timeoutAceptacion": 20,
+  "maxRechazosAntesDeForzar": 3,
+  "tiempoLimiteEvaluacionBid": 20,
+  "duracionMaximaIntervencionPrincipal": 90,
+  "duracionMaximaIntervencionBid": 45,
+
+  "maxConexionesSalientesPorArgumento": 1,
+  "requiereSeleccionDeTipo": true,
+
+  "criterioValidacion": "claim_mas_razon",
+  "ejemplosPorTema": [
+    {
+      "malo": "Yo siento que soy libre, así que lo soy.",
+      "bueno": "Los experimentos de Libet muestran actividad cerebral (potencial de disposición) antes de que el sujeto reporte haber 'decidido' conscientemente, porque el cerebro inicia el proceso motor antes que la conciencia lo registre.",
+      "porque": "El malo apela solo a la introspección; el bueno cita un mecanismo y evidencia verificable, aunque debatible."
+    },
+    {
+      "malo": "Si todo está determinado no tendría sentido castigar a nadie, y eso es absurdo, entonces el determinismo es falso.",
+      "bueno": "Si el comportamiento humano sigue leyes causales igual que cualquier sistema físico, entonces la responsabilidad moral debería redefinirse en términos de prevención y reforma, no de culpa retributiva, porque castigar no depende de que el acto haya sido 'evitable en un sentido absoluto'.",
+      "porque": "El malo es una falacia de consecuencias indeseables (rechaza la premisa solo por su implicación incómoda); el bueno propone un mecanismo alternativo consistente con la premisa."
+    }
+  ],
+  "promptSistemaFase1": "Evalúa si el argumento del estudiante tiene una afirmación (claim) y una razón o evidencia explícita ('porque', 'ya que', un mecanismo, un experimento mental o un dato). No evalúes si estás de acuerdo con la postura filosófica ni califiques qué tan 'profundo' es. Responde solo si cumple el criterio estructural.",
+  "promptSistemaFase2": "A partir de los argumentos de esta fase, sugiere posibles conexiones (apoyo, contraargumento, dilema, reformulación, concesión) entre pares de argumentos de distinta postura o de la misma postura. No decidas cuál es correcta, solo sugiere candidatos para que el moderador confirme.",
+
+  "formulaCoModeradores": "ceil(n * 0.10)_min_1",
+  "topeMaximoCoModeradores": null,
+  "exclusionMutua": true,
+
+  "exportaJSON": { "eventLogCompleto": true, "mapaArgumental": true, "rankingPorPostura": true, "perfilPorEstudiante": true },
+  "exportaPDF": true,
+
+  "canalAbly": "debate:libre-albedrio-vs-determinismo-2026:{sessionId}",
+  "duracionTotalEstimada": 45
+}

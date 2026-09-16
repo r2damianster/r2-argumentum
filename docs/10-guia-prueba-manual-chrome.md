@@ -32,11 +32,18 @@ No modifiques código. Esta guía es solo de exploración/uso de la UI vía nave
   - Botón "Entrar" deshabilitado hasta llenar código + nombre + emoji.
   - Al enviar, pasa a una pantalla de "Conectando a la sala..." con el código, nombre y emoji elegidos.
 
+- **Selector de Programa de Debate en el host**: tras el login aparece una pantalla "Elegí el Programa de Debate a abrir", con:
+  - Botón para cargar un archivo `.json` propio (usa `cargarPrograma()`, muestra error si el JSON es inválido o le faltan campos obligatorios).
+  - Catálogo de programas de ejemplo agrupados por categoría (hoy: **Política** → "Izquierda o derecha…", **Filosofía** → "¿Somos libres? Libre albedrío vs. determinismo"). Clic en un título carga ese Programa.
+  - Al cargar un Programa, se muestra tarjeta con título, tema central y posturas (con su color), y botón "Cambiar Programa de Debate" para volver al selector.
+  - Solo después de elegir Programa aparece el código de sala + QR (antes no).
+- **Botón "Cerrar sesión"** en la barra superior del host (visible en selector y en consola de sesión) — vuelve a la pantalla de login.
+
 ## 2. Qué NO está implementado todavía — no intentar probarlo, no reportarlo como fallo
 
 Esto es trabajo pendiente conocido (ver `docs/06-pendientes.md`), no existe UI para ello todavía. Solo anotarlo como "confirmado pendiente" en el reporte si se nota, sin perder tiempo buscándolo:
 
-- **No hay selector ni carga de Programa de Debate** en la consola del host — por eso no aparece ninguna pantalla para elegir el tema/debate a abrir (ej. el de "izquierda vs. derecha"). Es la siguiente pieza a construir, no un fallo de esta prueba.
+- **No hay control de fases, grafo argumental, ranking ni sorteo de co-moderadores** — el Programa se carga y muestra su resumen, pero no se puede "avanzar" el debate desde ahí todavía.
 - **No hay rol de co-moderador diferenciado** — todo participante ve la misma pantalla de "Conectando…"; no hay panel de valoración/voto de bids. No puede probarse porque no está construido.
 - **No hay debate real**: sin fases, turnos, escritura de argumentos, conexión libre, grafo, ni ranking. La sesión termina en la pantalla de "Conectando a la sala…" y ahí se acaba lo navegable.
 - No hay conexión real a Ably (presence, turnos, eventos en vivo). El texto "Conectando a la sala…" es un placeholder estático.
@@ -46,7 +53,7 @@ Esto es trabajo pendiente conocido (ver `docs/06-pendientes.md`), no existe UI p
 
 Abre pestañas separadas para simular los roles simultáneamente:
 
-1. **Pestaña A — Host/moderador**: ir a `/host.html`, hacer login, anotar el código de sala y la URL del QR (`/player.html?sala=XXXX`) que aparece.
+1. **Pestaña A — Host/moderador**: ir a `/host.html`, hacer login, elegir un Programa de ejemplo del catálogo (ej. categoría "Política"), confirmar que se muestre la tarjeta con título/tema/posturas, y anotar el código de sala y la URL del QR (`/player.html?sala=XXXX`) que aparece.
 2. **Pestaña B — Participante 1**: abrir la URL exacta del QR anotado en el paso 1 (con `?sala=XXXX`). Verificar que el código venga prellenado. Elegir nombre "Ana" y un emoji manualmente. Entrar.
 3. **Pestaña C — Participante 2**: abrir `/player.html` SIN parámetro de sala. Escribir el código a mano. Usar "🎲 Sorpréndeme" para el avatar. Nombre "Luis". Entrar.
 4. **Pestaña D — Co-moderador (simulado)**: mismo flujo que un participante normal (no hay panel diferenciado todavía) — nombre "Marta", cualquier emoji, cualquier código de 4 dígitos (real o inventado, para confirmar que no hay validación aún).
@@ -62,6 +69,9 @@ Abre pestañas separadas para simular los roles simultáneamente:
 - En el host: recargar `/host.html` — el código de sala cambia (es aleatorio en memoria, no persiste). Confirmar que efectivamente cambia y que el QR se regenera acorde.
 - Login del host con clave incorrecta — confirmar mensaje de error exacto y que no deja pasar.
 - Probar responsive: reducir el viewport (simular móvil) en la pestaña de participante, ya que los estudiantes entran desde celular vía QR.
+- En el host: subir un archivo `.json` inválido (ej. `{"foo":"bar"}`) con "Cargar archivo propio" → debe mostrar mensaje de error y NO avanzar a la tarjeta de Programa.
+- En el host: cargar un Programa de ejemplo, luego "Cambiar Programa de Debate" → debe volver al selector (código de sala anterior se descarta).
+- En el host: "Cerrar sesión" desde el selector de Programa y desde la consola de sesión (con Programa ya cargado) → ambas deben volver al login; loguear de nuevo debe arrancar limpio en el selector de Programa (no debe "recordar" el Programa anterior).
 
 ## 5. Formato de reporte de fallos
 
