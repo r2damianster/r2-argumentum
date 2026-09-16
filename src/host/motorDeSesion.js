@@ -30,17 +30,24 @@ function sorteoPonderado(candidatos, pesos) {
 // 1ra/2da/3ra), independientemente de en qué ronda se completen — la ronda solo afecta el
 // descuento de puntaje (ver calcularPuntajeDeArgumento), no el tope acumulado de posiciones.
 function elegirCandidatoParaTurno(estado, presencia, limiteDePosiciones) {
-  const elegibles = presencia
+  const candidatosPosibles = presencia
     .map((presente) => presente.participantId)
     .filter((participantId) => estado.participantes[participantId]?.rol !== 'co_moderador')
-    .filter((participantId) => !estado.turnos.excluidosTemporalmente.includes(participantId))
     .filter(
       (participantId) => (estado.participantes[participantId]?.posicionesCompletadas ?? 0) < limiteDePosiciones
     );
 
-  if (elegibles.length === 0) {
+  if (candidatosPosibles.length === 0) {
     return null;
   }
+
+  // La exclusión temporal prioriza a otros participantes tras un rechazo/timeout, pero si
+  // ahora mismo TODOS los candidatos posibles están excluidos (ej. queda uno solo y ya
+  // timeouteó), ignorarla es la única forma de no bloquear la ruleta para siempre.
+  const sinExcluidos = candidatosPosibles.filter(
+    (participantId) => !estado.turnos.excluidosTemporalmente.includes(participantId)
+  );
+  const elegibles = sinExcluidos.length > 0 ? sinExcluidos : candidatosPosibles;
 
   const sinTurnoPrincipal = elegibles.filter(
     (participantId) => (estado.participantes[participantId]?.turnosPrincipalesAceptados ?? 0) === 0
