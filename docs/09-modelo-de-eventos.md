@@ -5,20 +5,30 @@ Arquitectura basada en eventos (event sourcing): todo el estado de la sesión �
 ## Canal
 
 ```
-debate:{programId}:{sessionId}
+debate:sala:{codigoDeSala}
 ```
 
-Un solo canal por sesión. Todos los clientes (host, participantes, co-moderadores) se suscriben al mismo canal y mantienen su propio estado derivado localmente.
+**Implementado distinto a la versión original de este doc** (`debate:{programId}:{sessionId}`): el player solo conoce el código de sala de 4 dígitos al entrar, no el `programId` — sin backend no hay forma de resolverlo. El segmento `programId` se reemplaza por el literal `sala`, y `sessionId` es el propio código de 4 dígitos. Un solo canal por sesión; todos los clientes (host, participantes, co-moderadores) se suscriben al mismo canal y mantienen su propio estado derivado localmente con un reducer puro (`src/shared/estado/reducirEventos.js`).
+
+## Descubrimiento del Programa por el player
+
+```
+programa.publicado { programa: <Programa completo> }
+```
+
+Evento agregado durante la implementación (no estaba en la versión original de este doc). Lo publica el **host**, una vez, al montar la consola de sesión — antes de eso el player no tiene forma de conocer el tema, las posturas, ni los `ejemplosPorTema` que necesita para llamar a Groq. El player no habilita ninguna UI hasta recibirlo (vía backfill del historial o en vivo).
 
 ## Presence (nativo de Ably, no eventos custom)
 
 Al entrar, cada cliente hace `presence.enter()` con:
 
 ```
-{ participantId, nombre, emoji, rol: "moderador" | "co_moderador" | "participante" }
+{ nombre, emoji }
 ```
 
-Se usa para: saber quién está conectado (ruleta de turnos), sorteo de co-moderadores, mostrar lista de participantes en la consola del host.
+**Implementado distinto a la versión original**: el `rol` NO viaja en el payload de presence — se deriva del evento `comod.selected` (si el `participantId` está en la lista, es co-moderador; si no, es participante). El host nunca hace `presence.enter()` (no es un participante, solo observa `presence.subscribe()` para la ruleta de turnos y la lista en vivo).
+
+Se usa para: saber quién está conectado (ruleta de turnos), mostrar lista de participantes en la consola del host.
 
 ## Eventos de control de fase (publica el Moderador)
 

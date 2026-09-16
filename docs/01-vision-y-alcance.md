@@ -1,5 +1,7 @@
 # Visión y alcance
 
+> **Estado:** el alcance descrito acá ya está construido y desplegado (ver `README.md` y `docs/06-pendientes.md` para el detalle de qué está cerrado y qué falta).
+
 ## Problema que resuelve
 
 Los debates estudiantiles tradicionales premian quién habla más o quién "gana" una votación superficial. Esta plataforma registra la **estructura argumental** — cómo se relacionan los argumentos entre sí — no solo la participación.

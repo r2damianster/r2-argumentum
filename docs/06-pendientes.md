@@ -1,30 +1,31 @@
 # Pendientes y próximos pasos
 
-Decisiones abiertas o trabajo técnico que todavía no se ha hecho. No empezar a escribir código de la aplicación (componentes React, etc.) hasta cerrar al menos el modelo de eventos.
+Decisiones abiertas o trabajo técnico que todavía no se ha hecho, y registro de lo que ya se cerró.
 
-## Próximo paso inmediato
+## Cerrado
 
-- ~~Modelo de eventos completo~~ — cerrado, ver `09-modelo-de-eventos.md`.
-- ~~Estructura de archivos del código~~ — cerrado. Scaffold funcional: `host.html`/`player.html` (Vite multi-page), `src/host` y `src/player` (React), `src/shared` (cliente Ably, nombres de eventos, fórmula de puntaje, colores, carga de Programa), `api/` (funciones serverless: `ably-token.js`, `groq-validar-argumento.js`, `groq-sugerir-conexiones.js`). `npm run build` y `npm run dev` verificados funcionando.
-- ~~Variables de entorno en Vercel~~ — cerrado. `ABLY_API_KEY` y `GROQ_API_KEY` cargadas en Production y Preview; probadas en vivo contra `r2-argumentum` en Vercel: `/api/ably-token` genera tokens correctamente, `/api/groq-validar-argumento` distingue bien un argumento sin razón ("las personas son malas") de uno con razón, `/api/groq-sugerir-conexiones` devuelve sugerencias de relación entre dos argumentos.
-- **Nota para el futuro — modelos de Groq:** el catálogo de modelos de Groq cambia; `llama-3.1-70b-versatile` y `llama-3.3-70b-versatile` estaban descontinuados/no disponibles al probar (sept. 2026). Modelos vigentes usados: `openai/gpt-oss-20b` (validación, checkpoint 1) y `openai/gpt-oss-120b` (sugerencia de conexiones, checkpoint 2) — ambos con soporte de `json_mode`. Si un endpoint empieza a fallar con `model_decommissioned` o `model_not_found`, consultar `GET https://api.groq.com/openai/v1/models` con la key activa para ver el catálogo vigente antes de asumir que la key es inválida.
-- ~~Key Root de Ably~~ — cerrado. Root y Subscribe-only revocadas; key nueva restringida a `debate:*` (Publish+Subscribe+Presence+History) creada, cargada en Vercel y probada en producción.
+- ~~Modelo de eventos completo~~ — ver `09-modelo-de-eventos.md`. Implementado tal cual, con un agregado no documentado originalmente: evento `programa.publicado` (el host lo emite al abrir la sala para que el participante, que solo conoce el código de 4 dígitos, reciba el Programa completo sin necesitar backend). Canal real usado: `debate:sala:{codigoDeSala}` (no `debate:{programId}:{sessionId}` como decía el doc original — el player no tiene forma de conocer el `programId` sin backend).
+- ~~Estructura de archivos del código~~ — scaffold + motor real completos: `host.html`/`player.html` (Vite multi-page), `src/host` (consola, `motorDeSesion.js` = autoridad única de turnos/fases/puntaje/bids), `src/player` (formulario de argumento, grafo, paneles de bid/co-moderador/conexión), `src/shared/estado` (reducer + hook de event-sourcing), `api/` (`ably-token.js`, `groq-validar-argumento.js`, `groq-sugerir-conexiones.js`).
+- ~~Variables de entorno en Vercel~~ — `ABLY_API_KEY` y `GROQ_API_KEY` son variables **Sensitive** en Production (no recuperables vía CLI, solo corren en la infraestructura de Vercel — probar cambios contra producción, no local).
+- ~~Key Root de Ably~~ — revocada, key restringida a `debate:*` en uso.
+- ~~Herramienta de visualización del grafo argumental~~ — **React Flow** (`@xyflow/react`), no Cytoscape. Un nodo por argumento coloreado por tipo semántico, columnas por postura, aristas por conexión.
+- ~~Motor de debate real~~ (turnos, escritura de argumentos + validación Groq, co-moderación, bids, puntaje en vivo, ranking, export JSON) — construido y probado contra producción en una sesión de prueba en vivo; ver `10-guia-prueba-manual-chrome.md` para el detalle de qué se verificó y qué bugs se encontraron/corrigieron.
 
-## Decisiones abiertas (no bloquean el arranque, pero hay que resolverlas pronto)
+**Nota para el futuro — modelos de Groq:** el catálogo cambia. Modelos vigentes: `openai/gpt-oss-20b` (validación, checkpoint 1, `max_tokens: 600`) y `openai/gpt-oss-120b` (sugerencia de conexiones, checkpoint 2, `max_tokens: 1500`) — ambos gastan tokens en razonamiento interno antes de emitir el JSON incluso en `json_mode`; un `max_tokens` bajo produce `json_validate_failed` casi siempre (bug real encontrado y corregido en sept. 2026). Si un endpoint falla con `model_decommissioned`, consultar `GET https://api.groq.com/openai/v1/models`.
 
-- Nombre definitivo del proyecto (provisional: "Argumentum").
-- Tope máximo de co-moderadores para grupos grandes (la fórmula `ceil(n × 0.10)` no tiene techo definido todavía; ¿se limita a un máximo absoluto, ej. 6-8, independientemente del tamaño del curso?).
-- Herramienta de visualización del grafo argumental: React Flow vs. Cytoscape.js — evaluar cuál es más simple de integrar para el MVP.
-- Detalle técnico de la autenticación simple (nombre + apellido + emoji): cómo se generan y evitan colisiones de emoji/nombre dentro de una misma sesión.
-- Valores concretos de `puntajeConexion` (aceptar sugerencia / conectar manual / corregir tras rechazo) — están definidos como parámetros en el Programa pero faltan números por defecto.
-- Formato exacto del export PDF ("mapa de evolución argumentativa") — es una mecánica valiosa pero no crítica para el primer build funcional.
+## Decisiones abiertas (no bloquean el uso actual, pero hay que resolverlas pronto)
+
+- **Puntaje de conexiones no implementado.** El esquema del Programa define `puntajeConexion` (aceptar sugerencia / conectar manual / corregir tras rechazo) pero el motor (`motorDeSesion.js`) todavía no publica ningún `score.updated` cuando se crea un `link.created` o se resuelve una sugerencia — hoy solo puntúan argumentos y bids. Hace falta decidir los valores y agregar esa reacción al motor.
+- Nombre definitivo del proyecto (provisional: "Argumentum" / marca "R2 Argumentum").
+- Tope máximo de co-moderadores para grupos grandes (la fórmula `ceil(n × 0.10)` no tiene techo definido; el Programa ya soporta `topeMaximoCoModeradores` pero no hay UI para configurarlo desde el host, solo desde el JSON).
+- Formato exacto del export PDF ("mapa de evolución argumentativa") — hoy solo hay export JSON.
+- Bonos de co-moderador no automatizables con el modelo de eventos actual: `FEEDBACK_USADO_PARA_REFORMULAR` y `CONSISTENCIA_EN_REVISION_CRUZADA` (existen como constantes en `formulaDePuntaje.js` pero el motor nunca los dispara — requieren señales que hoy no se capturan).
+- Sin UI en el host para configurar `timeoutAceptacion`, `tiempoLimiteEvaluacionBid`, etc. por sesión — se usan siempre los valores del Programa cargado.
 
 ## Mecánicas de fases futuras (explícitamente fuera de v1)
 
-- **Bid de tipo "agregar argumento nuevo"** (pedir turno para sumar un argumento propio sin apuntar a nadie, no solo desmontar/fortalecer) — se descartó de v1 por riesgo de perder profundidad en la discusión; posible v2 si el flujo de desmontar/fortalecer funciona bien en aula.
-- Reconocimiento de voz en vivo (Web Speech API) como alternativa/complemento a escribir el argumento.
-- Modo torneo (argumentos anónimos, adivinar autor/postura).
-- "Argumento fantasma" (desafío del sistema tras una intervención).
-- "Defiende lo contrario" (cambio forzado de postura a mitad de debate).
-- Modo cooperativo sin equipos (construcción colectiva de un argumento único).
-- Backend/base de datos para histórico institucional entre sesiones, más allá del archivo JSON del Programa y el export de sesión.
+- **Bid de tipo "agregar argumento nuevo"** (no solo desmontar/fortalecer) — posible v2.
+- Reconocimiento de voz en vivo (Web Speech API).
+- Modo torneo, "argumento fantasma", "defiende lo contrario", modo cooperativo sin equipos.
+- "Revisión cruzada aleatoria" de co-moderadores (auditoría automática de consistencia).
+- Backend/base de datos para histórico institucional entre sesiones, más allá del JSON del Programa y el export de sesión.
