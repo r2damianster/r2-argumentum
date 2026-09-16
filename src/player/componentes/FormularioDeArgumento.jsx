@@ -59,7 +59,11 @@ export function FormularioDeArgumento({ estado, programa, participantId, turnoEn
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ texto, ejemplos: programa.ejemplosPorTema }),
       });
-      resultado = await respuesta.json();
+      if (!respuesta.ok) {
+        resultado = { aprobado: false, motivo: 'El validador no respondió, intentá de nuevo.', sugerenciaDeCorreccion: '' };
+      } else {
+        resultado = await respuesta.json();
+      }
     } catch {
       resultado = { aprobado: false, motivo: 'No se pudo validar (error de conexión).', sugerenciaDeCorreccion: '' };
     }

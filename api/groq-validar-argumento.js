@@ -46,7 +46,7 @@ Devuelve SOLO JSON válido con esta forma exacta:
           { role: 'user', content: texto },
         ],
         temperature: 0.2,
-        max_tokens: 150,
+        max_tokens: 600,
         response_format: { type: 'json_object' },
       }),
     });

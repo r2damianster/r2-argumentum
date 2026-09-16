@@ -42,7 +42,7 @@ Devuelve SOLO un JSON con esta forma exacta:
           { role: 'user', content: listaDeArgumentos },
         ],
         temperature: 0.3,
-        max_tokens: 800,
+        max_tokens: 1500,
         response_format: { type: 'json_object' },
       }),
     });
