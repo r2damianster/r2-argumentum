@@ -2,13 +2,21 @@ import { useMemo } from 'react';
 import { ReactFlow, Background, MarkerType } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { COLORES_SEMANTICOS_DEL_GRAFO } from '../../shared/estilos/colores.js';
+import { TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
 
 const ANCHO_DE_COLUMNA = 260;
 const ALTO_DE_NODO = 110;
 
+// TIPOS_DE_RELACION.NUEVO ('nuevo') no tiene clave propia en la paleta semántica
+// (docs/08-identidad-visual.md la llama "argumentoOriginal") — se traduce acá.
+const CLAVE_DE_COLOR_POR_TIPO = {
+  [TIPOS_DE_RELACION.NUEVO]: 'argumentoOriginal',
+};
+
 function colorDelArgumento(argumento) {
   const tipo = argumento.validacion?.tipoFinal || argumento.tipoDeclarado;
-  return COLORES_SEMANTICOS_DEL_GRAFO[tipo] || COLORES_SEMANTICOS_DEL_GRAFO.pregunta;
+  const claveDeColor = CLAVE_DE_COLOR_POR_TIPO[tipo] || tipo;
+  return COLORES_SEMANTICOS_DEL_GRAFO[claveDeColor] || COLORES_SEMANTICOS_DEL_GRAFO.pregunta;
 }
 
 export function GrafoDeArgumentos({ estado, programa }) {
