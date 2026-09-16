@@ -1,12 +1,21 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { cargarPrograma } from '../shared/programa/cargarPrograma.js';
 import { PROGRAMAS_DE_EJEMPLO, agruparProgramasPorCategoria } from '../shared/programa/ejemplos/index.js';
+import { useEstadoDeSesion } from '../shared/estado/useEstadoDeSesion.js';
+import { EVENTOS, TIPOS_DE_FASE } from '../shared/eventos/nombresDeEventos.js';
+import { useMotorDeSesion } from './useMotorDeSesion.js';
+import { ControlDeFases } from './componentes/ControlDeFases.jsx';
+import { ListaDeParticipantes } from './componentes/ListaDeParticipantes.jsx';
+import { PanelDeDecisionDeBids } from './componentes/PanelDeDecisionDeBids.jsx';
+import { PantallaDeRanking } from './componentes/PantallaDeRanking.jsx';
 
 // Credencial hardcodeada a propósito, mismo criterio que R2 Quiz (ver docs/07-acceso-y-paginas.md):
 // esta consola no maneja información sensible, así que no requiere autenticación real.
 const USUARIO_VALIDO = 'arturo.rodriguez@uleam.edu.ec';
 const CLAVE_VALIDA = 'R2ironmaiden';
+
+const CLAVE_DE_SESION_ACTIVA = 'r2-argumentum-sesion-activa';
 
 export default function App() {
   const [autenticado, setAutenticado] = useState(false);
@@ -62,9 +71,44 @@ function generarCodigoDeSala() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 
+function leerSesionActivaGuardada() {
+  try {
+    const guardada = sessionStorage.getItem(CLAVE_DE_SESION_ACTIVA);
+    return guardada ? JSON.parse(guardada) : null;
+  } catch {
+    return null;
+  }
+}
+
+function guardarSesionActiva(sesion) {
+  try {
+    sessionStorage.setItem(CLAVE_DE_SESION_ACTIVA, JSON.stringify(sesion));
+  } catch {
+    // Sin sessionStorage disponible, simplemente no persiste entre refrescos.
+  }
+}
+
+function borrarSesionActivaGuardada() {
+  try {
+    sessionStorage.removeItem(CLAVE_DE_SESION_ACTIVA);
+  } catch {
+    // no-op
+  }
+}
+
 function ConsolaDelHost({ onCerrarSesion }) {
-  const [programaActivo, setProgramaActivo] = useState(null);
+  const sesionRestaurada = useRef(leerSesionActivaGuardada()).current;
+  const [programaActivo, setProgramaActivo] = useState(sesionRestaurada?.programa ?? null);
+  const [codigoDeSala, setCodigoDeSala] = useState(sesionRestaurada?.codigoDeSala ?? null);
   const [errorDeCarga, setErrorDeCarga] = useState('');
+
+  function activarPrograma(programa) {
+    const nuevoCodigoDeSala = generarCodigoDeSala();
+    setProgramaActivo(programa);
+    setCodigoDeSala(nuevoCodigoDeSala);
+    guardarSesionActiva({ programa, codigoDeSala: nuevoCodigoDeSala });
+    setErrorDeCarga('');
+  }
 
   function manejarSeleccionDeArchivo(evento) {
     const archivo = evento.target.files[0];
@@ -74,8 +118,7 @@ function ConsolaDelHost({ onCerrarSesion }) {
     const lector = new FileReader();
     lector.onload = () => {
       try {
-        setProgramaActivo(cargarPrograma(lector.result));
-        setErrorDeCarga('');
+        activarPrograma(cargarPrograma(lector.result));
       } catch (error) {
         setErrorDeCarga(error.message);
       }
@@ -86,14 +129,19 @@ function ConsolaDelHost({ onCerrarSesion }) {
 
   function usarProgramaDeEjemplo(programaDeEjemplo) {
     try {
-      setProgramaActivo(cargarPrograma(JSON.stringify(programaDeEjemplo)));
-      setErrorDeCarga('');
+      activarPrograma(cargarPrograma(JSON.stringify(programaDeEjemplo)));
     } catch (error) {
       setErrorDeCarga(error.message);
     }
   }
 
-  if (!programaActivo) {
+  function cambiarPrograma() {
+    setProgramaActivo(null);
+    setCodigoDeSala(null);
+    borrarSesionActivaGuardada();
+  }
+
+  if (!programaActivo || !codigoDeSala) {
     const categoriasDeEjemplos = agruparProgramasPorCategoria(PROGRAMAS_DE_EJEMPLO);
 
     return (
@@ -139,18 +187,34 @@ function ConsolaDelHost({ onCerrarSesion }) {
   return (
     <ConsolaDeSesion
       programa={programaActivo}
-      onCambiarPrograma={() => setProgramaActivo(null)}
+      codigoDeSala={codigoDeSala}
+      onCambiarPrograma={cambiarPrograma}
       onCerrarSesion={onCerrarSesion}
     />
   );
 }
 
-function ConsolaDeSesion({ programa, onCambiarPrograma, onCerrarSesion }) {
-  const codigoDeSala = useMemo(() => generarCodigoDeSala(), [programa]);
+function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSesion }) {
   const urlDeIngreso = `${window.location.origin}/player.html?sala=${codigoDeSala}`;
+  const { estado, eventos, presencia, publicar, cargando } = useEstadoDeSesion({
+    clientId: 'host',
+    sessionId: codigoDeSala,
+  });
+  const motor = useMotorDeSesion({ estado, presencia, publicar, programa });
+
+  const programaYaPublicadoRef = useRef(false);
+  useEffect(() => {
+    if (!cargando && !programaYaPublicadoRef.current) {
+      programaYaPublicadoRef.current = true;
+      publicar(EVENTOS.PROGRAMA_PUBLICADO, { programa });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cargando]);
+
+  const mostrarRanking = estado.fase.actual?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING || estado.sesion.cerrada;
 
   return (
-    <main>
+    <main className="consola-de-sesion">
       <div className="barra-superior">
         <h1>Consola del host</h1>
         <button type="button" className="boton-cerrar-sesion" onClick={onCerrarSesion}>
@@ -183,10 +247,18 @@ function ConsolaDeSesion({ programa, onCambiarPrograma, onCerrarSesion }) {
         </p>
       </section>
 
-      <p className="texto-de-ayuda">
-        Por construir: control de fases, grafo argumental en vivo, ranking por postura, sorteo de
-        co-moderadores.
-      </p>
+      {cargando ? (
+        <p className="texto-de-ayuda">Conectando al canal de la sesión…</p>
+      ) : (
+        <>
+          <ControlDeFases estado={estado} motor={motor} />
+          <ListaDeParticipantes estado={estado} presencia={presencia} programa={programa} />
+          <PanelDeDecisionDeBids estado={estado} motor={motor} />
+          {mostrarRanking && (
+            <PantallaDeRanking estado={estado} eventos={eventos} programa={programa} motor={motor} />
+          )}
+        </>
+      )}
     </main>
   );
 }

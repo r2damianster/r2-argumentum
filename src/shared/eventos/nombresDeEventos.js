@@ -2,6 +2,8 @@
 // Cambiar aquí, no repetir los strings sueltos en el resto del código.
 
 export const EVENTOS = {
+  PROGRAMA_PUBLICADO: 'programa.publicado',
+
   FASE_INICIADA: 'phase.started',
   FASE_CERRADA: 'phase.closed',
 
@@ -24,9 +26,20 @@ export const EVENTOS = {
   CONEXION_SUGERIDA: 'link.suggested',
   SUGERENCIA_RESUELTA: 'link.suggestion_resolved',
 
+  BID_ENVIADO: 'bid.submitted',
+  BID_VOTO_COMODERADOR: 'bid.vote_comoderador',
+  BID_EVALUACION_EXPIRADA: 'bid.evaluacion_expirada',
+  TOPICO_BIDS_CERRADOS: 'topic.bids_cerrados',
+  BID_DECISION_MODERADOR: 'bid.decision_moderador',
+
   PUNTAJE_ACTUALIZADO: 'score.updated',
 
   SESION_CERRADA: 'session.closed',
+};
+
+export const TIPOS_DE_BID = {
+  DESMONTAR: 'desmontar',
+  FORTALECER: 'fortalecer',
 };
 
 export const TIPOS_DE_FASE = {

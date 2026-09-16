@@ -1,4 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useEstadoDeSesion } from '../shared/estado/useEstadoDeSesion.js';
+import { TIPOS_DE_FASE } from '../shared/eventos/nombresDeEventos.js';
+import {
+  soyCoModerador,
+  misArgumentosSinConexionSaliente,
+  obtenerSugerenciasVisiblesParaParticipante,
+  calcularRankingPorPostura,
+} from '../shared/estado/seleccionesDerivadas.js';
+import { miOfertaDeTurno, tengoElTurnoEnCurso } from './estadoDelParticipante.js';
+import { PantallaDeTurnoOfrecido } from './componentes/PantallaDeTurnoOfrecido.jsx';
+import { FormularioDeArgumento } from './componentes/FormularioDeArgumento.jsx';
+import { GrafoDeArgumentos } from './componentes/GrafoDeArgumentos.jsx';
+import { PanelDeConexionLibre } from './componentes/PanelDeConexionLibre.jsx';
+import { PanelDeSugerencias } from './componentes/PanelDeSugerencias.jsx';
+import { PanelDeBid } from './componentes/PanelDeBid.jsx';
+import { PanelDeCoModerador } from './componentes/PanelDeCoModerador.jsx';
 
 // Mismo set de emojis que R2 Quiz, ver docs/07-acceso-y-paginas.md.
 const EMOJIS_DISPONIBLES = [
@@ -10,17 +26,44 @@ const EMOJIS_DISPONIBLES = [
   '⚽', '🏀', '🛹', '🧠', '👾', '🤖', '👑', '💎',
 ];
 
+const CLAVE_DE_PARTICIPANTE_ACTIVO = 'r2-argumentum-participante-activo';
+
+function generarParticipantId() {
+  return `participante-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function leerParticipanteGuardado(codigoDeSala) {
+  try {
+    const guardado = JSON.parse(sessionStorage.getItem(CLAVE_DE_PARTICIPANTE_ACTIVO) || 'null');
+    return guardado && guardado.codigoDeSala === codigoDeSala ? guardado : null;
+  } catch {
+    return null;
+  }
+}
+
+function guardarParticipanteActivo(datos) {
+  try {
+    sessionStorage.setItem(CLAVE_DE_PARTICIPANTE_ACTIVO, JSON.stringify(datos));
+  } catch {
+    // Sin sessionStorage disponible, simplemente no sobrevive a un refresh.
+  }
+}
+
 export default function App() {
   const [codigoDeSala, setCodigoDeSala] = useState('');
   const [nombre, setNombre] = useState('');
   const [emojiElegido, setEmojiElegido] = useState('');
-  const [yaIngreso, setYaIngreso] = useState(false);
+  const [participanteActivo, setParticipanteActivo] = useState(null);
 
   useEffect(() => {
     const parametros = new URLSearchParams(window.location.search);
     const salaDesdeQR = parametros.get('sala');
     if (salaDesdeQR) {
       setCodigoDeSala(salaDesdeQR);
+      const guardado = leerParticipanteGuardado(salaDesdeQR);
+      if (guardado) {
+        setParticipanteActivo(guardado);
+      }
     }
   }, []);
 
@@ -31,21 +74,13 @@ export default function App() {
 
   function manejarIngreso(evento) {
     evento.preventDefault();
-    // TODO: conectar con obtenerClienteAbly(participantId) y publicar presence.enter()
-    // en el canal debate:{programId}:{sessionId} derivado del código de sala.
-    setYaIngreso(true);
+    const datos = { codigoDeSala, participantId: generarParticipantId(), nombre, emoji: emojiElegido };
+    guardarParticipanteActivo(datos);
+    setParticipanteActivo(datos);
   }
 
-  if (yaIngreso) {
-    return (
-      <main>
-        <h1>R2 Argumentum</h1>
-        <p className="texto-de-ayuda">
-          Conectando a la sala {codigoDeSala} como {nombre} {emojiElegido}… (por construir: turnos,
-          escritura de argumentos, conexión libre).
-        </p>
-      </main>
-    );
+  if (participanteActivo) {
+    return <SesionDeParticipante {...participanteActivo} />;
   }
 
   return (
@@ -92,5 +127,113 @@ export default function App() {
         </button>
       </form>
     </main>
+  );
+}
+
+function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji }) {
+  const { estado, presencia, publicar, cargando } = useEstadoDeSesion({
+    clientId: participantId,
+    sessionId: codigoDeSala,
+    datosDePresencia: { nombre, emoji },
+  });
+
+  if (cargando || !estado.programa) {
+    return (
+      <main>
+        <h1>R2 Argumentum</h1>
+        <p className="texto-de-ayuda">
+          Conectando a la sala {codigoDeSala} como {nombre} {emoji}…
+        </p>
+      </main>
+    );
+  }
+
+  const { programa } = estado;
+  const soyComoderador = soyCoModerador(estado, participantId);
+  const oferta = miOfertaDeTurno(estado, participantId);
+  const tengoElTurno = tengoElTurnoEnCurso(estado, participantId);
+  const misArgumentosLibres = misArgumentosSinConexionSaliente(estado, participantId);
+  const sugerenciasVisibles = obtenerSugerenciasVisiblesParaParticipante(estado, participantId);
+  const miPostura = programa.posturas.find((postura) => postura.id === estado.participantes[participantId]?.stanceId);
+  const miPuntaje = estado.participantes[participantId]?.puntajeTotal ?? 0;
+  const sesionCerrada = estado.fase.actual?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING || estado.sesion.cerrada;
+
+  return (
+    <main>
+      <div className="barra-superior">
+        <h1>{programa.titulo}</h1>
+      </div>
+      <p className="texto-de-ayuda">
+        {emoji} {nombre} {soyComoderador && <span className="chip-de-rol">Co-moderador</span>}
+        {miPostura && (
+          <span className="chip-de-postura" style={{ color: miPostura.color }}>
+            {miPostura.etiqueta}
+          </span>
+        )}
+        · {miPuntaje} pts
+      </p>
+
+      {sesionCerrada && <PantallaDeResultadoDelParticipante estado={estado} programa={programa} participantId={participantId} />}
+
+      {!sesionCerrada && soyComoderador && (
+        <PanelDeCoModerador estado={estado} participantId={participantId} publicar={publicar} />
+      )}
+
+      {!sesionCerrada && !soyComoderador && oferta && (
+        <PantallaDeTurnoOfrecido oferta={oferta} estado={estado} participantId={participantId} publicar={publicar} />
+      )}
+
+      {!sesionCerrada && !soyComoderador && tengoElTurno && (
+        <FormularioDeArgumento
+          estado={estado}
+          programa={programa}
+          participantId={participantId}
+          turnoEnCurso={estado.turnos.turnoEnCurso}
+          publicar={publicar}
+        />
+      )}
+
+      {!sesionCerrada &&
+        !soyComoderador &&
+        !tengoElTurno &&
+        estado.turnos.turnoEnCurso &&
+        estado.turnos.turnoEnCurso.participantId !== participantId && (
+          <PanelDeBid estado={estado} participantId={participantId} turnoEnCurso={estado.turnos.turnoEnCurso} publicar={publicar} />
+        )}
+
+      {!sesionCerrada && sugerenciasVisibles.length > 0 && (
+        <PanelDeSugerencias estado={estado} participantId={participantId} publicar={publicar} />
+      )}
+
+      {!sesionCerrada && !soyComoderador && misArgumentosLibres.length > 0 && (
+        <PanelDeConexionLibre estado={estado} participantId={participantId} publicar={publicar} />
+      )}
+
+      <GrafoDeArgumentos estado={estado} programa={programa} />
+
+      <p className="texto-de-ayuda">Conectado — {presencia.length} participante(s) en la sala.</p>
+    </main>
+  );
+}
+
+function PantallaDeResultadoDelParticipante({ estado, programa, participantId }) {
+  const ranking = calcularRankingPorPostura(estado, programa);
+  const miStanceId = estado.participantes[participantId]?.stanceId;
+  const miEntrada = miStanceId
+    ? ranking[miStanceId]?.find((participante) => participante.participantId === participantId)
+    : null;
+
+  return (
+    <section className="tarjeta-de-ranking">
+      <h3>Debate cerrado</h3>
+      {miEntrada ? (
+        <p>
+          Tu resultado: {miEntrada.puntajeTotal} pts —{' '}
+          {miEntrada.tier === 'Sólido' ? '🥇' : miEntrada.tier === 'Consistente' ? '🥈' : '🥉'} {miEntrada.tier}
+        </p>
+      ) : (
+        <p className="texto-de-ayuda">Gracias por participar.</p>
+      )}
+    </section>
   );
 }

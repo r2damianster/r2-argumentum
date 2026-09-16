@@ -1,0 +1,145 @@
+/* Motor de debate en vivo — turnos, argumentos, bids, co-moderación, ranking. */
+
+select,
+textarea {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-borde);
+  font-size: 0.95rem;
+  font-family: inherit;
+  width: 100%;
+}
+
+.consola-de-sesion {
+  max-width: 640px;
+}
+
+.chip-de-rol,
+.chip-de-postura {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  margin-left: 6px;
+}
+
+/* Fase / control */
+
+.tarjeta-de-fase,
+.tarjeta-de-participantes,
+.tarjeta-de-bids,
+.tarjeta-de-turno-ofrecido,
+.tarjeta-de-formulario-de-argumento,
+.tarjeta-de-conexion-libre,
+.tarjeta-de-sugerencias,
+.tarjeta-de-bid,
+.tarjeta-de-co-moderador,
+.tarjeta-de-grafo,
+.tarjeta-de-ranking {
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 16px;
+  padding: 16px 18px;
+  margin: 0 0 16px;
+}
+
+.tarjeta-de-turno-ofrecido {
+  text-align: center;
+  border-color: var(--color-marca);
+}
+
+.cuenta-regresiva {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-marca-oscuro);
+  margin: 4px 0 12px;
+}
+
+.botonera-de-turno,
+.botonera-de-bid {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.botonera-de-turno button,
+.botonera-de-bid button {
+  flex: 1;
+}
+
+/* Lista de participantes */
+
+.lista-de-participantes {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lista-de-participantes li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.puntaje-de-participante {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--color-marca-oscuro);
+}
+
+/* Grafo */
+
+.contenedor-de-grafo {
+  height: 420px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--color-borde);
+}
+
+/* Bids / co-moderador */
+
+.lista-de-bids-pendientes,
+.lista-de-bids-en-curso,
+.lista-de-validaciones-pendientes,
+.lista-de-sugerencias {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lista-de-bids-pendientes li,
+.lista-de-validaciones-pendientes li {
+  border: 1px solid var(--color-borde);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.casilla-de-falta {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+}
+
+.casilla-de-falta input {
+  width: auto;
+  padding: 0;
+}
+
+/* Ranking */
+
+.columna-de-ranking {
+  margin-bottom: 12px;
+}
+
+.columna-de-ranking ol {
+  padding-left: 20px;
+}
