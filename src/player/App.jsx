@@ -57,9 +57,10 @@ export default function App() {
           Código de sala
           <input
             value={codigoDeSala}
-            onChange={(evento) => setCodigoDeSala(evento.target.value)}
+            onChange={(evento) => setCodigoDeSala(evento.target.value.replace(/\D/g, '').slice(0, 4))}
             placeholder="0000"
             inputMode="numeric"
+            maxLength={4}
           />
         </label>
         <label>
