@@ -35,13 +35,21 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 
 ## 3. Bugs ya encontrados y arreglados — verificar que NO reaparezcan (regresión), no "redescubrirlos"
 
-Estos 5 ya se arreglaron en una sesión de prueba anterior. Si alguno reaparece, es una regresión real y sí va en la tabla de fallos:
+Estos 10 ya se arreglaron en sesiones de prueba anteriores. Si alguno reaparece, es una regresión real y sí va en la tabla de fallos:
 
+**Primera ronda (motor base):**
 1. Historial de Ably no cargaba (incompatibilidad `direction:forwards` + `untilAttach`).
 2. Validación Groq fallaba casi siempre por `max_tokens` insuficiente (truncaba el JSON).
 3. Un error HTTP del validador se mostraba como mensaje de error vacío.
 4. Nodo de argumento "nuevo" se pintaba gris en vez de azul (mismatch de clave de color).
-5. **Deadlock de turnos**: si el único participante elegible dejaba expirar su oferta de turno, quedaba excluido para siempre y la ruleta nunca volvía a ofrecer nada. Este es el más importante de re-verificar (ver caso borde en sección 5).
+5. **Deadlock de turnos**: si el único participante elegible dejaba expirar su oferta de turno, quedaba excluido para siempre y la ruleta nunca volvía a ofrecer nada.
+
+**Segunda ronda (bids, grafo, nombres, Groq):**
+6. **Bids nunca se resolvían** — no había forma de cerrar el "tópico" de bids ni de que el host viera el veredicto. Ahora se cierra solo cuando todos los co-moderadores votaron (o expiraron), y el host tiene botón "Cerrar tópico de bids ahora" para cortarlo antes. **El más importante de re-verificar**: lanzar un bid, votarlo desde el co-moderador, y confirmar que el host lo ve para dar veredicto.
+7. **Grafo con nodos superpuestos/ilegibles** — el espaciado vertical entre nodos de la misma columna era menor que la altura real del contenido. Con 3+ argumentos en la misma postura, confirmar que los nodos NO se tapan entre sí.
+8. **Nombres reemplazados por IDs internos** (`participante-1789...`) en el grafo, el ranking y el export — confirmar que en las 3 vistas aparece el nombre elegido por el participante, no un ID técnico.
+9. Validación Groq exigía la palabra literal "porque"/"ya que" y rechazaba argumentos con razón causal válida pero redactada distinto (ej. "...lo que retrasa la respuesta del mercado."). Confirmar con un argumento así que ahora se acepta.
+10. Dos botones "Cerrar sesión" con significados distintos (logout del host vs. cerrar el debate) — el de la pantalla de ranking ahora dice "Cerrar debate".
 
 ## 4. Escenario multi-ventana (mínimo 4 pestañas: 1 host + 3 participantes)
 
