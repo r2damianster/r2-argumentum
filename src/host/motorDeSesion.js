@@ -31,6 +31,7 @@ function sorteoPonderado(candidatos, pesos) {
 // descuento de puntaje (ver calcularPuntajeDeArgumento), no el tope acumulado de posiciones.
 function elegirCandidatoParaTurno(estado, presencia, limiteDePosiciones) {
   const candidatosPosibles = presencia
+    .filter((presente) => presente.conectado !== false)
     .map((presente) => presente.participantId)
     .filter((participantId) => estado.participantes[participantId]?.rol !== 'co_moderador')
     .filter(
@@ -323,7 +324,9 @@ export function crearMotorDeSesion({ programa }) {
   function iniciarSesion(posturasParaAsignar) {
     const { estado, presencia, publicar } = contexto;
     const posturas = posturasParaAsignar && posturasParaAsignar.length > 0 ? posturasParaAsignar : programa.posturas;
-    const participantesElegibles = presencia.map((presente) => presente.participantId);
+    const participantesElegibles = presencia
+      .filter((presente) => presente.conectado !== false)
+      .map((presente) => presente.participantId);
     const numeroDeCoModeradores = calcularNumeroDeCoModeradores(
       participantesElegibles.length,
       programa.topeMaximoCoModeradores

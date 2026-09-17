@@ -11,6 +11,7 @@ import { miOfertaDeTurno, tengoElTurnoEnCurso } from './estadoDelParticipante.js
 import { PantallaDeTurnoOfrecido } from './componentes/PantallaDeTurnoOfrecido.jsx';
 import { FormularioDeArgumento } from './componentes/FormularioDeArgumento.jsx';
 import { GrafoDeArgumentos } from '../shared/componentes/GrafoDeArgumentos.jsx';
+import { FeedDeActividad } from '../shared/componentes/FeedDeActividad.jsx';
 import { PanelDeConexionLibre } from './componentes/PanelDeConexionLibre.jsx';
 import { PanelDeSugerencias } from './componentes/PanelDeSugerencias.jsx';
 import { PanelDeBid } from './componentes/PanelDeBid.jsx';
@@ -208,6 +209,8 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
 
       {sesionCerrada && <PantallaDeResultadoDelParticipante estado={estado} programa={programa} participantId={participantId} />}
 
+      {!sesionCerrada && <FeedDeActividad estado={estado} presencia={presencia} />}
+
       {!sesionCerrada && soyComoderador && (
         <PanelDeCoModerador estado={estado} participantId={participantId} publicar={publicar} />
       )}
@@ -244,7 +247,10 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
 
       <GrafoDeArgumentos estado={estado} programa={programa} presencia={presencia} />
 
-      <p className="texto-de-ayuda">Conectado — {presencia.length} participante(s) en la sala.</p>
+      <p className="texto-de-ayuda">
+        Conectado — {presencia.filter((presente) => presente.conectado !== false).length} participante(s) en la
+        sala.
+      </p>
     </main>
   );
 }

@@ -102,7 +102,11 @@ export function FormularioDeArgumento({ estado, programa, participantId, turnoEn
   return (
     <section className="tarjeta-de-formulario-de-argumento">
       <p className="texto-de-ayuda">
-        Escribí tu argumento (posición {posicionEnRonda} · intento {numeroDeIntento} de {programa.maxIntentosGroqPorArgumento})
+        Es tu turno — podés agregar un argumento nuevo, o elegir abajo un tipo para responder a algo que ya se
+        dijo (contraargumento, refuerzo, dilema…) y apoyar o rebatir la postura de otro compañero.
+      </p>
+      <p className="texto-de-ayuda">
+        Posición {posicionEnRonda} · intento {numeroDeIntento} de {programa.maxIntentosGroqPorArgumento}
       </p>
       <form onSubmit={manejarEnvio}>
         <label>

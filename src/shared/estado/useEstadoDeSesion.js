@@ -45,12 +45,27 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
     function manejarPresencia(mensajeDePresencia) {
       const participantId = mensajeDePresencia.clientId;
       setPresencia((presenciaPrevia) => {
-        if (mensajeDePresencia.action === 'leave' || mensajeDePresencia.action === 'absent') {
-          return presenciaPrevia.filter((presente) => presente.participantId !== participantId);
-        }
-        const datos = mensajeDePresencia.data || {};
-        const entrada = { participantId, nombre: datos.nombre, emoji: datos.emoji };
+        const entradaPrevia = presenciaPrevia.find((presente) => presente.participantId === participantId);
         const sinElParticipante = presenciaPrevia.filter((presente) => presente.participantId !== participantId);
+
+        // Nunca se borra del roster, solo se marca desconectado — bug real confirmado en
+        // prueba con 11 participantes: al desconectarse un momento, el nombre desaparecía
+        // de presencia y el grafo/ranking mostraban el ID técnico en su lugar en todos los
+        // demás clientes hasta que volvía a entrar. El nombre debe sobrevivir a un blip.
+        if (mensajeDePresencia.action === 'leave' || mensajeDePresencia.action === 'absent') {
+          if (!entradaPrevia) {
+            return presenciaPrevia;
+          }
+          return [...sinElParticipante, { ...entradaPrevia, conectado: false }];
+        }
+
+        const datos = mensajeDePresencia.data || {};
+        const entrada = {
+          participantId,
+          nombre: datos.nombre ?? entradaPrevia?.nombre,
+          emoji: datos.emoji ?? entradaPrevia?.emoji,
+          conectado: true,
+        };
         return [...sinElParticipante, entrada];
       });
     }
@@ -88,6 +103,7 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
             participantId: miembro.clientId,
             nombre: miembro.data?.nombre,
             emoji: miembro.data?.emoji,
+            conectado: true,
           }))
         );
       }

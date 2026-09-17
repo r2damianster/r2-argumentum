@@ -10,6 +10,7 @@ import { ListaDeParticipantes } from './componentes/ListaDeParticipantes.jsx';
 import { PanelDeDecisionDeBids } from './componentes/PanelDeDecisionDeBids.jsx';
 import { PantallaDeRanking } from './componentes/PantallaDeRanking.jsx';
 import { GrafoDeArgumentos } from '../shared/componentes/GrafoDeArgumentos.jsx';
+import { FeedDeActividad } from '../shared/componentes/FeedDeActividad.jsx';
 
 // Credencial hardcodeada a propósito, mismo criterio que R2 Quiz (ver docs/07-acceso-y-paginas.md):
 // esta consola no maneja información sensible, así que no requiere autenticación real.
@@ -257,6 +258,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSe
       ) : (
         <>
           <ControlDeFases estado={estado} motor={motor} programa={programaVisible} publicar={publicar} />
+          <FeedDeActividad estado={estado} presencia={presencia} />
           <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
           <PanelDeDecisionDeBids estado={estado} motor={motor} />
           <GrafoDeArgumentos estado={estado} programa={programaVisible} presencia={presencia} />
