@@ -33,6 +33,7 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 - **Panel de co-moderador**: valida argumentos pendientes (confirma/corrige tipo, marca falta, nota) y vota bids abiertos.
 - **Puntaje en vivo**: el host ve un marcador ordenado por puntaje con medallas 🥇🥈🥉 (no una lista plana), calculado por la fórmula única (`docs/05-reglas-de-puntaje.md`).
 - **Grafo proyectable en el host**: el host ahora ve el mismo mapa argumental que los participantes, visible durante toda la sesión (antes solo aparecía al cierre) — es lo que se proyectaría en el salón mientras se debate.
+- **Feed de actividad narrado** (host y player): banner "🗣️ {nombre} está hablando ahora" mientras alguien tiene el turno en curso, "⏳ Se le ofreció el turno a {nombre}…" mientras espera aceptación, y una lista de "Actividad reciente" ("💬 {nombre} agregó un contraargumento", "🔗 {nombre} conectó su argumento (refuerzo)"). Instrucciones explícitas en el turno ofrecido ("Aceptá para escribir un argumento nuevo…") y en el formulario de argumento (qué tipos podés usar). Aviso de anonimidad en el panel de co-moderador al votar bids y validar argumentos.
 - **Cierre de sesión + Ranking**: al llegar a la fase `cierre_y_ranking`, el host ve ranking por postura con tiers (🥇 Sólido / 🥈 Consistente / 🥉 En desarrollo) y botón para descargar la sesión completa en `.json`. El participante ve su propio resultado (puntaje + tier).
 
 ## 3. Bugs ya encontrados y arreglados — verificar que NO reaparezcan (regresión), no "redescubrirlos"
@@ -52,6 +53,9 @@ Estos 10 ya se arreglaron en sesiones de prueba anteriores. Si alguno reaparece,
 8. **Nombres reemplazados por IDs internos** (`participante-1789...`) en el grafo, el ranking y el export — confirmar que en las 3 vistas aparece el nombre elegido por el participante, no un ID técnico.
 9. Validación Groq exigía la palabra literal "porque"/"ya que" y rechazaba argumentos con razón causal válida pero redactada distinto (ej. "...lo que retrasa la respuesta del mercado."). Confirmar con un argumento así que ahora se acepta.
 10. Dos botones "Cerrar sesión" con significados distintos (logout del host vs. cerrar el debate) — el de la pantalla de ranking ahora dice "Cerrar debate".
+
+**Tercera ronda (probada con 11 participantes reales):**
+11. **Nombre reemplazado por ID técnico al desconectarse un participante** — al perder la conexión un momento, su nombre desaparecía de `presencia` y el grafo/ranking mostraban el ID técnico en TODOS los demás clientes hasta que volvía a entrar. Ahora el nombre sobrevive a un blip de conexión. Para probarlo: cerrar y reabrir la pestaña de un participante que ya tenga un argumento publicado, y confirmar en OTRA pestaña que su nombre sigue viéndose (no un ID) durante la desconexión, no solo después de reconectar.
 
 **Feature nueva, sin probar todavía — verificar por primera vez:** el selector de posturas. Cargar el Programa "¿Qué hace único al ser humano?" (categoría Filosofía, 12 posturas) en vez del de Política. Antes de "Iniciar sesión" debe aparecer un checklist con las 12 tildadas por defecto. Destildar todas menos 2-3, confirmar que el botón "Iniciar sesión" se deshabilita si quedan menos de 2 tildadas, e iniciar con 2-3. Verificar que SOLO esas posturas se asignan a los participantes, aparecen en el grafo/ranking, y el resto de las 12 no aparece en ningún lado.
 
@@ -90,7 +94,7 @@ Tabla en markdown, más grave primero:
 | 1 | ... | ... | ... | ... | ... |
 
 - Si algo falla por historial de Ably expirado tras varios minutos de por medio, no lo pongas en la tabla — anotalo aparte como "esperado por retención de Ably".
-- Si alguno de los 10 bugs de la sección 3 reaparece, marcalo como "REGRESIÓN" y ponelo primero en la tabla, severidad alta.
+- Si alguno de los 11 bugs de la sección 3 reaparece, marcalo como "REGRESIÓN" y ponelo primero en la tabla, severidad alta.
 - Si no hay fallos reales, decilo explícitamente: "Sin fallos detectados en el alcance actual". No inventes hallazgos.
 
 ## 7. Cierre
