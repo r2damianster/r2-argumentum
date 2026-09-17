@@ -55,7 +55,7 @@ export function FeedDeActividad({ estado, presencia }) {
         <p className="banner-de-turno banner-de-espera">⏳ Se le ofreció el turno a {quienFueOfrecido}…</p>
       )}
       {!quienHabla && !quienFueOfrecido && (
-        <p className="banner-de-turno banner-de-espera">⏳ Esperando que el moderador ofrezca el próximo turno…</p>
+        <p className="banner-de-turno banner-de-espera">⏳ Esperando que se ofrezca el próximo turno…</p>
       )}
       <p className="texto-de-ayuda">Actividad reciente</p>
       <ul className="lista-de-actividad">
