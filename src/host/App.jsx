@@ -212,6 +212,10 @@ function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSe
   }, [cargando]);
 
   const mostrarRanking = estado.fase.actual?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING || estado.sesion.cerrada;
+  // Una vez que el Programa se publicó al canal (ver efecto arriba), estado.programa es la
+  // fuente de verdad — puede diferir del prop `programa` original si el moderador filtró
+  // posturas al iniciar sesión (ver ControlDeFases). Antes de eso, cae al prop cargado.
+  const programaVisible = estado.programa ?? programa;
 
   return (
     <main className="consola-de-sesion">
@@ -224,10 +228,10 @@ function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSe
 
       <section className="tarjeta-de-programa">
         <p className="texto-de-ayuda">Programa activo</p>
-        <h2>{programa.titulo}</h2>
-        <p>{programa.temaCentral}</p>
+        <h2>{programaVisible.titulo}</h2>
+        <p>{programaVisible.temaCentral}</p>
         <ul className="lista-de-posturas">
-          {programa.posturas.map((postura) => (
+          {programaVisible.posturas.map((postura) => (
             <li key={postura.id} style={{ color: postura.color }}>
               {postura.etiqueta}
             </li>
@@ -251,14 +255,14 @@ function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSe
         <p className="texto-de-ayuda">Conectando al canal de la sesión…</p>
       ) : (
         <>
-          <ControlDeFases estado={estado} motor={motor} />
-          <ListaDeParticipantes estado={estado} presencia={presencia} programa={programa} />
+          <ControlDeFases estado={estado} motor={motor} programa={programaVisible} publicar={publicar} />
+          <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
           <PanelDeDecisionDeBids estado={estado} motor={motor} />
           {mostrarRanking && (
             <PantallaDeRanking
               estado={estado}
               eventos={eventos}
-              programa={programa}
+              programa={programaVisible}
               presencia={presencia}
               motor={motor}
             />

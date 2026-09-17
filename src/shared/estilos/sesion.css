@@ -14,6 +14,36 @@ textarea {
   max-width: 640px;
 }
 
+.selector-de-posturas {
+  margin-bottom: 14px;
+}
+
+.lista-de-posturas-seleccionables {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px;
+}
+
+.lista-de-posturas-seleccionables label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.lista-de-posturas-seleccionables input {
+  width: auto;
+  padding: 0;
+}
+
 .chip-de-rol,
 .chip-de-postura {
   display: inline-block;

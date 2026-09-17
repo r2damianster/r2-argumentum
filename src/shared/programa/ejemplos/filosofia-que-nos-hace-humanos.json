@@ -1,0 +1,87 @@
+{
+  "programId": "que-nos-hace-humanos-2026",
+  "titulo": "¿Qué hace único al ser humano? Doce posturas en disputa",
+  "categoria": "Filosofía",
+  "version": "1.0.0",
+  "creadoPor": "arturo.rodriguez@uleam.edu.ec",
+  "fechaCreacion": "2026-09-17",
+
+  "temaCentral": "De las siguientes doce caracterizaciones filosóficas del ser humano, ¿cuál representa mejor lo que nos hace distintos de otros animales?",
+  "preguntaGuia": "Si tuvieras que defender una sola palabra para explicar qué nos hace humanos, ¿cuál elegirías y por qué las demás se quedan cortas?",
+  "objetivoAprendizaje": "Pensamiento crítico y contraargumentación: comparar marcos conceptuales distintos (antropología filosófica) exigiendo razón o evidencia, no solo preferencia intuitiva.",
+  "instruccionesParaEstudiantes": "Defendé tu postura asignada con argumentos que tengan una razón, ejemplo o mecanismo explícito (no solo 'porque sí' o 'porque suena bien'). Podés conectar tu argumento con el de otro compañero como apoyo, contraargumento, dilema, reformulación o concesión.",
+
+  "posturas": [
+    { "id": "homo_faber", "etiqueta": "Homo faber (el que fabrica)", "color": "#B45309" },
+    { "id": "homo_ludens", "etiqueta": "Homo ludens (el que juega)", "color": "#7C3AED" },
+    { "id": "animal_symbolicum", "etiqueta": "Animal symbolicum (el que simboliza)", "color": "#2563EB" },
+    { "id": "zoon_politikon", "etiqueta": "Zoon politikon (el animal político)", "color": "#DC2626" },
+    { "id": "homo_reciprocus", "etiqueta": "Homo reciprocus (el que coopera)", "color": "#059669" },
+    { "id": "homo_economicus", "etiqueta": "Homo economicus (el que calcula)", "color": "#CA8A04" },
+    { "id": "homo_viator", "etiqueta": "Homo viator (el peregrino/buscador)", "color": "#0891B2" },
+    { "id": "homo_religiosus", "etiqueta": "Homo religiosus (el que trasciende)", "color": "#9333EA" },
+    { "id": "homo_demens", "etiqueta": "Homo demens (el irracional/desmedido)", "color": "#BE185D" },
+    { "id": "homo_narrans", "etiqueta": "Homo narrans (el que narra)", "color": "#EA580C" },
+    { "id": "homo_curans", "etiqueta": "Homo curans (el que cuida)", "color": "#4D7C0F" },
+    { "id": "homo_sentiens", "etiqueta": "Homo sentiens (el que siente)", "color": "#475569" }
+  ],
+  "asignacionPostura": "aleatoria",
+  "permiteCambioPostura": false,
+
+  "fases": [
+    { "tipo": "escritura_argumentos", "ronda": 1, "limiteArgumentos": 3, "duracionMin": 12 },
+    { "tipo": "escritura_argumentos", "ronda": 2, "limiteArgumentos": "segun_ronda_1", "duracionMin": 10 },
+    { "tipo": "conexion_sugerida", "disparadoPor": "moderador" },
+    { "tipo": "conexion_libre", "ventanaAbierta": "toda_la_sesion" },
+    { "tipo": "cierre_y_ranking" }
+  ],
+
+  "valoresBasePosicion": [10, 8, 3],
+  "descuentoRonda2": 0.7,
+  "descuentoViaCoModerador": 0.5,
+  "maxIntentosGroqPorArgumento": 2,
+  "puntajeCoModerador": { "bidAprobado": 5, "bidRechazado": 0 },
+  "visualizacionRanking": "por_postura_con_tiers",
+  "tiers": ["Sólido", "Consistente", "En desarrollo"],
+
+  "mecanismoTurno": "ruleta_ponderada_con_prioridad_a_no_participantes",
+  "timeoutAceptacion": 20,
+  "maxRechazosAntesDeForzar": 3,
+  "tiempoLimiteEvaluacionBid": 20,
+  "duracionMaximaIntervencionPrincipal": 90,
+  "duracionMaximaIntervencionBid": 45,
+
+  "maxConexionesSalientesPorArgumento": 1,
+  "requiereSeleccionDeTipo": true,
+
+  "criterioValidacion": "claim_mas_razon",
+  "ejemplosPorTema": [
+    {
+      "malo": "El ser humano es único porque piensa, y los animales no.",
+      "bueno": "El homo faber define lo humano por la fabricación deliberada de herramientas para fines no inmediatos, porque a diferencia de un animal que usa un objeto hallado una sola vez, el humano diseña instrumentos y transmite esa técnica culturalmente entre generaciones.",
+      "porque": "El malo generaliza sin mecanismo ('los animales no piensan' es indemostrable y vago); el bueno da un criterio observable y comparable."
+    },
+    {
+      "malo": "Los animales no hablan, por eso el humano es superior.",
+      "bueno": "El animal symbolicum (Cassirer) sostiene que lo distintivo humano es vivir mediado por sistemas simbólicos —mito, arte, lenguaje, religión—, porque estos no solo comunican sino que construyen la realidad que percibimos, algo que ningún otro animal hace con esa complejidad.",
+      "porque": "El malo asume superioridad sin definir el criterio; el bueno explica el mecanismo (mediación simbólica) y su efecto (construir la realidad percibida)."
+    },
+    {
+      "malo": "Jugar es lo que más disfrutamos, así que eso es lo que nos hace humanos.",
+      "bueno": "El homo ludens (Huizinga) propone que la cultura misma nace del juego —reglas voluntarias, un círculo mágico separado de la utilidad—, porque el derecho, el arte y hasta la guerra ritualizada muestran estructura lúdica antes que utilitaria.",
+      "porque": "El malo confunde preferencia personal con argumento; el bueno rastrea el juego como origen estructural de instituciones humanas concretas."
+    }
+  ],
+  "promptSistemaFase1": "Evalúa si el argumento del estudiante tiene una afirmación (claim) y una razón, mecanismo o evidencia explícita que la sostenga (conector causal, ejemplo concreto, o consecuencia observable). No evalúes si estás de acuerdo con la postura filosófica elegida ni califiques su profundidad. Responde solo si cumple el criterio estructural.",
+  "promptSistemaFase2": "A partir de los argumentos de esta fase, sugiere posibles conexiones (apoyo, contraargumento, dilema, reformulación, concesión) entre pares de argumentos de distinta postura o de la misma postura. No decidas cuál es correcta, solo sugiere candidatos para que el moderador confirme.",
+
+  "formulaCoModeradores": "ceil(n * 0.10)_min_1",
+  "topeMaximoCoModeradores": null,
+  "exclusionMutua": true,
+
+  "exportaJSON": { "eventLogCompleto": true, "mapaArgumental": true, "rankingPorPostura": true, "perfilPorEstudiante": true },
+  "exportaPDF": true,
+
+  "canalAbly": "debate:que-nos-hace-humanos-2026:{sessionId}",
+  "duracionTotalEstimada": 45
+}

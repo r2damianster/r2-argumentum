@@ -4,10 +4,12 @@
 
 import politicaIzquierdaVsDerecha from './politica-izquierda-vs-derecha.json';
 import filosofiaLibreAlbedrioVsDeterminismo from './filosofia-libre-albedrio-vs-determinismo.json';
+import filosofiaQueNosHaceHumanos from './filosofia-que-nos-hace-humanos.json';
 
 export const PROGRAMAS_DE_EJEMPLO = [
   politicaIzquierdaVsDerecha,
   filosofiaLibreAlbedrioVsDeterminismo,
+  filosofiaQueNosHaceHumanos,
 ];
 
 export function agruparProgramasPorCategoria(programas) {

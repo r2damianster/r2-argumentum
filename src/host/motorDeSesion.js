@@ -317,8 +317,12 @@ export function crearMotorDeSesion({ programa }) {
     cerrarTopicosDeBidsResueltosAutomaticamente();
   }
 
-  function iniciarSesion() {
+  // posturasParaAsignar: opcional, subconjunto de programa.posturas elegido por el
+  // moderador para esta sesión (ver selector de posturas en ControlDeFases). Si no se
+  // pasa, se usan todas las del Programa — mantiene el comportamiento anterior.
+  function iniciarSesion(posturasParaAsignar) {
     const { estado, presencia, publicar } = contexto;
+    const posturas = posturasParaAsignar && posturasParaAsignar.length > 0 ? posturasParaAsignar : programa.posturas;
     const participantesElegibles = presencia.map((presente) => presente.participantId);
     const numeroDeCoModeradores = calcularNumeroDeCoModeradores(
       participantesElegibles.length,
@@ -337,7 +341,7 @@ export function crearMotorDeSesion({ programa }) {
     if (programa.asignacionPostura !== 'libre') {
       const argumentadores = participantesElegibles.filter((id) => !coModeradoresSorteados.includes(id));
       argumentadores.forEach((participantId, indice) => {
-        const stance = programa.posturas[indice % programa.posturas.length];
+        const stance = posturas[indice % posturas.length];
         publicar(EVENTOS.POSTURA_ASIGNADA, {
           participantId,
           stanceId: stance.id,
