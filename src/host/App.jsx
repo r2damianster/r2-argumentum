@@ -227,7 +227,9 @@ function ConsolaDelHost({ onCerrarSesion }) {
 }
 
 function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSesion }) {
-  const urlDeIngreso = `${window.location.origin}/player.html?sala=${codigoDeSala}`;
+  // Link corto para compartir (WhatsApp, etc.) — la raíz con ?sala= redirige a
+  // /player.html?sala= vía vercel.json (solo en el deploy, no en `npm run dev` local).
+  const urlDeIngreso = `${window.location.origin}/?sala=${codigoDeSala}`;
   const { estado, eventos, presencia, publicar, cargando } = useEstadoDeSesion({
     clientId: 'host',
     sessionId: codigoDeSala,
@@ -294,8 +296,10 @@ function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSe
             <p className="codigo-de-sala">{codigoDeSala}</p>
             <QRCodeSVG value={urlDeIngreso} size={180} bgColor="#ffffff" fgColor="#0f172a" />
             <p className="texto-de-ayuda">
-              Los estudiantes escanean el QR o entran en <code>/player.html</code> e ingresan el código.
+              Los estudiantes escanean el QR, o entran a <code>{urlDeIngreso}</code>, o entran a{' '}
+              <code>/player.html</code> e ingresan el código a mano.
             </p>
+            <BotonCopiarLink url={urlDeIngreso} />
           </div>
           <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
           <ControlDeFases estado={estado} motor={motor} programa={programaVisible} publicar={publicar} />
@@ -319,5 +323,25 @@ function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSe
         </>
       )}
     </main>
+  );
+}
+
+function BotonCopiarLink({ url }) {
+  const [copiado, setCopiado] = useState(false);
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      // Sin permiso/soporte de clipboard — el link ya está visible como texto arriba.
+    }
+  }
+
+  return (
+    <button type="button" className="boton-cambiar-programa" onClick={copiar}>
+      {copiado ? '✅ Copiado' : '📋 Copiar link para compartir'}
+    </button>
   );
 }

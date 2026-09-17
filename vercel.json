@@ -1,5 +1,11 @@
 {
   "redirects": [
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "sala", "value": "(?<codigo>.*)" }],
+      "destination": "/player.html?sala=:codigo",
+      "permanent": false
+    },
     { "source": "/", "destination": "/host.html", "permanent": false }
   ]
 }
