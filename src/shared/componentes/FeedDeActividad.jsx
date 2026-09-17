@@ -1,4 +1,5 @@
 import { nombreDeParticipante } from '../estado/seleccionesDerivadas.js';
+import { TIPOS_DE_FASE } from '../eventos/nombresDeEventos.js';
 
 const ETIQUETA_DE_TIPO = {
   nuevo: 'un argumento nuevo',
@@ -20,6 +21,14 @@ const ETIQUETA_DE_RELACION = {
 // de mostrar solo datos crudos (ids, timestamps). Pensado para host (proyector) y también
 // útil para el participante mientras espera su turno.
 export function FeedDeActividad({ estado, presencia }) {
+  const enFaseDeApertura = estado.fase.actual?.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA;
+  const elegiblesParaApertura = presencia
+    .filter((presente) => presente.conectado !== false)
+    .filter((presente) => estado.participantes[presente.participantId]?.rol !== 'co_moderador');
+  const yaEscribieronSuApertura = elegiblesParaApertura.filter(
+    (presente) => (estado.participantes[presente.participantId]?.posicionesCompletadas ?? 0) >= 1
+  ).length;
+
   const quienHabla = estado.turnos.turnoEnCurso
     ? nombreDeParticipante(presencia, estado.turnos.turnoEnCurso.participantId)
     : null;
@@ -50,12 +59,21 @@ export function FeedDeActividad({ estado, presencia }) {
 
   return (
     <section className="tarjeta-de-actividad">
-      {quienHabla && <p className="banner-de-turno">🗣️ {quienHabla} está hablando ahora</p>}
-      {quienFueOfrecido && (
-        <p className="banner-de-turno banner-de-espera">⏳ Se le ofreció el turno a {quienFueOfrecido}…</p>
-      )}
-      {!quienHabla && !quienFueOfrecido && (
-        <p className="banner-de-turno banner-de-espera">⏳ Esperando que se ofrezca el próximo turno…</p>
+      {enFaseDeApertura ? (
+        <p className="banner-de-turno banner-de-espera">
+          ✍️ Todos escriben su argumento inicial — {yaEscribieronSuApertura}/{elegiblesParaApertura.length} ya
+          enviaron el suyo
+        </p>
+      ) : (
+        <>
+          {quienHabla && <p className="banner-de-turno">🗣️ {quienHabla} está hablando ahora</p>}
+          {quienFueOfrecido && (
+            <p className="banner-de-turno banner-de-espera">⏳ Se le ofreció el turno a {quienFueOfrecido}…</p>
+          )}
+          {!quienHabla && !quienFueOfrecido && (
+            <p className="banner-de-turno banner-de-espera">⏳ Esperando que se ofrezca el próximo turno…</p>
+          )}
+        </>
       )}
       <p className="texto-de-ayuda">Actividad reciente</p>
       <ul className="lista-de-actividad">

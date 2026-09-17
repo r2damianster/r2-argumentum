@@ -22,7 +22,10 @@ function generarId(prefijo) {
   return `${prefijo}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function FormularioDeArgumento({ estado, programa, participantId, turnoEnCurso, publicar }) {
+// modoApertura: la fase de apertura simultánea (ver docs/09) no tiene turno — todos
+// escriben en paralelo su argumento inicial, siempre tipo "nuevo" (todavía no hay nada
+// publicado a lo que responder). turnoEnCurso puede venir null en ese caso.
+export function FormularioDeArgumento({ estado, programa, participantId, turnoEnCurso, publicar, modoApertura = false }) {
   const [tipoDeclarado, setTipoDeclarado] = useState(TIPOS_DE_RELACION.NUEVO);
   const [argumentoObjetivoId, setArgumentoObjetivoId] = useState('');
   const [texto, setTexto] = useState('');
@@ -30,11 +33,12 @@ export function FormularioDeArgumento({ estado, programa, participantId, turnoEn
   const [enviando, setEnviando] = useState(false);
   const [ultimoResultado, setUltimoResultado] = useState(null);
 
-  const requiereObjetivo = TIPOS_QUE_REQUIEREN_OBJETIVO.includes(tipoDeclarado);
+  const requiereObjetivo = !modoApertura && TIPOS_QUE_REQUIEREN_OBJETIVO.includes(tipoDeclarado);
   const argumentosExistentes = Object.values(estado.argumentos);
   const posicionEnRonda = siguientePosicionParaParticipante(estado, participantId);
-  const ronda = estado.fase.actual?.ronda ?? 1;
+  const ronda = modoApertura ? 1 : estado.fase.actual?.ronda ?? 1;
   const stanceId = estado.participantes[participantId]?.stanceId ?? null;
+  const turnId = modoApertura ? `apertura-${participantId}` : turnoEnCurso.turnId;
 
   async function manejarEnvio(evento) {
     evento.preventDefault();
@@ -46,7 +50,7 @@ export function FormularioDeArgumento({ estado, programa, participantId, turnoEn
     publicar(EVENTOS.ARGUMENTO_INTENTO, {
       attemptId,
       participantId,
-      turnId: turnoEnCurso.turnId,
+      turnId,
       ronda,
       numeroDeIntento,
       texto,
@@ -73,7 +77,7 @@ export function FormularioDeArgumento({ estado, programa, participantId, turnoEn
     const argumentoDeBase = {
       argumentId: generarId('argumento'),
       participantId,
-      turnId: turnoEnCurso.turnId,
+      turnId,
       ronda,
       posicionEnRonda,
       tipoDeclarado,
@@ -101,24 +105,34 @@ export function FormularioDeArgumento({ estado, programa, participantId, turnoEn
 
   return (
     <section className="tarjeta-de-formulario-de-argumento">
-      <p className="texto-de-ayuda">
-        Es tu turno — podés agregar un argumento nuevo, o elegir abajo un tipo para responder a algo que ya se
-        dijo (contraargumento, refuerzo, dilema…) y apoyar o rebatir la postura de otro compañero.
-      </p>
+      {modoApertura ? (
+        <p className="texto-de-ayuda">
+          Escribí tu argumento inicial defendiendo tu postura — todos lo hacen al mismo tiempo, nadie espera
+          turno todavía. Cuando termine el tiempo (o escriban todos), Groq revisa el conjunto completo y arranca
+          la ronda de reacciones.
+        </p>
+      ) : (
+        <p className="texto-de-ayuda">
+          Es tu turno — podés agregar un argumento nuevo, o elegir abajo un tipo para responder a algo que ya se
+          dijo (contraargumento, refuerzo, dilema…) y apoyar o rebatir la postura de otro compañero.
+        </p>
+      )}
       <p className="texto-de-ayuda">
         Posición {posicionEnRonda} · intento {numeroDeIntento} de {programa.maxIntentosGroqPorArgumento}
       </p>
       <form onSubmit={manejarEnvio}>
-        <label>
-          Tipo
-          <select value={tipoDeclarado} onChange={(evento) => setTipoDeclarado(evento.target.value)}>
-            {Object.entries(ETIQUETA_DE_TIPO).map(([valor, etiqueta]) => (
-              <option key={valor} value={valor}>
-                {etiqueta}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!modoApertura && (
+          <label>
+            Tipo
+            <select value={tipoDeclarado} onChange={(evento) => setTipoDeclarado(evento.target.value)}>
+              {Object.entries(ETIQUETA_DE_TIPO).map(([valor, etiqueta]) => (
+                <option key={valor} value={valor}>
+                  {etiqueta}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         {requiereObjetivo && (
           <label>

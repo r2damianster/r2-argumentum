@@ -43,6 +43,8 @@ export const TIPOS_DE_BID = {
 };
 
 export const TIPOS_DE_FASE = {
+  // Todos escriben su argumento inicial en paralelo (sin ruleta) — ver docs/09.
+  APERTURA_SIMULTANEA: 'apertura_simultanea',
   ESCRITURA_ARGUMENTOS: 'escritura_argumentos',
   CONEXION_SUGERIDA: 'conexion_sugerida',
   CONEXION_LIBRE: 'conexion_libre',

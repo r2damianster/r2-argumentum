@@ -201,6 +201,8 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
     estado.coModeradores !== null &&
     !soyComoderador &&
     !estado.participantes[participantId]?.stanceId;
+  const enFaseDeApertura = estado.fase.actual?.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA;
+  const yaEscribiMiApertura = (estado.participantes[participantId]?.posicionesCompletadas ?? 0) >= 1;
 
   return (
     <main>
@@ -227,6 +229,22 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
 
       {!sesionCerrada && soyComoderador && (
         <PanelDeCoModerador estado={estado} participantId={participantId} publicar={publicar} />
+      )}
+
+      {!sesionCerrada && !soyComoderador && !debeElegirPostura && enFaseDeApertura && !yaEscribiMiApertura && (
+        <FormularioDeArgumento
+          estado={estado}
+          programa={programa}
+          participantId={participantId}
+          publicar={publicar}
+          modoApertura
+        />
+      )}
+
+      {!sesionCerrada && !soyComoderador && enFaseDeApertura && yaEscribiMiApertura && (
+        <section className="tarjeta-de-turno-ofrecido">
+          <p className="texto-de-ayuda">✅ Ya enviaste tu argumento inicial — esperando a que terminen los demás.</p>
+        </section>
       )}
 
       {!sesionCerrada && !soyComoderador && oferta && (

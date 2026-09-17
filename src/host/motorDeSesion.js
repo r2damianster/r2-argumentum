@@ -82,9 +82,11 @@ function crearAcumuladorDePuntaje(estado) {
 export function crearMotorDeSesion({ programa }) {
   const temporizadoresDeOferta = new Map(); // turnId -> timeoutId
   const temporizadoresDeBid = new Map(); // bidId -> timeoutId
+  const temporizadoresDeFase = new Map(); // iniciadaEn -> timeoutId (fase de apertura)
   const argumentosYaPuntuados = new Set();
   const bidsYaProcesados = new Set();
-  const rondasYaSugeridas = new Set();
+  const fasesYaAnalizadasPorGroq = new Set(); // clave: `${tipo}:${iniciadaEn}`
+  const fasesDeAperturaYaAutoCerradas = new Set(); // clave: iniciadaEn
   const turnosConTopicoDeBidsYaCerrado = new Set();
   let indiceDeFase = -1;
   let contexto = { estado: null, presencia: [], publicar: () => {} };
@@ -309,6 +311,64 @@ export function crearMotorDeSesion({ programa }) {
     }
   }
 
+  // Fase de apertura simultánea (docs/09): todos escriben su argumento inicial en paralelo,
+  // sin ruleta. Se cierra sola cuando ya escribieron todos los elegibles, o al agotarse el
+  // tiempo configurado en la entrada `apertura_simultanea` de programa.fases (lo que pase
+  // primero) — igual que el "tiempo límite" que el usuario pidió para no depender de que el
+  // moderador la corte a mano.
+  function gestionarFaseDeAperturaSiHaceFalta() {
+    const { estado, presencia } = contexto;
+    const faseActual = estado.fase.actual;
+    if (!faseActual || faseActual.tipo !== TIPOS_DE_FASE.APERTURA_SIMULTANEA) {
+      return;
+    }
+    const claveDeInstancia = faseActual.iniciadaEn;
+    if (fasesDeAperturaYaAutoCerradas.has(claveDeInstancia)) {
+      return;
+    }
+
+    if (!temporizadoresDeFase.has(claveDeInstancia)) {
+      const entradaDeFase = programa.fases.find((fase) => fase.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA);
+      const duracionMs = (entradaDeFase?.duracionMin ?? 5) * 60 * 1000;
+      const tiempoRestanteMs = Math.max(0, faseActual.iniciadaEn + duracionMs - Date.now());
+      const timeoutId = setTimeout(() => {
+        temporizadoresDeFase.delete(claveDeInstancia);
+        if (
+          contexto.estado?.fase.actual?.iniciadaEn === claveDeInstancia &&
+          !fasesDeAperturaYaAutoCerradas.has(claveDeInstancia)
+        ) {
+          fasesDeAperturaYaAutoCerradas.add(claveDeInstancia);
+          cerrarFaseActual();
+        }
+      }, tiempoRestanteMs);
+      temporizadoresDeFase.set(claveDeInstancia, timeoutId);
+    }
+
+    // OJO: no filtrar acá por stanceId — con asignacionPostura:"libre" alguien que todavía
+    // no eligió postura tiene posicionesCompletadas=0 y por eso nunca puede haber "escrito"
+    // (bug real: filtrarlo lo excluía del conteo, y la fase podía cerrarse sin darle chance
+    // a elegir). Se lo cuenta igual, así el "todos ya escribieron" espera también a esa persona.
+    const elegibles = presencia
+      .filter((presente) => presente.conectado !== false)
+      .map((presente) => presente.participantId)
+      .filter((participantId) => estado.participantes[participantId]?.rol !== 'co_moderador');
+    if (elegibles.length === 0) {
+      return;
+    }
+    const todosYaEscribieron = elegibles.every(
+      (participantId) => (estado.participantes[participantId]?.posicionesCompletadas ?? 0) >= 1
+    );
+    if (todosYaEscribieron) {
+      fasesDeAperturaYaAutoCerradas.add(claveDeInstancia);
+      const timeoutId = temporizadoresDeFase.get(claveDeInstancia);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        temporizadoresDeFase.delete(claveDeInstancia);
+      }
+      cerrarFaseActual();
+    }
+  }
+
   function sincronizar({ estado, presencia, publicar }) {
     contexto = { estado, presencia, publicar };
     if (!estado || estaCerrada()) {
@@ -319,6 +379,7 @@ export function crearMotorDeSesion({ programa }) {
     procesarBidsResueltos();
     iniciarTemporizadoresDeBidsNuevos();
     cerrarTopicosDeBidsResueltosAutomaticamente();
+    gestionarFaseDeAperturaSiHaceFalta();
   }
 
   // posturasParaAsignar: opcional, subconjunto de programa.posturas elegido por el
@@ -361,10 +422,13 @@ export function crearMotorDeSesion({ programa }) {
     publicar(EVENTOS.FASE_INICIADA, { phaseType: primeraFase.tipo, ronda: primeraFase.ronda ?? null });
   }
 
-  async function dispararSugerenciasDeConexion(ronda) {
+  // Manda TODO el pool de argumentos acumulado hasta ahora (no solo los de la fase que se
+  // cierra) — así Groq también puede encontrar conexiones entre una reacción nueva y un
+  // argumento de la fase de apertura, no solo entre argumentos de la misma fase.
+  async function dispararSugerenciasDeConexion() {
     const { estado, publicar } = contexto;
-    const argumentosDeLaRonda = Object.values(estado.argumentos).filter((argumento) => argumento.ronda === ronda);
-    if (argumentosDeLaRonda.length < 2) {
+    const todosLosArgumentos = Object.values(estado.argumentos);
+    if (todosLosArgumentos.length < 2) {
       return;
     }
     try {
@@ -372,7 +436,7 @@ export function crearMotorDeSesion({ programa }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          argumentos: argumentosDeLaRonda.map((argumento) => ({ argumentId: argumento.argumentId, texto: argumento.texto })),
+          argumentos: todosLosArgumentos.map((argumento) => ({ argumentId: argumento.argumentId, texto: argumento.texto })),
         }),
       });
       if (!respuesta.ok) {
@@ -380,7 +444,7 @@ export function crearMotorDeSesion({ programa }) {
       }
       const { sugerencias } = await respuesta.json();
       for (const sugerencia of sugerencias || []) {
-        publicar(EVENTOS.CONEXION_SUGERIDA, { suggestionId: generarId('sugerencia'), ronda, ...sugerencia });
+        publicar(EVENTOS.CONEXION_SUGERIDA, { suggestionId: generarId('sugerencia'), ronda: 1, ...sugerencia });
       }
     } catch {
       // Sin sugerencias de Groq esta ronda: no bloquea el avance de fase.
@@ -395,9 +459,12 @@ export function crearMotorDeSesion({ programa }) {
     }
     publicar(EVENTOS.FASE_CERRADA, { phaseType: faseActual.tipo, ronda: faseActual.ronda });
 
-    if (faseActual.tipo === TIPOS_DE_FASE.ESCRITURA_ARGUMENTOS && !rondasYaSugeridas.has(faseActual.ronda)) {
-      rondasYaSugeridas.add(faseActual.ronda);
-      await dispararSugerenciasDeConexion(faseActual.ronda);
+    const claveDeAnalisis = `${faseActual.tipo}:${faseActual.iniciadaEn}`;
+    const esFaseQueDisparaGroq =
+      faseActual.tipo === TIPOS_DE_FASE.ESCRITURA_ARGUMENTOS || faseActual.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA;
+    if (esFaseQueDisparaGroq && !fasesYaAnalizadasPorGroq.has(claveDeAnalisis)) {
+      fasesYaAnalizadasPorGroq.add(claveDeAnalisis);
+      await dispararSugerenciasDeConexion();
     }
 
     indiceDeFase += 1;
@@ -438,8 +505,10 @@ export function crearMotorDeSesion({ programa }) {
   function destruir() {
     for (const timeoutId of temporizadoresDeOferta.values()) clearTimeout(timeoutId);
     for (const timeoutId of temporizadoresDeBid.values()) clearTimeout(timeoutId);
+    for (const timeoutId of temporizadoresDeFase.values()) clearTimeout(timeoutId);
     temporizadoresDeOferta.clear();
     temporizadoresDeBid.clear();
+    temporizadoresDeFase.clear();
   }
 
   return { sincronizar, iniciarSesion, cerrarFaseActual, cerrarTopicoDeBids, decidirBid, cerrarSesion, destruir };

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { TIPOS_DE_FASE, EVENTOS } from '../../shared/eventos/nombresDeEventos.js';
 
 const ETIQUETA_DE_FASE = {
+  [TIPOS_DE_FASE.APERTURA_SIMULTANEA]: 'Apertura simultánea (todos escriben)',
   [TIPOS_DE_FASE.ESCRITURA_ARGUMENTOS]: 'Escritura de argumentos',
   [TIPOS_DE_FASE.CONEXION_SUGERIDA]: 'Conexión sugerida por Groq',
   [TIPOS_DE_FASE.CONEXION_LIBRE]: 'Conexión libre',
