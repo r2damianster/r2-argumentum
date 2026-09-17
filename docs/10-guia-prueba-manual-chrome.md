@@ -61,11 +61,11 @@ Con solo 2 participantes, `ceil(2×0.10)`=1 co-moderador deja apenas 1 argumenta
 4. Quien tenga el turno: Aceptar → escribir un argumento **malo** (sin "porque"/razón) → confirmar rechazo de Groq con motivo → reintentar con uno **bueno** (con razón/evidencia) → confirmar que se publica y aparece en el grafo con el color correcto según su tipo.
 5. El co-moderador: confirmar que ve el argumento en "Argumentos por validar", confirmar la validación → verificar que el puntaje aparece en vivo en el host (fórmula: posición 1, ronda 1, sin descuento = 10 pts).
 6. Repetir turno con el otro participante para tener 2+ argumentos.
-7. **Bid**: mientras alguien tiene el turno, el tercer participante lanza un bid (Desmontar o Fortalecer) sobre un argumento de quien tiene el turno. El co-moderador vota. El host cierra el tópico de bids y da veredicto (Aprobar/Rechazar) desde el panel correspondiente → confirmar que se publica el argumento resultante y el puntaje de quien votó coincidente con la decisión.
+7. **Bid**: mientras alguien tiene el turno, el tercer participante lanza un bid (Desmontar o Fortalecer) sobre un argumento de quien tiene el turno. El co-moderador vota (aprueba/rechaza). Con 1 solo co-moderador, apenas vota, el tópico se cierra SOLO (confirmar que aparece en "Bids esperando veredicto del moderador" en el host sin que haga falta tocar nada) — si por algo no se cierra solo, probar el botón "Cerrar tópico de bids ahora". El host da veredicto (Aprobar/Rechazar) → confirmar que se publica el argumento resultante y el puntaje de quien votó coincidente con la decisión.
 8. **Host**: "Cerrar fase actual" → confirmar (sin errores en consola) que se dispara la llamada a Groq de sugerencias y que aparecen `link.suggested` solo para los 2 dueños involucrados (si hay al menos 2 argumentos).
 9. Un participante: aceptar o rechazar una sugerencia visible.
 10. Conexión libre: un participante conecta un argumento propio ya publicado (sin salida) con el de otro, elige tipo de relación → confirmar arista nueva en el grafo.
-11. Avanzar fases (el Programa tiene Ronda 1 → Ronda 2 → conexión libre → cierre y ranking) hasta llegar a `cierre_y_ranking`. Host: confirmar pantalla de ranking por postura con tiers, botón "Cerrar sesión", luego "Descargar sesión (.json)" → confirmar que el archivo descargado tiene `eventLogCompleto`, `mapaArgumental`, `rankingPorPostura`, `perfilPorEstudiante`.
+11. Avanzar fases (el Programa tiene Ronda 1 → Ronda 2 → conexión libre → cierre y ranking) hasta llegar a `cierre_y_ranking`. Host: confirmar pantalla de ranking por postura con tiers (con los NOMBRES de los participantes, no IDs), botón "Cerrar debate", luego "Descargar sesión (.json)" → confirmar que el archivo descargado tiene `eventLogCompleto`, `mapaArgumental`, `rankingPorPostura`, `perfilPorEstudiante` (este último con `nombre`/`emoji`, no solo `participantId`).
 12. Participantes: confirmar que ven su propio resultado (puntaje + tier) en vez del formulario de argumento.
 
 ## 5. Casos borde importantes
@@ -86,7 +86,7 @@ Tabla en markdown, más grave primero:
 | 1 | ... | ... | ... | ... | ... |
 
 - Si algo falla por historial de Ably expirado tras varios minutos de por medio, no lo pongas en la tabla — anotalo aparte como "esperado por retención de Ably".
-- Si alguno de los 5 bugs de la sección 3 reaparece, marcalo como "REGRESIÓN" y ponelo primero en la tabla, severidad alta.
+- Si alguno de los 10 bugs de la sección 3 reaparece, marcalo como "REGRESIÓN" y ponelo primero en la tabla, severidad alta.
 - Si no hay fallos reales, decilo explícitamente: "Sin fallos detectados en el alcance actual". No inventes hallazgos.
 
 ## 7. Cierre
