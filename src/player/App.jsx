@@ -16,6 +16,7 @@ import { PanelDeConexionLibre } from './componentes/PanelDeConexionLibre.jsx';
 import { PanelDeSugerencias } from './componentes/PanelDeSugerencias.jsx';
 import { PanelDeBid } from './componentes/PanelDeBid.jsx';
 import { PanelDeCoModerador } from './componentes/PanelDeCoModerador.jsx';
+import { SelectorDePosturaPropia } from './componentes/SelectorDePosturaPropia.jsx';
 
 // Mismo set de emojis que R2 Quiz, ver docs/07-acceso-y-paginas.md.
 const EMOJIS_DISPONIBLES = [
@@ -191,6 +192,15 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
   const miPostura = programa.posturas.find((postura) => postura.id === estado.participantes[participantId]?.stanceId);
   const miPuntaje = estado.participantes[participantId]?.puntajeTotal ?? 0;
   const sesionCerrada = estado.fase.actual?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING || estado.sesion.cerrada;
+  // Si el Programa deja elegir postura libremente (en vez de asignarla al azar), esperamos
+  // a saber si soy co-moderador (comod.selected ya publicado) antes de mostrar el selector —
+  // los co-moderadores no argumentan, no deben elegir postura.
+  const debeElegirPostura =
+    !sesionCerrada &&
+    programa.asignacionPostura === 'libre' &&
+    estado.coModeradores !== null &&
+    !soyComoderador &&
+    !estado.participantes[participantId]?.stanceId;
 
   return (
     <main>
@@ -208,6 +218,10 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
       </p>
 
       {sesionCerrada && <PantallaDeResultadoDelParticipante estado={estado} programa={programa} participantId={participantId} />}
+
+      {debeElegirPostura && (
+        <SelectorDePosturaPropia programa={programa} participantId={participantId} publicar={publicar} />
+      )}
 
       {!sesionCerrada && <FeedDeActividad estado={estado} presencia={presencia} />}
 

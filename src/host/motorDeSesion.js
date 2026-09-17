@@ -34,6 +34,9 @@ function elegirCandidatoParaTurno(estado, presencia, limiteDePosiciones) {
     .filter((presente) => presente.conectado !== false)
     .map((presente) => presente.participantId)
     .filter((participantId) => estado.participantes[participantId]?.rol !== 'co_moderador')
+    // Con asignacionPostura:"libre" el participante recién tiene stanceId cuando la elige
+    // él mismo (ver SelectorDePosturaPropia) — no se le puede ofrecer turno antes de eso.
+    .filter((participantId) => Boolean(estado.participantes[participantId]?.stanceId))
     .filter(
       (participantId) => (estado.participantes[participantId]?.posicionesCompletadas ?? 0) < limiteDePosiciones
     );

@@ -25,7 +25,7 @@
     { "id": "homo_curans", "etiqueta": "Homo curans (el que cuida)", "color": "#4D7C0F" },
     { "id": "homo_sentiens", "etiqueta": "Homo sentiens (el que siente)", "color": "#475569" }
   ],
-  "asignacionPostura": "aleatoria",
+  "asignacionPostura": "libre",
   "permiteCambioPostura": false,
 
   "fases": [

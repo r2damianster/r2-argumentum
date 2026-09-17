@@ -18,9 +18,33 @@ const USUARIO_VALIDO = 'arturo.rodriguez@uleam.edu.ec';
 const CLAVE_VALIDA = 'R2ironmaiden';
 
 const CLAVE_DE_SESION_ACTIVA = 'r2-argumentum-sesion-activa';
+const CLAVE_DE_LOGIN_RECORDADO = 'r2-argumentum-host-autenticado';
+
+// Recordar el login en localStorage (no sessionStorage) — sobrevive cerrar el navegador.
+// Mismo criterio que la credencial hardcodeada: esta consola no maneja información
+// sensible, así que no hay costo real en no pedirla cada vez (docs/07-acceso-y-paginas.md).
+function leerLoginRecordado() {
+  try {
+    return localStorage.getItem(CLAVE_DE_LOGIN_RECORDADO) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function guardarLoginRecordado(recordar) {
+  try {
+    if (recordar) {
+      localStorage.setItem(CLAVE_DE_LOGIN_RECORDADO, 'true');
+    } else {
+      localStorage.removeItem(CLAVE_DE_LOGIN_RECORDADO);
+    }
+  } catch {
+    // Sin localStorage disponible, simplemente vuelve a pedir usuario/clave cada vez.
+  }
+}
 
 export default function App() {
-  const [autenticado, setAutenticado] = useState(false);
+  const [autenticado, setAutenticado] = useState(() => leerLoginRecordado());
   const [usuario, setUsuario] = useState('');
   const [clave, setClave] = useState('');
   const [mensajeDeError, setMensajeDeError] = useState('');
@@ -29,14 +53,20 @@ export default function App() {
     evento.preventDefault();
     if (usuario === USUARIO_VALIDO && clave === CLAVE_VALIDA) {
       setMensajeDeError('');
+      guardarLoginRecordado(true);
       setAutenticado(true);
     } else {
       setMensajeDeError('Usuario o clave incorrectos.');
     }
   }
 
+  function cerrarSesionDeHost() {
+    guardarLoginRecordado(false);
+    setAutenticado(false);
+  }
+
   if (autenticado) {
-    return <ConsolaDelHost onCerrarSesion={() => setAutenticado(false)} />;
+    return <ConsolaDelHost onCerrarSesion={cerrarSesionDeHost} />;
   }
 
   return (
@@ -213,6 +243,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargando]);
 
+  const sesionIniciada = estado.fase.actual !== null || estado.fase.historial.length > 0;
   const mostrarRanking = estado.fase.actual?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING || estado.sesion.cerrada;
   // Una vez que el Programa se publicó al canal (ver efecto arriba), estado.programa es la
   // fuente de verdad — puede diferir del prop `programa` original si el moderador filtró
@@ -239,22 +270,36 @@ function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSe
             </li>
           ))}
         </ul>
-        <button type="button" className="boton-cambiar-programa" onClick={onCambiarPrograma}>
-          Cambiar Programa de Debate
-        </button>
-      </section>
-
-      <section className="tarjeta-de-sala">
-        <p className="texto-de-ayuda">Código de sala</p>
-        <p className="codigo-de-sala">{codigoDeSala}</p>
-        <QRCodeSVG value={urlDeIngreso} size={180} bgColor="#ffffff" fgColor="#0f172a" />
-        <p className="texto-de-ayuda">
-          Los estudiantes escanean el QR o entran en <code>/player.html</code> e ingresan el código.
-        </p>
+        {!sesionIniciada && (
+          <button type="button" className="boton-cambiar-programa" onClick={onCambiarPrograma}>
+            Cambiar Programa de Debate
+          </button>
+        )}
       </section>
 
       {cargando ? (
         <p className="texto-de-ayuda">Conectando al canal de la sesión…</p>
+      ) : !sesionIniciada ? (
+        // Sala de configuración previa: se comparte el código/QR para que los estudiantes
+        // ya se vayan conectando mientras el moderador elige posturas y decide cuándo
+        // arrancar — recién ahí pasa a la vista "en vivo" de abajo.
+        <section className="tarjeta-de-sala-de-configuracion">
+          <h3>Sala de configuración previa</h3>
+          <p className="texto-de-ayuda">
+            Compartí el código o el QR para que se vayan conectando. Cuando estés listo, elegí las posturas de
+            esta sesión y arrancá — recién ahí empieza el debate para todos.
+          </p>
+          <div className="tarjeta-de-sala">
+            <p className="texto-de-ayuda">Código de sala</p>
+            <p className="codigo-de-sala">{codigoDeSala}</p>
+            <QRCodeSVG value={urlDeIngreso} size={180} bgColor="#ffffff" fgColor="#0f172a" />
+            <p className="texto-de-ayuda">
+              Los estudiantes escanean el QR o entran en <code>/player.html</code> e ingresan el código.
+            </p>
+          </div>
+          <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
+          <ControlDeFases estado={estado} motor={motor} programa={programaVisible} publicar={publicar} />
+        </section>
       ) : (
         <>
           <ControlDeFases estado={estado} motor={motor} programa={programaVisible} publicar={publicar} />
