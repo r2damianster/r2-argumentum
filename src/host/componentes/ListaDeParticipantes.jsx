@@ -1,17 +1,21 @@
 import { combinarParticipantesConPresencia } from '../../shared/estado/seleccionesDerivadas.js';
 
+const MEDALLA_POR_POSICION = ['🥇', '🥈', '🥉'];
+
 export function ListaDeParticipantes({ estado, presencia, programa }) {
   const participantes = combinarParticipantesConPresencia(estado, presencia);
   const posturaPorId = Object.fromEntries(programa.posturas.map((postura) => [postura.id, postura]));
+  const ordenados = [...participantes].sort((a, b) => b.puntajeTotal - a.puntajeTotal);
 
   return (
     <section className="tarjeta-de-participantes">
-      <p className="texto-de-ayuda">Participantes ({participantes.length})</p>
+      <p className="texto-de-ayuda">Marcador en vivo ({participantes.length} participantes)</p>
       <ul className="lista-de-participantes">
-        {participantes.map((participante) => {
+        {ordenados.map((participante, indice) => {
           const postura = participante.stanceId ? posturaPorId[participante.stanceId] : null;
           return (
             <li key={participante.participantId}>
+              <span className="medalla-de-posicion">{MEDALLA_POR_POSICION[indice] ?? `${indice + 1}º`}</span>
               <span className="emoji-de-participante">{participante.emoji}</span>
               <span className="nombre-de-participante">{participante.nombre}</span>
               {participante.rol === 'co_moderador' && <span className="chip-de-rol">Co-moderador</span>}

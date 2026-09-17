@@ -10,7 +10,7 @@ import {
 import { miOfertaDeTurno, tengoElTurnoEnCurso } from './estadoDelParticipante.js';
 import { PantallaDeTurnoOfrecido } from './componentes/PantallaDeTurnoOfrecido.jsx';
 import { FormularioDeArgumento } from './componentes/FormularioDeArgumento.jsx';
-import { GrafoDeArgumentos } from './componentes/GrafoDeArgumentos.jsx';
+import { GrafoDeArgumentos } from '../shared/componentes/GrafoDeArgumentos.jsx';
 import { PanelDeConexionLibre } from './componentes/PanelDeConexionLibre.jsx';
 import { PanelDeSugerencias } from './componentes/PanelDeSugerencias.jsx';
 import { PanelDeBid } from './componentes/PanelDeBid.jsx';

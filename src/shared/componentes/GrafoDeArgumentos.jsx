@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { ReactFlow, Background, MarkerType } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { COLORES_SEMANTICOS_DEL_GRAFO } from '../../shared/estilos/colores.js';
-import { TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
-import { nombreDeParticipante } from '../../shared/estado/seleccionesDerivadas.js';
+import { COLORES_SEMANTICOS_DEL_GRAFO } from '../estilos/colores.js';
+import { TIPOS_DE_RELACION } from '../eventos/nombresDeEventos.js';
+import { nombreDeParticipante } from '../estado/seleccionesDerivadas.js';
 
 const ANCHO_DE_COLUMNA = 260;
 const ANCHO_DE_NODO = 220;
@@ -25,6 +25,7 @@ function colorDelArgumento(argumento) {
   return COLORES_SEMANTICOS_DEL_GRAFO[claveDeColor] || COLORES_SEMANTICOS_DEL_GRAFO.pregunta;
 }
 
+// Compartido entre host (proyección en vivo) y player (vista propia) — ver docs/06-pendientes.md.
 export function GrafoDeArgumentos({ estado, programa, presencia }) {
   const { nodos, aristas } = useMemo(() => {
     const argumentos = Object.values(estado.argumentos).sort((a, b) => a.timestamp - b.timestamp);

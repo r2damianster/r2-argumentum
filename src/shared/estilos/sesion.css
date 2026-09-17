@@ -123,6 +123,12 @@ textarea {
   color: var(--color-marca-oscuro);
 }
 
+.medalla-de-posicion {
+  font-weight: 700;
+  min-width: 24px;
+  text-align: center;
+}
+
 /* Grafo */
 
 .contenedor-de-grafo {
