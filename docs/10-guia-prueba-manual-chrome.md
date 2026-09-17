@@ -22,7 +22,7 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 - **Login + selector de Programa de Debate**: catálogo por categoría (Política, Filosofía) o carga de `.json` propio, con tarjeta de resumen (título/tema/posturas) antes de generar sala. El login ahora se recuerda en `localStorage` — no debería pedir usuario/clave de nuevo en el mismo navegador aunque se cierre la pestaña (antes se perdía con cualquier refresh).
 - **Sala de configuración previa**: tras elegir Programa, todo lo de "antes de arrancar" (código+QR, participantes conectados, selector de posturas, botón "Iniciar sesión") vive en una sola tarjeta con fondo distinto — se comparte el link ahí para que se vayan conectando mientras se configura. El feed de actividad y el grafo NO aparecen todavía en esta pantalla, solo después de "Iniciar sesión".
 - **Selector de posturas** (solo si el Programa tiene más de 2): dentro de la sala de configuración previa, checklist con todas las posturas tildadas por defecto — el moderador puede destildar las que no quiere debatir esa sesión (mínimo 2). El nuevo ejemplo "¿Qué hace único al ser humano?" (categoría Filosofía) tiene 12 posturas candidatas, pensado justo para esto.
-- **"Iniciar sesión"** (botón del host): sortea co-moderadores (`ceil(n×0.10)`, mínimo 1) y asigna posturas (solo las elegidas en el selector) al resto, arranca la fase **`Apertura simultánea`** (no directo a la ruleta de turnos).
+- **"Iniciar sesión"** (botón del host): sortea co-moderadores (`ceil(n×0.10)`, mínimo 1, pero nunca más de `n-2` para garantizar al menos 2 argumentadores) y asigna posturas (solo las elegidas en el selector) al resto, arranca la fase **`Apertura simultánea`** (no directo a la ruleta de turnos).
 - **Autoselección de postura**: si el Programa tiene `asignacionPostura: "libre"` (el de 12 posturas filosóficas la usa), el participante ve una pantalla bloqueante "Elegí la postura que vas a defender" en vez de que se la asignen al azar — no puede hacer nada más hasta elegir. Los co-moderadores nunca la ven.
 - **Fase de apertura simultánea** (nueva): todos los participantes (no co-moderadores) escriben su argumento inicial AL MISMO TIEMPO, sin turno — siempre tipo "nuevo", sin selector de tipo/objetivo (no hay nada previo a lo que responder). El feed muestra "✍️ Todos escriben su argumento inicial — N/M ya enviaron el suyo". La fase se cierra sola cuando todos terminaron, o al agotar el tiempo límite del Programa (4-5 min en los ejemplos) — lo que pase primero. Al cerrarse dispara Groq-conexiones sobre todo el lote antes de pasar a la ruleta de reacciones.
 - **Ruleta de turnos** (arranca después de la apertura): prioridad absoluta a quien no tuvo turno, timeout de aceptación (reoferta a otro), tope de rechazos (fuerza el turno). Ver casos borde en la sección 5.
@@ -40,7 +40,7 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 
 ## 3. Bugs ya encontrados y arreglados — verificar que NO reaparezcan (regresión), no "redescubrirlos"
 
-Estos 12 ya se arreglaron en sesiones de prueba anteriores. Si alguno reaparece, es una regresión real y sí va en la tabla de fallos:
+Estos 13 ya se arreglaron en sesiones de prueba anteriores. Si alguno reaparece, es una regresión real y sí va en la tabla de fallos:
 
 **Primera ronda (motor base):**
 1. Historial de Ably no cargaba (incompatibilidad `direction:forwards` + `untilAttach`).
@@ -59,6 +59,7 @@ Estos 12 ya se arreglaron en sesiones de prueba anteriores. Si alguno reaparece,
 **Tercera ronda (probada con 11 participantes reales):**
 11. **Nombre reemplazado por ID técnico al desconectarse un participante** — al perder la conexión un momento, su nombre desaparecía de `presencia` y el grafo/ranking mostraban el ID técnico en TODOS los demás clientes hasta que volvía a entrar. Ahora el nombre sobrevive a un blip de conexión. Para probarlo: cerrar y reabrir la pestaña de un participante que ya tenga un argumento publicado, y confirmar en OTRA pestaña que su nombre sigue viéndose (no un ID) durante la desconexión, no solo después de reconectar.
 12. El banner decía "Esperando que el MODERADOR ofrezca el próximo turno…", dando a entender que el moderador aprieta algo por cada turno — es automático (ruleta), el moderador no hace nada por turno individual. Texto corregido a "Esperando que se ofrezca el próximo turno…".
+13. **Con pocos participantes, nadie podía escribir nada** — el sorteo de co-moderadores (`ceil(n×0.10)` mínimo 1) podía convertir a TODOS los presentes en co-moderadores (con 1 participante, esa única persona quedaba de co-moderadora, cero argumentadores). Confirmado y arreglado: ahora nunca se sortean más de `participantesElegibles.length - 2` co-moderadores. **Probar con 2 participantes exactos**: ninguno debe quedar como co-moderador (0 co-moderadores con n=2), ambos deben poder escribir su argumento de apertura.
 
 **Features nuevas, sin probar todavía — verificar por primera vez:**
 
@@ -105,7 +106,7 @@ Tabla en markdown, más grave primero:
 | 1 | ... | ... | ... | ... | ... |
 
 - Si algo falla por historial de Ably expirado tras varios minutos de por medio, no lo pongas en la tabla — anotalo aparte como "esperado por retención de Ably".
-- Si alguno de los 12 bugs de la sección 3 reaparece, marcalo como "REGRESIÓN" y ponelo primero en la tabla, severidad alta.
+- Si alguno de los 13 bugs de la sección 3 reaparece, marcalo como "REGRESIÓN" y ponelo primero en la tabla, severidad alta.
 - Si no hay fallos reales, decilo explícitamente: "Sin fallos detectados en el alcance actual". No inventes hallazgos.
 
 ## 7. Cierre
