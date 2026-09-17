@@ -31,7 +31,8 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 - **Sugerencias de Groq**: visibles solo a los 2 participantes dueños de los argumentos involucrados, con botones Aceptar/Rechazar.
 - **Bids de intervención**: mientras alguien tiene el turno, otro participante puede lanzar un bid (Desmontar/Fortalecer) sobre uno de sus argumentos; co-moderadores votan aprueba/rechaza; el host da el veredicto final (`PanelDeDecisionDeBids`), que publica el argumento resultante + puntaje.
 - **Panel de co-moderador**: valida argumentos pendientes (confirma/corrige tipo, marca falta, nota) y vota bids abiertos.
-- **Puntaje en vivo**: se ve en tiempo real en la lista de participantes del host, calculado por la fórmula única (`docs/05-reglas-de-puntaje.md`).
+- **Puntaje en vivo**: el host ve un marcador ordenado por puntaje con medallas 🥇🥈🥉 (no una lista plana), calculado por la fórmula única (`docs/05-reglas-de-puntaje.md`).
+- **Grafo proyectable en el host**: el host ahora ve el mismo mapa argumental que los participantes, visible durante toda la sesión (antes solo aparecía al cierre) — es lo que se proyectaría en el salón mientras se debate.
 - **Cierre de sesión + Ranking**: al llegar a la fase `cierre_y_ranking`, el host ve ranking por postura con tiers (🥇 Sólido / 🥈 Consistente / 🥉 En desarrollo) y botón para descargar la sesión completa en `.json`. El participante ve su propio resultado (puntaje + tier).
 
 ## 3. Bugs ya encontrados y arreglados — verificar que NO reaparezcan (regresión), no "redescubrirlos"
