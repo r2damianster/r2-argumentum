@@ -21,7 +21,8 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 
 - **Login + selector de Programa de Debate**: catálogo por categoría (Política, Filosofía) o carga de `.json` propio, con tarjeta de resumen (título/tema/posturas) antes de generar sala.
 - **Código de sala + QR**, persistencia de sesión del host en `sessionStorage` (sobrevive F5, pero el login no — hay que volver a loguearse tras un refresh, es comportamiento esperado).
-- **"Iniciar sesión"** (botón del host): sortea co-moderadores (`ceil(n×0.10)`, mínimo 1) y asigna posturas al resto, arranca la fase `Escritura de argumentos · Ronda 1`.
+- **Selector de posturas** (solo si el Programa tiene más de 2): antes de "Iniciar sesión", checklist con todas las posturas tildadas por defecto — el moderador puede destildar las que no quiere debatir esa sesión (mínimo 2). El nuevo ejemplo "¿Qué hace único al ser humano?" (categoría Filosofía) tiene 12 posturas candidatas, pensado justo para esto.
+- **"Iniciar sesión"** (botón del host): sortea co-moderadores (`ceil(n×0.10)`, mínimo 1) y asigna posturas (solo las elegidas en el selector) al resto, arranca la fase `Escritura de argumentos · Ronda 1`.
 - **Ruleta de turnos**: prioridad absoluta a quien no tuvo turno, timeout de aceptación (reoferta a otro), tope de rechazos (fuerza el turno). Ver casos borde en la sección 5.
 - **Escritura de argumento**: tipo (nuevo/contra/refuerzo/dilema/pregunta/concesión) + objetivo si aplica + texto → validación Groq (checkpoint 1: ¿tiene claim + razón?). Si rechaza, muestra motivo y permite reintentar (máx. 2 intentos); al agotar intentos, escala directo a co-moderador (`viaCoModerador: true`).
 - **Grafo argumental en vivo** (React Flow): un nodo por argumento, columnas por postura, color semántico por tipo (`docs/08-identidad-visual.md`), aristas por conexión.
@@ -50,6 +51,8 @@ Estos 10 ya se arreglaron en sesiones de prueba anteriores. Si alguno reaparece,
 8. **Nombres reemplazados por IDs internos** (`participante-1789...`) en el grafo, el ranking y el export — confirmar que en las 3 vistas aparece el nombre elegido por el participante, no un ID técnico.
 9. Validación Groq exigía la palabra literal "porque"/"ya que" y rechazaba argumentos con razón causal válida pero redactada distinto (ej. "...lo que retrasa la respuesta del mercado."). Confirmar con un argumento así que ahora se acepta.
 10. Dos botones "Cerrar sesión" con significados distintos (logout del host vs. cerrar el debate) — el de la pantalla de ranking ahora dice "Cerrar debate".
+
+**Feature nueva, sin probar todavía — verificar por primera vez:** el selector de posturas. Cargar el Programa "¿Qué hace único al ser humano?" (categoría Filosofía, 12 posturas) en vez del de Política. Antes de "Iniciar sesión" debe aparecer un checklist con las 12 tildadas por defecto. Destildar todas menos 2-3, confirmar que el botón "Iniciar sesión" se deshabilita si quedan menos de 2 tildadas, e iniciar con 2-3. Verificar que SOLO esas posturas se asignan a los participantes, aparecen en el grafo/ranking, y el resto de las 12 no aparece en ningún lado.
 
 ## 4. Escenario multi-ventana (mínimo 4 pestañas: 1 host + 3 participantes)
 
