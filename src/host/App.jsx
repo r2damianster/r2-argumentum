@@ -128,8 +128,23 @@ function borrarSesionActivaGuardada() {
   }
 }
 
+// Solo vale la pena restaurar automáticamente una sesión guardada si ya estaba iniciada
+// (evita perder progreso real de un debate en curso ante un refresh accidental). Si quedó
+// parada en "sala de configuración previa" sin iniciar, se descarta — cada login nuevo debe
+// mostrar la lista de Programas, no reabrir directo el último que se estaba configurando.
+function resolverSesionInicial() {
+  const guardada = leerSesionActivaGuardada();
+  if (guardada?.iniciada) {
+    return guardada;
+  }
+  if (guardada) {
+    borrarSesionActivaGuardada();
+  }
+  return null;
+}
+
 function ConsolaDelHost({ onCerrarSesion }) {
-  const sesionRestaurada = useRef(leerSesionActivaGuardada()).current;
+  const [sesionRestaurada] = useState(resolverSesionInicial);
   const [programaActivo, setProgramaActivo] = useState(sesionRestaurada?.programa ?? null);
   const [codigoDeSala, setCodigoDeSala] = useState(sesionRestaurada?.codigoDeSala ?? null);
   const [errorDeCarga, setErrorDeCarga] = useState('');
@@ -246,6 +261,16 @@ function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSe
   }, [cargando]);
 
   const sesionIniciada = estado.fase.actual !== null || estado.fase.historial.length > 0;
+
+  // Recién acá se marca la sesión guardada como "iniciada" — antes de esto (sala de
+  // configuración previa) un refresh de la pestaña debe volver a la lista de Programas,
+  // no reabrir directo esta configuración a medio hacer (ver resolverSesionInicial arriba).
+  useEffect(() => {
+    if (sesionIniciada) {
+      guardarSesionActiva({ programa, codigoDeSala, iniciada: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sesionIniciada]);
   const mostrarRanking = estado.fase.actual?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING || estado.sesion.cerrada;
   // Una vez que el Programa se publicó al canal (ver efecto arriba), estado.programa es la
   // fuente de verdad — puede diferir del prop `programa` original si el moderador filtró
