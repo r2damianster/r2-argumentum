@@ -391,9 +391,17 @@ export function crearMotorDeSesion({ programa }) {
     const participantesElegibles = presencia
       .filter((presente) => presente.conectado !== false)
       .map((presente) => presente.participantId);
-    const numeroDeCoModeradores = calcularNumeroDeCoModeradores(
+    const numeroDeCoModeradoresCalculado = calcularNumeroDeCoModeradores(
       participantesElegibles.length,
       programa.topeMaximoCoModeradores
+    );
+    // Bug real confirmado en prueba con 1 participante: ceil(n×0.10) con mínimo 1 puede
+    // convertir a TODOS los presentes en co-moderadores, dejando cero argumentadores (nadie
+    // puede escribir nada). Un debate necesita al menos 2 personas defendiendo postura —
+    // el sorteo de co-moderadores nunca debe comerse más de participantesElegibles.length-2.
+    const numeroDeCoModeradores = Math.min(
+      numeroDeCoModeradoresCalculado,
+      Math.max(0, participantesElegibles.length - 2)
     );
     const coModeradoresSorteados = [...participantesElegibles]
       .sort(() => Math.random() - 0.5)
