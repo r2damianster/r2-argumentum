@@ -66,7 +66,15 @@ export function obtenerArgumentosSinValidar(estado) {
   return Object.values(estado.argumentos).filter((argumento) => !argumento.validacion);
 }
 
-export function calcularRankingPorPostura(estado, programa) {
+// El reducer no guarda nombre/emoji (viven en presence, ver reducirEventos.js) — esto
+// resuelve el nombre visible a partir de la lista de presencia en vivo. Si alguien ya se
+// desconectó, cae de vuelta al participantId para no perder la fila del ranking/grafo.
+export function nombreDeParticipante(presencia, participantId) {
+  const presente = presencia.find((p) => p.participantId === participantId);
+  return presente ? `${presente.emoji ?? ''} ${presente.nombre ?? participantId}`.trim() : participantId;
+}
+
+export function calcularRankingPorPostura(estado, programa, presencia = []) {
   const participantesPorPostura = new Map();
   for (const stance of programa.posturas) {
     participantesPorPostura.set(stance.id, []);
@@ -88,7 +96,13 @@ export function calcularRankingPorPostura(estado, programa) {
     const total = ordenados.length;
     ranking[stanceId] = ordenados.map((participante, indice) => {
       const percentil = total <= 1 ? 100 : ((total - 1 - indice) / (total - 1)) * 100;
-      return { ...participante, tier: calcularTierPorPercentil(percentil) };
+      const presente = presencia.find((p) => p.participantId === participante.participantId);
+      return {
+        ...participante,
+        nombre: presente?.nombre ?? participante.participantId,
+        emoji: presente?.emoji ?? '',
+        tier: calcularTierPorPercentil(percentil),
+      };
     });
   }
   return ranking;

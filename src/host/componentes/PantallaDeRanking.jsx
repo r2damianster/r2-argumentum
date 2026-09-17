@@ -1,12 +1,12 @@
 import { calcularRankingPorPostura } from '../../shared/estado/seleccionesDerivadas.js';
 import { exportarSesion, descargarComoJSON } from '../../shared/estado/exportarSesion.js';
 
-export function PantallaDeRanking({ estado, eventos, programa, motor }) {
-  const ranking = calcularRankingPorPostura(estado, programa);
+export function PantallaDeRanking({ estado, eventos, programa, presencia, motor }) {
+  const ranking = calcularRankingPorPostura(estado, programa, presencia);
   const posturaPorId = Object.fromEntries(programa.posturas.map((postura) => [postura.id, postura]));
 
   function manejarDescarga() {
-    const sesionExportada = exportarSesion({ eventos, estado, programa });
+    const sesionExportada = exportarSesion({ eventos, estado, programa, presencia });
     descargarComoJSON(sesionExportada, `r2-argumentum-${programa.programId}-${Date.now()}.json`);
   }
 
@@ -20,7 +20,7 @@ export function PantallaDeRanking({ estado, eventos, programa, motor }) {
             {participantes.map((participante) => (
               <li key={participante.participantId}>
                 {participante.tier === 'Sólido' ? '🥇' : participante.tier === 'Consistente' ? '🥈' : '🥉'}{' '}
-                {participante.participantId} — {participante.puntajeTotal} pts ({participante.tier})
+                {participante.emoji} {participante.nombre} — {participante.puntajeTotal} pts ({participante.tier})
               </li>
             ))}
           </ol>
@@ -29,7 +29,7 @@ export function PantallaDeRanking({ estado, eventos, programa, motor }) {
 
       {!estado.sesion.cerrada ? (
         <button type="button" onClick={motor.cerrarSesion}>
-          Cerrar sesión
+          Cerrar debate
         </button>
       ) : (
         <button type="button" onClick={manejarDescarga}>

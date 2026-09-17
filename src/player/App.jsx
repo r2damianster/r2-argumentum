@@ -242,7 +242,7 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
         <PanelDeConexionLibre estado={estado} participantId={participantId} publicar={publicar} />
       )}
 
-      <GrafoDeArgumentos estado={estado} programa={programa} />
+      <GrafoDeArgumentos estado={estado} programa={programa} presencia={presencia} />
 
       <p className="texto-de-ayuda">Conectado — {presencia.length} participante(s) en la sala.</p>
     </main>

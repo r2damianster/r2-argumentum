@@ -81,6 +81,7 @@ export function crearMotorDeSesion({ programa }) {
   const argumentosYaPuntuados = new Set();
   const bidsYaProcesados = new Set();
   const rondasYaSugeridas = new Set();
+  const turnosConTopicoDeBidsYaCerrado = new Set();
   let indiceDeFase = -1;
   let contexto = { estado: null, presencia: [], publicar: () => {} };
 
@@ -267,6 +268,43 @@ export function crearMotorDeSesion({ programa }) {
     }
   }
 
+  // El "tópico" de bids de un turno se cierra cuando ya no quedan bids pendientes de
+  // resolver (todos votados por todos los co-moderadores, o expirados) — ver docs/04.
+  // Esto lo hacía nadie antes (bug real: los bids quedaban abiertos para siempre,
+  // invisibles para el veredicto del host). El host también puede forzarlo manualmente
+  // con cerrarTopicoDeBids() (botón "Cerrar tópico de bids ahora").
+  function cerrarTopicosDeBidsResueltosAutomaticamente() {
+    const { estado } = contexto;
+    const numeroDeCoModeradores = estado.coModeradores?.participantIds.length ?? 0;
+    if (numeroDeCoModeradores === 0) {
+      return;
+    }
+
+    const bidsPendientesPorTurno = new Map();
+    for (const bid of Object.values(estado.bids)) {
+      if (bid.estado !== 'abierto' && bid.estado !== 'expirado') {
+        continue;
+      }
+      if (!bidsPendientesPorTurno.has(bid.turnoPrincipalId)) {
+        bidsPendientesPorTurno.set(bid.turnoPrincipalId, []);
+      }
+      bidsPendientesPorTurno.get(bid.turnoPrincipalId).push(bid);
+    }
+
+    for (const [turnoPrincipalId, bidsDelTurno] of bidsPendientesPorTurno) {
+      if (turnosConTopicoDeBidsYaCerrado.has(turnoPrincipalId)) {
+        continue;
+      }
+      const yaNoQuedanPendientes = bidsDelTurno.every(
+        (bid) => bid.estado === 'expirado' || Object.keys(bid.votos).length >= numeroDeCoModeradores
+      );
+      if (yaNoQuedanPendientes) {
+        turnosConTopicoDeBidsYaCerrado.add(turnoPrincipalId);
+        cerrarTopicoDeBids(turnoPrincipalId);
+      }
+    }
+  }
+
   function sincronizar({ estado, presencia, publicar }) {
     contexto = { estado, presencia, publicar };
     if (!estado || estaCerrada()) {
@@ -276,6 +314,7 @@ export function crearMotorDeSesion({ programa }) {
     procesarValidacionesPendientes();
     procesarBidsResueltos();
     iniciarTemporizadoresDeBidsNuevos();
+    cerrarTopicosDeBidsResueltosAutomaticamente();
   }
 
   function iniciarSesion() {

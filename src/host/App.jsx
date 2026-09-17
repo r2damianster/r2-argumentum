@@ -255,7 +255,13 @@ function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSe
           <ListaDeParticipantes estado={estado} presencia={presencia} programa={programa} />
           <PanelDeDecisionDeBids estado={estado} motor={motor} />
           {mostrarRanking && (
-            <PantallaDeRanking estado={estado} eventos={eventos} programa={programa} motor={motor} />
+            <PantallaDeRanking
+              estado={estado}
+              eventos={eventos}
+              programa={programa}
+              presencia={presencia}
+              motor={motor}
+            />
           )}
         </>
       )}

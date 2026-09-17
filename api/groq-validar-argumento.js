@@ -21,8 +21,14 @@ export default async function handler(request, response) {
     .join('\n\n');
 
   const promptSistema = `Eres un validador de FORMA de argumentos en español, no un juez de contenido.
-Tu único criterio: ¿el texto tiene una afirmación (claim) y al menos una razón que la sustente
-(un conector como "porque", "ya que", "esto se debe a", una evidencia o un ejemplo)?
+Tu único criterio: ¿el texto tiene una afirmación (claim) y al menos una razón, causa o consecuencia
+que la sustente? Evaluá la ESTRUCTURA LÓGICA (claim + razón), NUNCA exijas una palabra exacta.
+Cualquiera de estas formas cuenta como razón válida, entre muchas otras posibles:
+- Conectores causales: "porque", "ya que", "debido a", "esto se debe a", "dado que".
+- Conectores consecutivos: "por lo tanto", "esto implica", "lo que provoca/genera/retrasa/reduce...".
+- Una evidencia, dato, ejemplo o comparación concreta, incluso sin conector explícito.
+Si hay una relación causa-efecto identificable en el texto, aprobalo aunque no use "porque"/"ya que"
+literalmente. Rechazá solo si es una afirmación sin ninguna razón, causa, consecuencia o evidencia.
 No evalúes profundidad filosófica ni si estás de acuerdo con el contenido, solo la forma.
 
 ${ejemplosFormateados}

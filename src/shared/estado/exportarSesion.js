@@ -3,7 +3,7 @@
 
 import { calcularRankingPorPostura } from './seleccionesDerivadas.js';
 
-export function exportarSesion({ eventos, estado, programa }) {
+export function exportarSesion({ eventos, estado, programa, presencia = [] }) {
   const mapaArgumental = Object.values(estado.argumentos).map((argumento) => ({
     ...argumento,
     conexionesEntrantes: Object.values(estado.conexiones).filter(
@@ -11,25 +11,30 @@ export function exportarSesion({ eventos, estado, programa }) {
     ),
   }));
 
-  const perfilPorEstudiante = Object.values(estado.participantes).map((participante) => ({
-    participantId: participante.participantId,
-    rol: participante.rol,
-    stanceId: participante.stanceId,
-    puntajeTotal: participante.puntajeTotal,
-    argumentosEscritos: Object.values(estado.argumentos).filter(
-      (argumento) => argumento.participantId === participante.participantId
-    ).length,
-    conexionesHechas: Object.values(estado.conexiones).filter(
-      (conexion) => conexion.porParticipanteId === participante.participantId
-    ).length,
-  }));
+  const perfilPorEstudiante = Object.values(estado.participantes).map((participante) => {
+    const presente = presencia.find((p) => p.participantId === participante.participantId);
+    return {
+      participantId: participante.participantId,
+      nombre: presente?.nombre ?? null,
+      emoji: presente?.emoji ?? null,
+      rol: participante.rol,
+      stanceId: participante.stanceId,
+      puntajeTotal: participante.puntajeTotal,
+      argumentosEscritos: Object.values(estado.argumentos).filter(
+        (argumento) => argumento.participantId === participante.participantId
+      ).length,
+      conexionesHechas: Object.values(estado.conexiones).filter(
+        (conexion) => conexion.porParticipanteId === participante.participantId
+      ).length,
+    };
+  });
 
   return {
     exportadoEn: new Date().toISOString(),
     programa: { programId: programa.programId, titulo: programa.titulo, version: programa.version },
     eventLogCompleto: eventos,
     mapaArgumental,
-    rankingPorPostura: calcularRankingPorPostura(estado, programa),
+    rankingPorPostura: calcularRankingPorPostura(estado, programa, presencia),
     perfilPorEstudiante,
   };
 }

@@ -3,9 +3,15 @@ import { ReactFlow, Background, MarkerType } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { COLORES_SEMANTICOS_DEL_GRAFO } from '../../shared/estilos/colores.js';
 import { TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
+import { nombreDeParticipante } from '../../shared/estado/seleccionesDerivadas.js';
 
 const ANCHO_DE_COLUMNA = 260;
-const ALTO_DE_NODO = 110;
+const ANCHO_DE_NODO = 220;
+const ALTO_DE_NODO = 90;
+// Espacio vertical entre filas de la misma columna — debe ser mayor que ALTO_DE_NODO
+// para que dos nodos consecutivos nunca se superpongan (bug real: con solo 110px de
+// espaciado y texto que ocupa más alto que eso, los nodos quedaban apilados/ilegibles).
+const ESPACIADO_VERTICAL = 150;
 
 // TIPOS_DE_RELACION.NUEVO ('nuevo') no tiene clave propia en la paleta semántica
 // (docs/08-identidad-visual.md la llama "argumentoOriginal") — se traduce acá.
@@ -19,7 +25,7 @@ function colorDelArgumento(argumento) {
   return COLORES_SEMANTICOS_DEL_GRAFO[claveDeColor] || COLORES_SEMANTICOS_DEL_GRAFO.pregunta;
 }
 
-export function GrafoDeArgumentos({ estado, programa }) {
+export function GrafoDeArgumentos({ estado, programa, presencia }) {
   const { nodos, aristas } = useMemo(() => {
     const argumentos = Object.values(estado.argumentos).sort((a, b) => a.timestamp - b.timestamp);
     const indiceDeColumnaPorStance = new Map(programa.posturas.map((postura, indice) => [postura.id, indice]));
@@ -33,12 +39,14 @@ export function GrafoDeArgumentos({ estado, programa }) {
 
       return {
         id: argumento.argumentId,
-        position: { x: columna * ANCHO_DE_COLUMNA, y: fila * ALTO_DE_NODO },
+        position: { x: columna * ANCHO_DE_COLUMNA, y: fila * ESPACIADO_VERTICAL },
+        width: ANCHO_DE_NODO,
+        height: ALTO_DE_NODO,
         data: {
           label: (
             <div>
-              <strong>{argumento.participantId}</strong>
-              <p>{argumento.texto.slice(0, 80)}</p>
+              <strong>{nombreDeParticipante(presencia, argumento.participantId)}</strong>
+              <p>{argumento.texto.slice(0, 60)}</p>
             </div>
           ),
         },
@@ -46,8 +54,10 @@ export function GrafoDeArgumentos({ estado, programa }) {
           border: `2px solid ${color}`,
           background: 'white',
           borderRadius: 10,
-          width: 220,
-          fontSize: '0.75rem',
+          width: ANCHO_DE_NODO,
+          height: ALTO_DE_NODO,
+          fontSize: '0.7rem',
+          overflow: 'hidden',
         },
       };
     });
@@ -73,7 +83,7 @@ export function GrafoDeArgumentos({ estado, programa }) {
       }));
 
     return { nodos, aristas: [...aristasDeConexiones, ...aristasDeSugerencias] };
-  }, [estado.argumentos, estado.conexiones, estado.sugerencias, programa.posturas]);
+  }, [estado.argumentos, estado.conexiones, estado.sugerencias, programa.posturas, presencia]);
 
   return (
     <section className="tarjeta-de-grafo">

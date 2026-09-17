@@ -1,14 +1,34 @@
-import { obtenerBidsPendientesDeDecision } from '../../shared/estado/seleccionesDerivadas.js';
+import { obtenerBidsAbiertos, obtenerBidsPendientesDeDecision } from '../../shared/estado/seleccionesDerivadas.js';
 
 export function PanelDeDecisionDeBids({ estado, motor }) {
   const bidsPendientes = obtenerBidsPendientesDeDecision(estado);
+  const bidsAbiertos = obtenerBidsAbiertos(estado);
+  const turnosConBidsAbiertos = [...new Set(bidsAbiertos.map((bid) => bid.turnoPrincipalId))];
 
-  if (bidsPendientes.length === 0) {
+  if (bidsPendientes.length === 0 && turnosConBidsAbiertos.length === 0) {
     return null;
   }
 
   return (
     <section className="tarjeta-de-bids">
+      {turnosConBidsAbiertos.length > 0 && (
+        <div>
+          <p className="texto-de-ayuda">
+            Bids todavía en votación ({bidsAbiertos.length}) — se cierran solos cuando todos los
+            co-moderadores voten, o podés cortarlo ahora:
+          </p>
+          {turnosConBidsAbiertos.map((turnoPrincipalId) => (
+            <button
+              key={turnoPrincipalId}
+              type="button"
+              className="boton-cambiar-programa"
+              onClick={() => motor.cerrarTopicoDeBids(turnoPrincipalId)}
+            >
+              Cerrar tópico de bids ahora
+            </button>
+          ))}
+        </div>
+      )}
       <p className="texto-de-ayuda">Bids esperando veredicto del moderador</p>
       <ul className="lista-de-bids-pendientes">
         {bidsPendientes.map((bid) => {
