@@ -37,6 +37,10 @@ function elegirCandidatoParaTurno(estado, presencia, limiteDePosiciones) {
     // Con asignacionPostura:"libre" el participante recién tiene stanceId cuando la elige
     // él mismo (ver SelectorDePosturaPropia) — no se le puede ofrecer turno antes de eso.
     .filter((participantId) => Boolean(estado.participantes[participantId]?.stanceId))
+    // Requisito de entrada: quien no logró un argumento aprobado en la apertura (agotadas
+    // las dos rondas, ver EVENTOS.APERTURA_RONDA_CERRADA con esFinal:true) queda excluido de
+    // la ruleta de turnos por el resto de la sesión — sin argumento, sin puntaje.
+    .filter((participantId) => !estado.participantes[participantId]?.sinArgumentoDeApertura)
     .filter(
       (participantId) => (estado.participantes[participantId]?.posicionesCompletadas ?? 0) < limiteDePosiciones
     );
@@ -82,11 +86,11 @@ function crearAcumuladorDePuntaje(estado) {
 export function crearMotorDeSesion({ programa }) {
   const temporizadoresDeOferta = new Map(); // turnId -> timeoutId
   const temporizadoresDeBid = new Map(); // bidId -> timeoutId
-  const temporizadoresDeFase = new Map(); // iniciadaEn -> timeoutId (fase de apertura)
   const argumentosYaPuntuados = new Set();
   const bidsYaProcesados = new Set();
   const fasesYaAnalizadasPorGroq = new Set(); // clave: `${tipo}:${iniciadaEn}`
-  const fasesDeAperturaYaAutoCerradas = new Set(); // clave: iniciadaEn
+  const instanciasDeAperturaYaIniciadas = new Set(); // clave: faseActual.iniciadaEn
+  const rondasDeAperturaAutoCerradas = new Set(); // clave: `${faseActual.iniciadaEn}:${ronda}`
   const turnosConTopicoDeBidsYaCerrado = new Set();
   let indiceDeFase = -1;
   let contexto = { estado: null, presencia: [], publicar: () => {} };
@@ -311,62 +315,112 @@ export function crearMotorDeSesion({ programa }) {
     }
   }
 
-  // Fase de apertura simultánea (docs/09): todos escriben su argumento inicial en paralelo,
-  // sin ruleta. Se cierra sola cuando ya escribieron todos los elegibles, o al agotarse el
-  // tiempo configurado en la entrada `apertura_simultanea` de programa.fases (lo que pase
-  // primero) — igual que el "tiempo límite" que el usuario pidió para no depender de que el
-  // moderador la corte a mano.
-  function gestionarFaseDeAperturaSiHaceFalta() {
+  // Participantes que deberían escribir el argumento de apertura: todos los conectados menos
+  // co-moderadores. OJO: no filtrar por stanceId — con asignacionPostura:"libre" alguien que
+  // todavía no eligió postura tiene posicionesCompletadas=0 y por eso nunca puede haber
+  // "escrito" (bug real ya corregido una vez: filtrarlo lo excluía del conteo). Se lo cuenta
+  // igual, así "todos listos" espera también a esa persona.
+  function participantesElegiblesParaApertura() {
     const { estado, presencia } = contexto;
+    return presencia
+      .filter((presente) => presente.conectado !== false)
+      .map((presente) => presente.participantId)
+      .filter((participantId) => estado.participantes[participantId]?.rol !== 'co_moderador');
+  }
+
+  function tieneArgumentoDeApertura(estado, participantId) {
+    return (estado.participantes[participantId]?.posicionesCompletadas ?? 0) >= 1;
+  }
+
+  // Fase de apertura simultánea (docs/09): requisito de entrada antes de empezar el debate en
+  // sí. Máquina de rondas gestionada por el HOST, no por temporizadores automáticos — nadie se
+  // fuerza a cerrar solo: al vencer el tiempo de una ronda con pendientes, el motor espera a
+  // que el moderador decida (dar 1 minuto más, cerrar ya, o dar/negar la segunda oportunidad).
+  // Ronda 1 (duracionMin del Programa, con gracia opcional de 1 min) → si quedan pendientes,
+  // decisión del host → ronda 2 (1 min fijo, solo para quienes faltan) → corte definitivo: sin
+  // argumento aprobado en ninguna ronda = sin puntaje y fuera de la ruleta de turnos
+  // (ver elegirCandidatoParaTurno).
+  function gestionarFaseDeAperturaSiHaceFalta() {
+    const { estado, publicar } = contexto;
     const faseActual = estado.fase.actual;
     if (!faseActual || faseActual.tipo !== TIPOS_DE_FASE.APERTURA_SIMULTANEA) {
       return;
     }
-    const claveDeInstancia = faseActual.iniciadaEn;
-    if (fasesDeAperturaYaAutoCerradas.has(claveDeInstancia)) {
-      return;
-    }
 
-    if (!temporizadoresDeFase.has(claveDeInstancia)) {
-      const entradaDeFase = programa.fases.find((fase) => fase.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA);
-      const duracionMs = (entradaDeFase?.duracionMin ?? 5) * 60 * 1000;
-      const tiempoRestanteMs = Math.max(0, faseActual.iniciadaEn + duracionMs - Date.now());
-      const timeoutId = setTimeout(() => {
-        temporizadoresDeFase.delete(claveDeInstancia);
-        if (
-          contexto.estado?.fase.actual?.iniciadaEn === claveDeInstancia &&
-          !fasesDeAperturaYaAutoCerradas.has(claveDeInstancia)
-        ) {
-          fasesDeAperturaYaAutoCerradas.add(claveDeInstancia);
-          cerrarFaseActual();
-        }
-      }, tiempoRestanteMs);
-      temporizadoresDeFase.set(claveDeInstancia, timeoutId);
-    }
-
-    // OJO: no filtrar acá por stanceId — con asignacionPostura:"libre" alguien que todavía
-    // no eligió postura tiene posicionesCompletadas=0 y por eso nunca puede haber "escrito"
-    // (bug real: filtrarlo lo excluía del conteo, y la fase podía cerrarse sin darle chance
-    // a elegir). Se lo cuenta igual, así el "todos ya escribieron" espera también a esa persona.
-    const elegibles = presencia
-      .filter((presente) => presente.conectado !== false)
-      .map((presente) => presente.participantId)
-      .filter((participantId) => estado.participantes[participantId]?.rol !== 'co_moderador');
+    const elegibles = participantesElegiblesParaApertura();
     if (elegibles.length === 0) {
       return;
     }
-    const todosYaEscribieron = elegibles.every(
-      (participantId) => (estado.participantes[participantId]?.posicionesCompletadas ?? 0) >= 1
-    );
-    if (todosYaEscribieron) {
-      fasesDeAperturaYaAutoCerradas.add(claveDeInstancia);
-      const timeoutId = temporizadoresDeFase.get(claveDeInstancia);
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        temporizadoresDeFase.delete(claveDeInstancia);
-      }
+
+    if (!instanciasDeAperturaYaIniciadas.has(faseActual.iniciadaEn)) {
+      instanciasDeAperturaYaIniciadas.add(faseActual.iniciadaEn);
+      const entradaDeFase = programa.fases.find((fase) => fase.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA);
+      const duracionMs = (entradaDeFase?.duracionMin ?? 5) * 60 * 1000;
+      const iniciadaEn = Date.now();
+      publicar(EVENTOS.APERTURA_RONDA_INICIADA, { ronda: 1, iniciadaEn, expiraEn: iniciadaEn + duracionMs });
+      return;
+    }
+
+    if (!estado.apertura || estado.apertura.cerrada) {
+      return;
+    }
+
+    const claveDeRonda = `${faseActual.iniciadaEn}:${estado.apertura.ronda}`;
+    if (rondasDeAperturaAutoCerradas.has(claveDeRonda)) {
+      return;
+    }
+    const todosListos = elegibles.every((participantId) => tieneArgumentoDeApertura(estado, participantId));
+    if (todosListos) {
+      // Nadie quedó pendiente — se cierra sola, sin molestar al host con una pregunta vacía.
+      // Guardado en el Set ANTES de publicar: publicar es async (viaja por Ably), así que sin
+      // esto varios ticks de sincronizar() de por medio publicarían el mismo cierre repetidas
+      // veces hasta que estado.apertura.cerrada refleje la vuelta del evento.
+      rondasDeAperturaAutoCerradas.add(claveDeRonda);
+      cerrarRondaDeApertura();
+    }
+  }
+
+  // El host cierra la ronda de apertura vigente. Con pendientes en ronda 1 esto NO es
+  // definitivo — solo pausa a esperar la decisión de dar o no la segunda oportunidad (ver
+  // `esperandoSegundaOportunidad` en el reducer). En ronda 2, o si no quedan pendientes, o si
+  // `forzarFinal` viene true (el host declinó la segunda oportunidad), es el corte definitivo.
+  function cerrarRondaDeApertura({ forzarFinal = false } = {}) {
+    const { estado, publicar } = contexto;
+    if (!estado.apertura) {
+      return;
+    }
+    const elegibles = participantesElegiblesParaApertura();
+    const aprobados = elegibles.filter((participantId) => tieneArgumentoDeApertura(estado, participantId));
+    const pendientes = elegibles.filter((participantId) => !tieneArgumentoDeApertura(estado, participantId));
+    const rondaActual = estado.apertura.ronda;
+    const esFinal = forzarFinal || rondaActual === 2 || pendientes.length === 0;
+
+    publicar(EVENTOS.APERTURA_RONDA_CERRADA, { ronda: rondaActual, aprobados, pendientes, esFinal });
+    if (esFinal) {
       cerrarFaseActual();
     }
+  }
+
+  // Da 1 minuto extra dentro de ronda 1 (el host consultó a los estudiantes y hacen falta más
+  // segundos) — no crea una ronda nueva, solo extiende el plazo vigente.
+  function extenderRondaDeApertura() {
+    const { estado, publicar } = contexto;
+    if (!estado.apertura || estado.apertura.ronda !== 1 || estado.apertura.cerrada) {
+      return;
+    }
+    publicar(EVENTOS.APERTURA_RONDA_EXTENDIDA, { ronda: 1, hasta: Date.now() + 60 * 1000 });
+  }
+
+  // Segunda oportunidad: solo válida tras cerrar ronda 1 con pendientes (esperandoSegundaOportunidad).
+  // 1 minuto fijo, y esta vez el cierre siempre es definitivo (cerrarRondaDeApertura ya lo sabe
+  // por `rondaActual === 2`).
+  function abrirSegundaOportunidadDeApertura() {
+    const { estado, publicar } = contexto;
+    if (!estado.apertura?.esperandoSegundaOportunidad) {
+      return;
+    }
+    const iniciadaEn = Date.now();
+    publicar(EVENTOS.APERTURA_RONDA_INICIADA, { ronda: 2, iniciadaEn, expiraEn: iniciadaEn + 60 * 1000 });
   }
 
   function sincronizar({ estado, presencia, publicar }) {
@@ -513,11 +567,20 @@ export function crearMotorDeSesion({ programa }) {
   function destruir() {
     for (const timeoutId of temporizadoresDeOferta.values()) clearTimeout(timeoutId);
     for (const timeoutId of temporizadoresDeBid.values()) clearTimeout(timeoutId);
-    for (const timeoutId of temporizadoresDeFase.values()) clearTimeout(timeoutId);
     temporizadoresDeOferta.clear();
     temporizadoresDeBid.clear();
-    temporizadoresDeFase.clear();
   }
 
-  return { sincronizar, iniciarSesion, cerrarFaseActual, cerrarTopicoDeBids, decidirBid, cerrarSesion, destruir };
+  return {
+    sincronizar,
+    iniciarSesion,
+    cerrarFaseActual,
+    cerrarRondaDeApertura,
+    extenderRondaDeApertura,
+    abrirSegundaOportunidadDeApertura,
+    cerrarTopicoDeBids,
+    decidirBid,
+    cerrarSesion,
+    destruir,
+  };
 }

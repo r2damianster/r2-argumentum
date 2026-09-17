@@ -7,6 +7,11 @@ export const EVENTOS = {
   FASE_INICIADA: 'phase.started',
   FASE_CERRADA: 'phase.closed',
 
+  // Máquina de rondas dentro de la fase apertura_simultanea — ver docs/09.
+  APERTURA_RONDA_INICIADA: 'apertura.ronda_iniciada',
+  APERTURA_RONDA_EXTENDIDA: 'apertura.ronda_extendida',
+  APERTURA_RONDA_CERRADA: 'apertura.ronda_cerrada',
+
   POSTURA_ASIGNADA: 'stance.assigned',
 
   COMODERADORES_SELECCIONADOS: 'comod.selected',

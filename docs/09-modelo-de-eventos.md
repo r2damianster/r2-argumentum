@@ -43,6 +43,30 @@ phase.closed    { phaseType, ronda?, timestamp }
 
 El cierre de `"apertura_simultanea"` o de `"escritura_argumentos"` es lo que **dispara** la llamada Groq de sugerencia de conexiones — sobre TODO el pool de argumentos acumulado hasta ese momento, no solo los de esa fase (así se detectan conexiones entre una reacción nueva y un argumento de la apertura).
 
+### Máquina de rondas dentro de `apertura_simultanea` — requisito de entrada
+
+Agregada tras confirmar que la apertura debe ser un **requisito indispensable** antes del debate en sí, y que no conviene forzar su cierre por temporizador sin que el moderador confirme con los estudiantes. Eventos nuevos:
+
+```
+apertura.ronda_iniciada  { ronda: 1 | 2, iniciadaEn, expiraEn }
+apertura.ronda_extendida { ronda: 1, hasta }
+apertura.ronda_cerrada   { ronda: 1 | 2, aprobados: [participantId...], pendientes: [participantId...], esFinal: bool }
+```
+
+Flujo (gestionado enteramente por el host, sin cierre automático por temporizador salvo cuando ya no queda nadie pendiente):
+
+1. Al iniciar la sesión se publica `apertura.ronda_iniciada { ronda: 1 }` con `expiraEn` calculado desde `duracionMin` de la entrada `apertura_simultanea` del Programa.
+2. Si todos los elegibles (no co-moderadores) ya tienen un `argument.submitted` antes de que venza el plazo, la ronda se cierra sola (`esFinal: true`, `pendientes: []`) — no se molesta al host con una pregunta vacía.
+3. Si vence el plazo y quedan pendientes, el motor **no cierra nada solo**: espera un clic del host. El host pregunta a los estudiantes si ya terminaron y decide:
+   - **Dar 1 minuto más** → `apertura.ronda_extendida { ronda: 1, hasta: ahora + 60000 }` (extiende el plazo vigente, no crea una ronda nueva).
+   - **Cerrar ronda ya** → `apertura.ronda_cerrada { ronda: 1, esFinal: pendientes.length === 0 }`. Si siguen quedando pendientes, `esFinal: false` — esto NO es el corte definitivo, solo pausa a la siguiente pregunta.
+4. Con `esFinal: false`, el host recibe una segunda pregunta: ¿dar una segunda oportunidad (1 minuto, fijo) solo a quienes faltan?
+   - **Sí** → `apertura.ronda_iniciada { ronda: 2, expiraEn: ahora + 60000 }`. Al vencer (o si el host cierra antes), el cierre de ronda 2 es **siempre definitivo** (`esFinal: true`).
+   - **No** → se publica igual un `apertura.ronda_cerrada` definitivo (recalculando pendientes en ese instante), sin pasar por una ronda 2 real.
+5. Corte definitivo (`esFinal: true`): quienes están en `pendientes` quedan marcados `sinArgumentoDeApertura: true` en el estado derivado — sin argumento aprobado, sin `score.updated` de categoría "argumento", y excluidos de la ruleta de turnos por el resto de la sesión (`elegirCandidatoParaTurno` en `motorDeSesion.js` los filtra). Esto es una excepción deliberada a la política general de "2 intentos de Groq y escala a co-moderador" (ver `CLAUDE.md` del proyecto y `06-pendientes.md`): esa política sigue vigente tal cual dentro de `escritura_argumentos`, pero el requisito de apertura es un corte de asistencia, no un turno en vivo — agotadas las dos rondas, no hay más reintentos ni escalamiento.
+
+Nota de costo de Ably: el chequeo de Groq contra un borrador (`/api/groq-validar-argumento`) es una llamada HTTP directa del cliente, no pasa por el canal — el estudiante puede corregir su argumento tantas veces como quiera sin publicar nada. Recién se publica al canal (`argument.submit_attempt` → `argument.validation_result` → `argument.submitted`) una vez que el intento queda aprobado, igual que hoy.
+
 ## Postura
 
 ```
