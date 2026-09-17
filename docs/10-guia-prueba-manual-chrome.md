@@ -5,8 +5,8 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 ## 0. Entorno
 
 - Usar **producción**: `https://r2-argumentum.vercel.app/`.
-  - Host: `/host.html` — Usuario `arturo.rodriguez@uleam.edu.ec` · Clave `R2ironmaiden`.
-  - Participante: `/player.html`.
+  - Host: `/host.html` (o la raíz `/` sin parámetros, redirige ahí) — Usuario `arturo.rodriguez@uleam.edu.ec` · Clave `R2ironmaiden`.
+  - Participante: `/player.html`, o el link corto `/?sala=XXXX` (raíz con el código) — redirige a `/player.html?sala=XXXX`. Este es el que genera el QR y el botón "Copiar link" del host, pensado para pegar en WhatsApp.
 - **No probar contra local (`npm run dev` / `vercel dev`)**: `ABLY_API_KEY` y `GROQ_API_KEY` son variables "Sensitive" en Vercel — nunca se pueden recuperar vía CLI, solo corren en la infraestructura de Vercel. Local no puede ejercitar Groq/Ably.
 
 ## 1. Restricción operativa crítica — leer antes de empezar
@@ -68,6 +68,7 @@ Estos 12 ya se arreglaron en sesiones de prueba anteriores. Si alguno reaparece,
 - **Sala de configuración previa como pantalla propia.** Confirmar que antes de "Iniciar sesión" NO aparecen el feed de actividad ni el grafo (estarían vacíos, no corresponde mostrarlos todavía) — solo código/QR, participantes conectados y el selector de posturas + botón, todo agrupado con un fondo distinto ("Sala de configuración previa").
 - **Autoselección de postura.** Usar el Programa "¿Qué hace único al ser humano?" (ahora es `asignacionPostura: "libre"`). Tras "Iniciar sesión", cada participante NO co-moderador debe ver una pantalla bloqueante "Elegí la postura que vas a defender" con las posturas elegidas por el host como botones — nada de formulario de argumento ni feed hasta elegir. Confirmar que el co-moderador nunca ve esta pantalla.
 - **Fase de apertura simultánea (mecánica nueva completa).** Tras "Iniciar sesión", TODOS los participantes (no co-moderadores) deben poder escribir su argumento inicial a la vez, sin esperar turno ni ver "¡Te tocó el turno!" — el formulario no tiene selector de tipo (siempre es "nuevo"). Con el Programa `asignacionPostura:"libre"`, si un participante tarda en elegir postura, confirmar que la fase NO se cierra hasta que también él escriba (no debe poder cerrarse "dejándolo afuera"). Confirmar que al escribir todos (o agotarse el tiempo configurado — 4-5 min según el Programa), la fase cierra sola, se dispara Groq-conexiones sobre el lote completo, y recién ahí aparece la primera oferta de turno de la ruleta de reacciones.
+- **Link corto compartible (`/?sala=XXXX`).** En la sala de configuración previa del host, confirmar que el texto bajo el QR muestra un link con la forma `https://r2-argumentum.vercel.app/?sala=XXXX` (no `/player.html?sala=XXXX`), que el botón "📋 Copiar link para compartir" copia ese link (cambia a "✅ Copiado" 2 segundos) y que pegarlo en una pestaña nueva redirige correctamente a `/player.html?sala=XXXX` con el código prellenado. Confirmar también que abrir la raíz `https://r2-argumentum.vercel.app/` SIN parámetro sigue yendo al login del host, como antes.
 
 ## 4. Escenario multi-ventana (mínimo 4 pestañas: 1 host + 3 participantes)
 
