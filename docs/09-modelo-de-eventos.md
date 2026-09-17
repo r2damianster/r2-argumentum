@@ -37,9 +37,11 @@ phase.started   { phaseType, ronda?, timestamp }
 phase.closed    { phaseType, ronda?, timestamp }
 ```
 
-`phaseType`: `"escritura_argumentos"` | `"conexion_sugerida"` | `"conexion_libre"` | `"cierre_y_ranking"`.
+`phaseType`: `"apertura_simultanea"` | `"escritura_argumentos"` | `"conexion_sugerida"` | `"conexion_libre"` | `"cierre_y_ranking"`.
 
-El cierre de `"escritura_argumentos"` de una ronda es lo que **dispara** la única llamada Groq de sugerencia de conexiones de esa ronda (ver `02-arquitectura.md`).
+**`apertura_simultanea`** (agregada durante la implementación, no estaba en la spec original): primera fase de la sesión — todos los participantes (no co-moderadores) escriben su argumento inicial en paralelo, sin ruleta de turnos, siempre `tipoDeclarado: "nuevo"`, posición 1, ronda 1. Se cierra automáticamente cuando todos ya escribieron o al agotar `duracionMin` de esa entrada de `programa.fases` (lo que ocurra primero) — el motor del host la gestiona igual que un cierre manual de fase.
+
+El cierre de `"apertura_simultanea"` o de `"escritura_argumentos"` es lo que **dispara** la llamada Groq de sugerencia de conexiones — sobre TODO el pool de argumentos acumulado hasta ese momento, no solo los de esa fase (así se detectan conexiones entre una reacción nueva y un argumento de la apertura).
 
 ## Postura
 
