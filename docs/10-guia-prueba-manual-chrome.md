@@ -38,7 +38,7 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 
 ## 3. Bugs ya encontrados y arreglados — verificar que NO reaparezcan (regresión), no "redescubrirlos"
 
-Estos 10 ya se arreglaron en sesiones de prueba anteriores. Si alguno reaparece, es una regresión real y sí va en la tabla de fallos:
+Estos 11 ya se arreglaron en sesiones de prueba anteriores. Si alguno reaparece, es una regresión real y sí va en la tabla de fallos:
 
 **Primera ronda (motor base):**
 1. Historial de Ably no cargaba (incompatibilidad `direction:forwards` + `untilAttach`).
@@ -57,7 +57,10 @@ Estos 10 ya se arreglaron en sesiones de prueba anteriores. Si alguno reaparece,
 **Tercera ronda (probada con 11 participantes reales):**
 11. **Nombre reemplazado por ID técnico al desconectarse un participante** — al perder la conexión un momento, su nombre desaparecía de `presencia` y el grafo/ranking mostraban el ID técnico en TODOS los demás clientes hasta que volvía a entrar. Ahora el nombre sobrevive a un blip de conexión. Para probarlo: cerrar y reabrir la pestaña de un participante que ya tenga un argumento publicado, y confirmar en OTRA pestaña que su nombre sigue viéndose (no un ID) durante la desconexión, no solo después de reconectar.
 
-**Feature nueva, sin probar todavía — verificar por primera vez:** el selector de posturas. Cargar el Programa "¿Qué hace único al ser humano?" (categoría Filosofía, 12 posturas) en vez del de Política. Antes de "Iniciar sesión" debe aparecer un checklist con las 12 tildadas por defecto. Destildar todas menos 2-3, confirmar que el botón "Iniciar sesión" se deshabilita si quedan menos de 2 tildadas, e iniciar con 2-3. Verificar que SOLO esas posturas se asignan a los participantes, aparecen en el grafo/ranking, y el resto de las 12 no aparece en ningún lado.
+**Features nuevas, sin probar todavía — verificar por primera vez:**
+
+- **Selector de posturas.** Cargar el Programa "¿Qué hace único al ser humano?" (categoría Filosofía, 12 posturas) en vez del de Política. Antes de "Iniciar sesión" debe aparecer un checklist con las 12 tildadas por defecto. Destildar todas menos 2-3, confirmar que el botón "Iniciar sesión" se deshabilita si quedan menos de 2 tildadas, e iniciar con 2-3. Verificar que SOLO esas posturas se asignan a los participantes, aparecen en el grafo/ranking, y el resto de las 12 no aparece en ningún lado.
+- **Feed de actividad narrado + grafo en vivo en el host.** Antes el host no veía nada del contenido del debate mientras pasaba (solo lista de participantes y control de fases) — ahora debería verse como pantalla proyectable real. Verificar en el HOST, durante la fase de escritura: (a) mientras alguien tiene el turno en curso, aparece el banner "🗣️ {nombre} está hablando ahora"; (b) mientras se le ofrece el turno a alguien y todavía no acepta, aparece "⏳ Se le ofreció el turno a {nombre}…"; (c) la lista "Actividad reciente" muestra cada argumento publicado ("💬 {nombre} agregó un [tipo]") y cada conexión ("🔗 {nombre} conectó su argumento (tipo)"), más reciente primero, máximo 6; (d) el mapa argumental (grafo) está visible en el host desde que arranca la sesión, no solo al cierre. Verificar también en el PLAYER que ve el mismo feed (le sirve para saber cuándo esperar) y que el formulario de argumento y la pantalla de turno ofrecido tienen instrucciones explícitas de qué puede hacer (no solo un formulario vacío). Verificar que el panel de co-moderador muestra el aviso de anonimidad al votar bids y al validar argumentos.
 
 ## 4. Escenario multi-ventana (mínimo 4 pestañas: 1 host + 3 participantes)
 
