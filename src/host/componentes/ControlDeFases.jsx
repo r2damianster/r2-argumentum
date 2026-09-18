@@ -9,7 +9,7 @@ const ETIQUETA_DE_FASE = {
   [TIPOS_DE_FASE.CIERRE_Y_RANKING]: 'Cierre y ranking',
 };
 
-export function ControlDeFases({ estado, motor, programa, publicar }) {
+export function ControlDeFases({ estado, motor, programa, identificadorDeSesion, publicar }) {
   const sesionIniciada = estado.fase.actual !== null || estado.fase.historial.length > 0;
   const faseActual = estado.fase.actual;
   const [posturasSeleccionadas, setPosturasSeleccionadas] = useState(
@@ -35,7 +35,10 @@ export function ControlDeFases({ estado, motor, programa, publicar }) {
     }
     // Republica el Programa con solo las posturas elegidas — así el resto de la UI
     // (grafo, ranking, chips) ya no vuelve a ver las que el moderador destildó.
-    publicar(EVENTOS.PROGRAMA_PUBLICADO, { programa: { ...programa, posturas: posturasElegidas } });
+    publicar(EVENTOS.PROGRAMA_PUBLICADO, {
+      programa: { ...programa, posturas: posturasElegidas },
+      identificadorDeSesion,
+    });
     motor.iniciarSesion(posturasElegidas);
   }
 
@@ -100,7 +103,7 @@ export function ControlDeFases({ estado, motor, programa, publicar }) {
   );
 }
 
-// Máquina de rondas de la apertura obligatoria (ver docs/09 y motorDeSesion.js): acá vive el
+// Máquina de rondas de la apertura obligatoria (ver docs/09 y motorDeSesion.js): aquí vive el
 // arbitraje del host — dar 1 minuto más, cerrar la ronda ya, o dar/negar la segunda oportunidad
 // a quienes quedaron sin argumento. No hay cierre automático por temporizador: el motor espera
 // siempre una decisión humana una vez vencido el plazo (salvo que ya todos terminaron).
@@ -129,7 +132,7 @@ function PanelDeAperturaDelHost({ estado, motor }) {
           {tiempoAgotado
             ? 'Tiempo agotado.'
             : `Tiempo restante: ${segundosRestantes}s`}{' '}
-          — preguntá a los estudiantes si ya todos ingresaron su argumento.
+          — pregunta a los estudiantes si ya todos ingresaron su argumento.
         </p>
         <button type="button" onClick={() => motor.cerrarRondaDeApertura()}>
           {tiempoAgotado ? 'Cerrar ronda ya' : 'Cerrar ronda ahora (ya terminaron)'}

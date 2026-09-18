@@ -2,7 +2,7 @@
 // estado = reduce(eventos, estadoInicial). Ningún cliente confía en memoria propia
 // no verificable: esto es lo único que determina el estado derivado de la sesión.
 //
-// Nota: nombre/emoji de cada participante NO viven acá — vienen de Ably presence
+// Nota: nombre/emoji de cada participante NO viven aquí — vienen de Ably presence
 // (nativo, no es un evento del log) y se combinan con este estado en las selecciones
 // derivadas (ver seleccionesDerivadas.js).
 

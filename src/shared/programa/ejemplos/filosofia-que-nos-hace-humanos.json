@@ -9,7 +9,7 @@
   "temaCentral": "De las siguientes doce caracterizaciones filosóficas del ser humano, ¿cuál representa mejor lo que nos hace distintos de otros animales?",
   "preguntaGuia": "Si tuvieras que defender una sola palabra para explicar qué nos hace humanos, ¿cuál elegirías y por qué las demás se quedan cortas?",
   "objetivoAprendizaje": "Pensamiento crítico y contraargumentación: comparar marcos conceptuales distintos (antropología filosófica) exigiendo razón o evidencia, no solo preferencia intuitiva.",
-  "instruccionesParaEstudiantes": "Defendé tu postura asignada con argumentos que tengan una razón, ejemplo o mecanismo explícito (no solo 'porque sí' o 'porque suena bien'). Podés conectar tu argumento con el de otro compañero como apoyo, contraargumento, dilema, reformulación o concesión.",
+  "instruccionesParaEstudiantes": "Defiende tu postura asignada con argumentos que tengan una razón, ejemplo o mecanismo explícito (no solo 'porque sí' o 'porque suena bien'). Puedes conectar tu argumento con el de otro compañero como apoyo, contraargumento, dilema, reformulación o concesión.",
 
   "posturas": [
     { "id": "homo_faber", "etiqueta": "Homo faber (el que fabrica)", "color": "#B45309" },

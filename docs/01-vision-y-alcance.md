@@ -1,6 +1,6 @@
 # Visión y alcance
 
-> **Estado:** el alcance descrito acá ya está construido y desplegado (ver `README.md` y `docs/06-pendientes.md` para el detalle de qué está cerrado y qué falta).
+> **Estado:** el alcance descrito aquí ya está construido y desplegado (ver `README.md` y `docs/06-pendientes.md` para el detalle de qué está cerrado y qué falta).
 
 ## Problema que resuelve
 

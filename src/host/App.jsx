@@ -103,6 +103,15 @@ function generarCodigoDeSala() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 
+// El código de sala de 4 dígitos se puede repetir entre debates (son 10.000 combinaciones y
+// no hay control de colisión), y el canal de Ably se llama solo con ese código. Sin una marca
+// propia por sesión, un debate nuevo hereda del historial del canal los argumentos y el
+// comod.selected del debate anterior — bug real: unos participantes veían 4 nodos en el grafo
+// y otros 2, y el rol de co-moderador quedaba asignado a gente que ya no estaba.
+function generarIdentificadorDeSesion() {
+  return `sesion-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 function leerSesionActivaGuardada() {
   try {
     const guardada = sessionStorage.getItem(CLAVE_DE_SESION_ACTIVA);
@@ -134,7 +143,9 @@ function borrarSesionActivaGuardada() {
 // mostrar la lista de Programas, no reabrir directo el último que se estaba configurando.
 function resolverSesionInicial() {
   const guardada = leerSesionActivaGuardada();
-  if (guardada?.iniciada) {
+  // Sin identificadorDeSesion no se puede separar esta sesión de las anteriores en el mismo
+  // código de sala, así que una sesión guardada en el formato viejo se descarta.
+  if (guardada?.iniciada && guardada.identificadorDeSesion) {
     return guardada;
   }
   if (guardada) {
@@ -147,13 +158,20 @@ function ConsolaDelHost({ onCerrarSesion }) {
   const [sesionRestaurada] = useState(resolverSesionInicial);
   const [programaActivo, setProgramaActivo] = useState(sesionRestaurada?.programa ?? null);
   const [codigoDeSala, setCodigoDeSala] = useState(sesionRestaurada?.codigoDeSala ?? null);
+  const [identificadorDeSesion, setIdentificadorDeSesion] = useState(sesionRestaurada?.identificadorDeSesion ?? null);
   const [errorDeCarga, setErrorDeCarga] = useState('');
 
   function activarPrograma(programa) {
     const nuevoCodigoDeSala = generarCodigoDeSala();
+    const nuevoIdentificadorDeSesion = generarIdentificadorDeSesion();
     setProgramaActivo(programa);
     setCodigoDeSala(nuevoCodigoDeSala);
-    guardarSesionActiva({ programa, codigoDeSala: nuevoCodigoDeSala });
+    setIdentificadorDeSesion(nuevoIdentificadorDeSesion);
+    guardarSesionActiva({
+      programa,
+      codigoDeSala: nuevoCodigoDeSala,
+      identificadorDeSesion: nuevoIdentificadorDeSesion,
+    });
     setErrorDeCarga('');
   }
 
@@ -185,6 +203,7 @@ function ConsolaDelHost({ onCerrarSesion }) {
   function cambiarPrograma() {
     setProgramaActivo(null);
     setCodigoDeSala(null);
+    setIdentificadorDeSesion(null);
     borrarSesionActivaGuardada();
   }
 
@@ -200,7 +219,7 @@ function ConsolaDelHost({ onCerrarSesion }) {
           </button>
         </div>
         <section className="tarjeta-de-programa">
-          <h2>Elegí el Programa de Debate a abrir</h2>
+          <h2>Elige el Programa de Debate a abrir</h2>
           <p className="texto-de-ayuda">
             Un Programa define el tema, las posturas, las reglas de puntaje y los ejemplos para Groq de esta
             sesión. Ver <code>docs/03-programa-de-debate.md</code>.
@@ -235,13 +254,14 @@ function ConsolaDelHost({ onCerrarSesion }) {
     <ConsolaDeSesion
       programa={programaActivo}
       codigoDeSala={codigoDeSala}
+      identificadorDeSesion={identificadorDeSesion}
       onCambiarPrograma={cambiarPrograma}
       onCerrarSesion={onCerrarSesion}
     />
   );
 }
 
-function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSesion }) {
+function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCambiarPrograma, onCerrarSesion }) {
   // Link corto para compartir (WhatsApp, etc.) — la raíz con ?sala= redirige a
   // /player.html?sala= vía vercel.json (solo en el deploy, no en `npm run dev` local).
   const urlDeIngreso = `${window.location.origin}/?sala=${codigoDeSala}`;
@@ -255,19 +275,19 @@ function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSe
   useEffect(() => {
     if (!cargando && !programaYaPublicadoRef.current) {
       programaYaPublicadoRef.current = true;
-      publicar(EVENTOS.PROGRAMA_PUBLICADO, { programa });
+      publicar(EVENTOS.PROGRAMA_PUBLICADO, { programa, identificadorDeSesion });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargando]);
 
   const sesionIniciada = estado.fase.actual !== null || estado.fase.historial.length > 0;
 
-  // Recién acá se marca la sesión guardada como "iniciada" — antes de esto (sala de
+  // Recién aquí se marca la sesión guardada como "iniciada" — antes de esto (sala de
   // configuración previa) un refresh de la pestaña debe volver a la lista de Programas,
   // no reabrir directo esta configuración a medio hacer (ver resolverSesionInicial arriba).
   useEffect(() => {
     if (sesionIniciada) {
-      guardarSesionActiva({ programa, codigoDeSala, iniciada: true });
+      guardarSesionActiva({ programa, codigoDeSala, identificadorDeSesion, iniciada: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sesionIniciada]);
@@ -313,8 +333,8 @@ function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSe
         <section className="tarjeta-de-sala-de-configuracion">
           <h3>Sala de configuración previa</h3>
           <p className="texto-de-ayuda">
-            Compartí el código o el QR para que se vayan conectando. Cuando estés listo, elegí las posturas de
-            esta sesión y arrancá — recién ahí empieza el debate para todos.
+            Comparte el código o el QR para que se vayan conectando. Cuando estés listo, elige las posturas de
+            esta sesión y comienza — recién ahí empieza el debate para todos.
           </p>
           <div className="tarjeta-de-sala">
             <p className="texto-de-ayuda">Código de sala</p>
@@ -327,11 +347,23 @@ function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSe
             <BotonCopiarLink url={urlDeIngreso} />
           </div>
           <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
-          <ControlDeFases estado={estado} motor={motor} programa={programaVisible} publicar={publicar} />
+          <ControlDeFases
+            estado={estado}
+            motor={motor}
+            programa={programaVisible}
+            identificadorDeSesion={identificadorDeSesion}
+            publicar={publicar}
+          />
         </section>
       ) : (
         <>
-          <ControlDeFases estado={estado} motor={motor} programa={programaVisible} publicar={publicar} />
+          <ControlDeFases
+            estado={estado}
+            motor={motor}
+            programa={programaVisible}
+            identificadorDeSesion={identificadorDeSesion}
+            publicar={publicar}
+          />
           <FeedDeActividad estado={estado} presencia={presencia} />
           <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
           <PanelDeDecisionDeBids estado={estado} motor={motor} />
@@ -352,21 +384,35 @@ function ConsolaDeSesion({ programa, codigoDeSala, onCambiarPrograma, onCerrarSe
 }
 
 function BotonCopiarLink({ url }) {
-  const [copiado, setCopiado] = useState(false);
+  // `navigator.clipboard` no existe fuera de contexto seguro y puede fallar por permisos. Antes
+  // ese caso se tragaba en silencio y el botón no cambiaba nunca — el docente no sabía si había
+  // copiado o no. Ahora el fallo muestra el link seleccionable para copiarlo a mano.
+  const [resultado, setResultado] = useState(null);
 
   async function copiar() {
     try {
       await navigator.clipboard.writeText(url);
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 2000);
+      setResultado('copiado');
+      setTimeout(() => setResultado(null), 2000);
     } catch {
-      // Sin permiso/soporte de clipboard — el link ya está visible como texto arriba.
+      setResultado('fallo');
     }
+  }
+
+  if (resultado === 'fallo') {
+    return (
+      <div>
+        <p className="texto-de-ayuda">
+          Tu navegador no dejó copiar automáticamente. Selecciona el link y cópialo a mano:
+        </p>
+        <input readOnly value={url} onFocus={(evento) => evento.target.select()} />
+      </div>
+    );
   }
 
   return (
     <button type="button" className="boton-cambiar-programa" onClick={copiar}>
-      {copiado ? '✅ Copiado' : '📋 Copiar link para compartir'}
+      {resultado === 'copiado' ? '✅ Copiado' : '📋 Copiar link para compartir'}
     </button>
   );
 }

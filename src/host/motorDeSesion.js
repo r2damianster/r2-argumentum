@@ -87,6 +87,7 @@ export function crearMotorDeSesion({ programa }) {
   const temporizadoresDeOferta = new Map(); // turnId -> timeoutId
   const temporizadoresDeBid = new Map(); // bidId -> timeoutId
   const argumentosYaPuntuados = new Set();
+  const validacionesYaProcesadas = new Set();
   const bidsYaProcesados = new Set();
   const fasesYaAnalizadasPorGroq = new Set(); // clave: `${tipo}:${iniciadaEn}`
   const instanciasDeAperturaYaIniciadas = new Set(); // clave: faseActual.iniciadaEn
@@ -141,7 +142,12 @@ export function crearMotorDeSesion({ programa }) {
     temporizadoresDeOferta.set(turnId, timeoutId);
   }
 
-  function procesarValidacionesPendientes() {
+  // El puntaje base de un argumento (posición × ronda × vía, ver docs/05) NO depende de que un
+  // co-moderador lo revise: se acredita apenas el argumento entra al canal. Antes estaba
+  // acoplado a `argument.validated`, así que en una sala sin co-moderadores (n=2, donde el
+  // sorteo correctamente asigna 0) nadie podía validar nada y el marcador quedaba en 0 para
+  // todos, para siempre. Bug real reportado en prueba en vivo.
+  function procesarArgumentosNuevos() {
     const { estado, publicar } = contexto;
     if (!estado) {
       return;
@@ -149,7 +155,7 @@ export function crearMotorDeSesion({ programa }) {
     const aplicarDelta = crearAcumuladorDePuntaje(estado);
 
     for (const argumento of Object.values(estado.argumentos)) {
-      if (!argumento.validacion || argumentosYaPuntuados.has(argumento.argumentId)) {
+      if (argumentosYaPuntuados.has(argumento.argumentId)) {
         continue;
       }
       argumentosYaPuntuados.add(argumento.argumentId);
@@ -166,8 +172,29 @@ export function crearMotorDeSesion({ programa }) {
         motivo: `Argumento posición ${argumento.posicionEnRonda}, ronda ${argumento.ronda}`,
         nuevoTotal: aplicarDelta(argumento.participantId, puntajeBase),
       });
+    }
+  }
+
+  // Bonos de co-moderación: se acreditan recién cuando un co-moderador revisa el argumento.
+  // Si quien validó fue el moderador desde su consola (respaldo cuando no hay co-moderadores),
+  // la revisión vale para el registro pero no reparte bonos — el host no es participante.
+  function procesarValidacionesDeCoModerador() {
+    const { estado, publicar } = contexto;
+    if (!estado) {
+      return;
+    }
+    const aplicarDelta = crearAcumuladorDePuntaje(estado);
+
+    for (const argumento of Object.values(estado.argumentos)) {
+      if (!argumento.validacion || validacionesYaProcesadas.has(argumento.argumentId)) {
+        continue;
+      }
+      validacionesYaProcesadas.add(argumento.argumentId);
 
       const { coModeradorId, tipoFinal, faltaMarcada, nota } = argumento.validacion;
+      if (estado.participantes[coModeradorId]?.rol !== 'co_moderador') {
+        continue;
+      }
       if (tipoFinal && tipoFinal !== argumento.tipoDeclarado) {
         publicar(EVENTOS.PUNTAJE_ACTUALIZADO, {
           participantId: coModeradorId,
@@ -429,7 +456,8 @@ export function crearMotorDeSesion({ programa }) {
       return;
     }
     ofrecerSiguienteTurnoSiHaceFalta();
-    procesarValidacionesPendientes();
+    procesarArgumentosNuevos();
+    procesarValidacionesDeCoModerador();
     procesarBidsResueltos();
     iniciarTemporizadoresDeBidsNuevos();
     cerrarTopicosDeBidsResueltosAutomaticamente();

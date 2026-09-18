@@ -107,13 +107,13 @@ export function FormularioDeArgumento({ estado, programa, participantId, turnoEn
     <section className="tarjeta-de-formulario-de-argumento">
       {modoApertura ? (
         <p className="texto-de-ayuda">
-          Escribí tu argumento inicial defendiendo tu postura — todos lo hacen al mismo tiempo, nadie espera
+          Escribe tu argumento inicial defendiendo tu postura — todos lo hacen al mismo tiempo, nadie espera
           turno todavía. Cuando termine el tiempo (o escriban todos), Groq revisa el conjunto completo y arranca
           la ronda de reacciones.
         </p>
       ) : (
         <p className="texto-de-ayuda">
-          Es tu turno — podés agregar un argumento nuevo, o elegir abajo un tipo para responder a algo que ya se
+          Es tu turno — puedes agregar un argumento nuevo, o elegir abajo un tipo para responder a algo que ya se
           dijo (contraargumento, refuerzo, dilema…) y apoyar o rebatir la postura de otro compañero.
         </p>
       )}
@@ -138,7 +138,7 @@ export function FormularioDeArgumento({ estado, programa, participantId, turnoEn
           <label>
             Argumento al que apunta
             <select value={argumentoObjetivoId} onChange={(evento) => setArgumentoObjetivoId(evento.target.value)}>
-              <option value="">Elegí uno…</option>
+              <option value="">Elige uno…</option>
               {argumentosExistentes.map((argumento) => (
                 <option key={argumento.argumentId} value={argumento.argumentId}>
                   {argumento.texto.slice(0, 50)}…

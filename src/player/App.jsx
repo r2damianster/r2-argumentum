@@ -138,7 +138,7 @@ export default function App() {
               </button>
             ))}
           </div>
-          <p className="texto-de-ayuda">Tocá un emoji: es como te van a ver en el marcador.</p>
+          <p className="texto-de-ayuda">Toca un emoji: así es como te van a ver en el marcador.</p>
         </fieldset>
         <button type="submit" disabled={!codigoDeSala || !nombre || !emojiElegido}>
           Entrar
@@ -161,7 +161,7 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
         <h1>R2 Argumentum</h1>
         <p className="mensaje-de-error">
           No se pudo recuperar la sesión de la sala {codigoDeSala} — probablemente pasó mucho tiempo desde que
-          empezó y el historial ya expiró. Pedile al moderador el código vigente y volvé a entrar.
+          empezó y el historial ya expiró. Pídele al moderador el código vigente y vuelve a entrar.
         </p>
         <button type="button" onClick={onSalir}>
           Volver a entrar
@@ -172,7 +172,7 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
 
   if (cargando || !estado.programa) {
     // cargando=false con programa=null ya se cubrió arriba (historial expirado);
-    // acá solo queda el caso normal: todavía conectando.
+    // aquí solo queda el caso normal: todavía conectando.
     return (
       <main>
         <h1>R2 Argumentum</h1>
@@ -229,8 +229,8 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
       {!sesionCerrada && sinArgumentoDeApertura && (
         <section className="tarjeta-de-turno-ofrecido">
           <p className="mensaje-de-error">
-            No llegaste a completar tu argumento inicial a tiempo — quedaste sin este argumento y sin turno en la
-            ruleta de esta sesión. Podés seguir mirando el debate.
+            No alcanzaste a completar tu argumento inicial a tiempo — quedaste sin este argumento y sin turno en
+            la ruleta de esta sesión. Puedes seguir mirando el debate.
           </p>
         </section>
       )}

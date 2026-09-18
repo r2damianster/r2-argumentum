@@ -14,7 +14,7 @@ const ALTO_DE_NODO = 90;
 const ESPACIADO_VERTICAL = 150;
 
 // TIPOS_DE_RELACION.NUEVO ('nuevo') no tiene clave propia en la paleta semántica
-// (docs/08-identidad-visual.md la llama "argumentoOriginal") — se traduce acá.
+// (docs/08-identidad-visual.md la llama "argumentoOriginal") — se traduce aquí.
 const CLAVE_DE_COLOR_POR_TIPO = {
   [TIPOS_DE_RELACION.NUEVO]: 'argumentoOriginal',
 };

@@ -13,8 +13,10 @@ debate:sala:{codigoDeSala}
 ## Descubrimiento del Programa por el player
 
 ```
-programa.publicado { programa: <Programa completo> }
+programa.publicado { programa: <Programa completo>, identificadorDeSesion }
 ```
+
+El `identificadorDeSesion` delimita a qué debate pertenece cada evento del canal. Hace falta porque el canal se llama solo con el código de sala de 4 dígitos, que se genera al azar y se puede repetir entre debates: sin esa marca, una sesión nueva hereda del historial los argumentos y el `comod.selected` de la anterior. Al reconstruir el estado, cada cliente toma el identificador del último `programa.publicado` del historial y descarta todo lo anterior a su primera aparición (el host lo republica al elegir posturas, por eso puede haber más de uno por sesión).
 
 Evento agregado durante la implementación (no estaba en la versión original de este doc). Lo publica el **host**, una vez, al montar la consola de sesión — antes de eso el player no tiene forma de conocer el tema, las posturas, ni los `ejemplosPorTema` que necesita para llamar a Groq. El player no habilita ninguna UI hasta recibirlo (vía backfill del historial o en vivo).
 

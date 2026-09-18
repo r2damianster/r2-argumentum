@@ -4,7 +4,38 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { obtenerClienteAbly, obtenerCanalDeDebate } from '../ably/clienteAbly.js';
+import { EVENTOS } from '../eventos/nombresDeEventos.js';
 import { estadoInicial, reducirEventos } from './reducirEventos.js';
+
+// El canal de Ably se llama solo con el código de sala de 4 dígitos, que se puede repetir
+// entre debates. Sin este filtro, el historial trae también los eventos de sesiones previas
+// que usaron el mismo código: nodos fantasma en el grafo, comod.selected apuntando a gente
+// que ya no está, puntajes heredados. Bug real, reportado en prueba con 3 participantes.
+//
+// Cada sesión marca sus `programa.publicado` con un identificadorDeSesion propio (el host lo
+// republica al elegir posturas, por eso puede haber más de uno por sesión). Se toma el
+// identificador del último y se descarta todo lo anterior a su primera aparición.
+function mensajesDeLaSesionVigente(mensajesEnOrdenCronologico) {
+  const publicacionesDePrograma = mensajesEnOrdenCronologico.filter(
+    (mensaje) => mensaje.name === EVENTOS.PROGRAMA_PUBLICADO
+  );
+  if (publicacionesDePrograma.length === 0) {
+    return mensajesEnOrdenCronologico;
+  }
+
+  const identificadorVigente = publicacionesDePrograma[publicacionesDePrograma.length - 1].data?.identificadorDeSesion;
+  const indiceDeInicio = identificadorVigente
+    ? mensajesEnOrdenCronologico.findIndex(
+        (mensaje) =>
+          mensaje.name === EVENTOS.PROGRAMA_PUBLICADO &&
+          mensaje.data?.identificadorDeSesion === identificadorVigente
+      )
+    : // Sesión publicada por una versión anterior, sin identificador: el mejor corte posible
+      // es el último programa.publicado del historial.
+      mensajesEnOrdenCronologico.lastIndexOf(publicacionesDePrograma[publicacionesDePrograma.length - 1]);
+
+  return indiceDeInicio > 0 ? mensajesEnOrdenCronologico.slice(indiceDeInicio) : mensajesEnOrdenCronologico;
+}
 
 // datosDePresencia: null para el host (no es un participante, solo observa presence),
 // o { nombre, emoji } para player/co-moderador (entra a presence con ese payload).
@@ -87,7 +118,7 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
         pagina = await pagina.next();
       }
       mensajesDelHistorial.reverse();
-      for (const mensaje of mensajesDelHistorial) {
+      for (const mensaje of mensajesDeLaSesionVigente(mensajesDelHistorial)) {
         procesarMensaje(mensaje);
       }
 

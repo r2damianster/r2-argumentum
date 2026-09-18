@@ -37,7 +37,7 @@ export function PanelDeBid({ estado, participantId, turnoEnCurso, publicar }) {
   return (
     <section className="tarjeta-de-bid">
       <p className="texto-de-ayuda">
-        {estado.participantes[turnoEnCurso.participantId] ? 'Alguien' : ''} tiene el turno — podés lanzar una
+        {estado.participantes[turnoEnCurso.participantId] ? 'Alguien' : ''} tiene el turno — puedes lanzar una
         intervención
       </p>
 
@@ -68,7 +68,7 @@ export function PanelDeBid({ estado, participantId, turnoEnCurso, publicar }) {
           <label>
             Argumento objetivo
             <select value={argumentoObjetivoId} onChange={(evento) => setArgumentoObjetivoId(evento.target.value)}>
-              <option value="">Elegí uno…</option>
+              <option value="">Elige uno…</option>
               {argumentosDelTurno.map((argumento) => (
                 <option key={argumento.argumentId} value={argumento.argumentId}>
                   {argumento.texto.slice(0, 50)}…

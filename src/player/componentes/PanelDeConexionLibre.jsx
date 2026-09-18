@@ -47,7 +47,7 @@ export function PanelDeConexionLibre({ estado, participantId, publicar }) {
         <label>
           Tu argumento
           <select value={argumentoOrigenId} onChange={(evento) => setArgumentoOrigenId(evento.target.value)}>
-            <option value="">Elegí uno…</option>
+            <option value="">Elige uno…</option>
             {misArgumentosDisponibles.map((argumento) => (
               <option key={argumento.argumentId} value={argumento.argumentId}>
                 {argumento.texto.slice(0, 50)}…
@@ -58,7 +58,7 @@ export function PanelDeConexionLibre({ estado, participantId, publicar }) {
         <label>
           Se conecta con
           <select value={argumentoDestinoId} onChange={(evento) => setArgumentoDestinoId(evento.target.value)}>
-            <option value="">Elegí uno…</option>
+            <option value="">Elige uno…</option>
             {argumentosDestinoPosibles.map((argumento) => (
               <option key={argumento.argumentId} value={argumento.argumentId}>
                 {argumento.texto.slice(0, 50)}…

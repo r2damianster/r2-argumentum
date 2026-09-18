@@ -26,7 +26,7 @@ export function PantallaDeTurnoOfrecido({ oferta, estado, participantId, publica
     <section className="tarjeta-de-turno-ofrecido">
       <p className="texto-de-ayuda">🎙️ ¡Es tu turno de hablar!</p>
       <p className="cuenta-regresiva">{segundosRestantes}s</p>
-      <p className="texto-de-ayuda">Aceptá para escribir un argumento nuevo, o rechazá si todavía no estás listo.</p>
+      <p className="texto-de-ayuda">Acepta para escribir un argumento nuevo, o rechaza si todavía no estás listo.</p>
       <div className="botonera-de-turno">
         <button type="button" onClick={aceptar}>
           Aceptar y hablar

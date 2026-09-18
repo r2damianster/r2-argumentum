@@ -71,7 +71,7 @@ export function PanelDeCoModerador({ estado, participantId, publicar }) {
       {bidsAbiertos.length > 0 && (
         <div>
           <p className="texto-de-ayuda">
-            Evaluá el argumento, no la postura — tu voto es anónimo, nadie ve quién votó qué (ni el moderador).
+            Evalúa el argumento, no la postura — tu voto es anónimo, nadie ve quién votó qué (ni el moderador).
           </p>
           <p className="texto-de-ayuda">Bids abiertos — votá aprobar/rechazar</p>
           <ul className="lista-de-bids-pendientes">
@@ -97,7 +97,7 @@ export function PanelDeCoModerador({ estado, participantId, publicar }) {
       {argumentosSinValidar.length > 0 && (
         <div>
           <p className="texto-de-ayuda">
-            Confirmá si el tipo es correcto y marcá falta solo si corresponde — no evalúes si estás de acuerdo
+            Confirma si el tipo es correcto y marca falta solo si corresponde — no evalúes si estás de acuerdo
             con la postura.
           </p>
           <p className="texto-de-ayuda">Argumentos por validar</p>

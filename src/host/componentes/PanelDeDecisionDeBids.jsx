@@ -15,7 +15,7 @@ export function PanelDeDecisionDeBids({ estado, motor }) {
         <div>
           <p className="texto-de-ayuda">
             Bids todavía en votación ({bidsAbiertos.length}) — se cierran solos cuando todos los
-            co-moderadores voten, o podés cortarlo ahora:
+            co-moderadores voten, o puedes cortarlo ahora:
           </p>
           {turnosConBidsAbiertos.map((turnoPrincipalId) => (
             <button
