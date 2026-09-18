@@ -6,9 +6,27 @@
 import { EVENTOS, TIPOS_DE_FASE, TIPOS_DE_BID } from '../shared/eventos/nombresDeEventos.js';
 import {
   calcularPuntajeDeArgumento,
+  calcularPuntajeDeTurnoVerbal,
   calcularNumeroDeCoModeradores,
-  PUNTAJE_DE_COMODERADOR,
+  calcularBonosDeCoModerador,
+  calcularPenalidadPorRechazoDeTurno,
+  resolverParametrosDePuntaje,
 } from '../shared/puntaje/formulaDePuntaje.js';
+import { participantesSinIntervenir } from '../shared/ingreso/reglasDeIngreso.js';
+
+// Una intervención hablada arranca valiendo el puntaje base de turno verbal; la calificación
+// del co-moderador la ajusta. "Aceptable" la deja como está, así el ajuste es una corrección y
+// no un segundo puntaje paralelo.
+function ajustePorCalidadDeIntervencion(calidad, parametros) {
+  const base = calcularPuntajeDeTurnoVerbal(parametros);
+  if (calidad === 'buena') {
+    return base;
+  }
+  if (calidad === 'insuficiente') {
+    return -base;
+  }
+  return 0;
+}
 
 function generarId(prefijo) {
   return `${prefijo}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -34,13 +52,19 @@ function elegirCandidatoParaTurno(estado, presencia, limiteDePosiciones) {
     .filter((presente) => presente.conectado !== false)
     .map((presente) => presente.participantId)
     .filter((participantId) => estado.participantes[participantId]?.rol !== 'co_moderador')
-    // Con asignacionPostura:"libre" el participante recién tiene stanceId cuando la elige
-    // él mismo (ver SelectorDePosturaPropia) — no se le puede ofrecer turno antes de eso.
+    // El stanceId se fija al confirmar el ingreso (ver IngresoConArgumento) — no se le puede
+    // ofrecer turno a alguien sin postura.
     .filter((participantId) => Boolean(estado.participantes[participantId]?.stanceId))
     // Requisito de entrada: quien no logró un argumento aprobado en la apertura (agotadas
     // las dos rondas, ver EVENTOS.APERTURA_RONDA_CERRADA con esFinal:true) queda excluido de
     // la ruleta de turnos por el resto de la sesión — sin argumento, sin puntaje.
     .filter((participantId) => !estado.participantes[participantId]?.sinArgumentoDeApertura)
+    // Los oyentes (entraron a la sala pero nunca confirmaron su argumento de ingreso) miran
+    // el debate, no participan de la ruleta — ver reglasDeIngreso.js.
+    .filter((participantId) => estado.participantes[participantId]?.ingresoConfirmado)
+    // El turno es para DEFENDER algo ya escrito, no una invitación a ponerse a escribir contra
+    // reloj (docs/04): solo entra a la ruleta quien ya tiene un argumento listo esperando.
+    .filter((participantId) => estado.participantes[participantId]?.argumentoListo)
     .filter(
       (participantId) => (estado.participantes[participantId]?.posicionesCompletadas ?? 0) < limiteDePosiciones
     );
@@ -84,10 +108,19 @@ function crearAcumuladorDePuntaje(estado) {
 }
 
 export function crearMotorDeSesion({ programa }) {
+  // El perfil de puntaje lo elige el docente en la configuración, DESPUÉS de que el motor se
+  // creó, y viaja en el Programa que se republica al iniciar sesión. Por eso los parámetros se
+  // resuelven contra el Programa del canal en cada uso, no una sola vez al construir el motor.
+  function parametrosDePuntajeVigentes() {
+    return resolverParametrosDePuntaje(contexto.estado?.programa ?? programa);
+  }
   const temporizadoresDeOferta = new Map(); // turnId -> timeoutId
   const temporizadoresDeBid = new Map(); // bidId -> timeoutId
   const argumentosYaPuntuados = new Set();
   const validacionesYaProcesadas = new Set();
+  const rechazosYaPenalizados = new Set();
+  const intervencionesVerbalesYaPuntuadas = new Set();
+  const calificacionesVerbalesYaProcesadas = new Set();
   const bidsYaProcesados = new Set();
   const fasesYaAnalizadasPorGroq = new Set(); // clave: `${tipo}:${iniciadaEn}`
   const instanciasDeAperturaYaIniciadas = new Set(); // clave: faseActual.iniciadaEn
@@ -101,7 +134,7 @@ export function crearMotorDeSesion({ programa }) {
   }
 
   function limiteDePosiciones() {
-    return programa.valoresBasePosicion.length;
+    return parametrosDePuntajeVigentes().valoresBasePosicion.length;
   }
 
   function ofrecerSiguienteTurnoSiHaceFalta() {
@@ -117,7 +150,17 @@ export function crearMotorDeSesion({ programa }) {
     }
 
     const candidatoId = elegirCandidatoParaTurno(estado, presencia, limiteDePosiciones());
+
+    // Nadie tiene un argumento listo. Si además queda gente que todavía no tomó la palabra, en
+    // vez de dejar el debate en silencio se le ofrece un turno HABLADO sin argumento escrito:
+    // vale pocos puntos y lo califica un co-moderador después (decisión del usuario, docs/04).
     if (!candidatoId) {
+      const sinIntervenir = participantesSinIntervenir(estado, presencia).filter(
+        (participantId) => !estado.turnos.excluidosTemporalmente.includes(participantId)
+      );
+      if (sinIntervenir.length > 0) {
+        ofrecerTurnoVerbal(sinIntervenir[Math.floor(Math.random() * sinIntervenir.length)]);
+      }
       return;
     }
 
@@ -131,7 +174,7 @@ export function crearMotorDeSesion({ programa }) {
 
     const ofrecidoEn = Date.now();
     const expiraEn = ofrecidoEn + programa.timeoutAceptacion * 1000;
-    publicar(EVENTOS.TURNO_OFRECIDO, { turnId, candidateId: candidatoId, ofrecidoEn, expiraEn });
+    publicar(EVENTOS.TURNO_OFRECIDO, { turnId, candidateId: candidatoId, ofrecidoEn, expiraEn, modo: 'argumento' });
 
     const timeoutId = setTimeout(() => {
       temporizadoresDeOferta.delete(turnId);
@@ -140,6 +183,98 @@ export function crearMotorDeSesion({ programa }) {
       }
     }, programa.timeoutAceptacion * 1000);
     temporizadoresDeOferta.set(turnId, timeoutId);
+  }
+
+  // Turno hablado sin argumento escrito. Se ofrece solo cuando ya no queda ningún argumento
+  // preparado por exponer y todavía hay gente que no tomó la palabra ni una vez.
+  function ofrecerTurnoVerbal(candidatoId) {
+    const { publicar } = contexto;
+    const turnId = generarId('turno-verbal');
+    const ofrecidoEn = Date.now();
+    const expiraEn = ofrecidoEn + programa.timeoutAceptacion * 1000;
+
+    publicar(EVENTOS.TURNO_OFRECIDO, { turnId, candidateId: candidatoId, ofrecidoEn, expiraEn, modo: 'verbal' });
+
+    const timeoutId = setTimeout(() => {
+      temporizadoresDeOferta.delete(turnId);
+      if (contexto.estado?.turnos.ofertaActiva?.turnId === turnId) {
+        contexto.publicar(EVENTOS.TURNO_EXPIRADO, { turnId, candidateId: candidatoId });
+      }
+    }, programa.timeoutAceptacion * 1000);
+    temporizadoresDeOferta.set(turnId, timeoutId);
+  }
+
+  // Rechazar el turno cuesta puntos, y al estudiante se le avisa en el propio botón antes de
+  // confirmar (docs/04). El descuento sale de la fórmula única, escalado por el perfil.
+  function procesarRechazosDeTurno() {
+    const { estado, publicar } = contexto;
+    if (!estado) {
+      return;
+    }
+    const aplicarDelta = crearAcumuladorDePuntaje(estado);
+    const penalidad = calcularPenalidadPorRechazoDeTurno(parametrosDePuntajeVigentes());
+
+    for (const { turnId, participantId } of estado.turnos.rechazos) {
+      if (rechazosYaPenalizados.has(turnId)) {
+        continue;
+      }
+      rechazosYaPenalizados.add(turnId);
+
+      publicar(EVENTOS.PUNTAJE_ACTUALIZADO, {
+        participantId,
+        delta: penalidad,
+        categoria: 'argumento',
+        motivo: 'Rechazó el turno para defender su argumento',
+        nuevoTotal: aplicarDelta(participantId, penalidad),
+      });
+    }
+  }
+
+  // El puntaje de una intervención hablada se acredita al registrarse, igual que el de un
+  // argumento: no depende de que haya co-moderadores (ver el bug de las salas de 2). La
+  // calificación posterior del co-moderador ajusta hacia arriba o hacia abajo.
+  function procesarIntervencionesVerbales() {
+    const { estado, publicar } = contexto;
+    if (!estado) {
+      return;
+    }
+    const aplicarDelta = crearAcumuladorDePuntaje(estado);
+    const parametros = parametrosDePuntajeVigentes();
+
+    for (const intervencion of Object.values(estado.intervencionesVerbales)) {
+      if (intervencionesVerbalesYaPuntuadas.has(intervencion.intervencionId)) {
+        continue;
+      }
+      intervencionesVerbalesYaPuntuadas.add(intervencion.intervencionId);
+
+      const puntaje = calcularPuntajeDeTurnoVerbal(parametros);
+      publicar(EVENTOS.PUNTAJE_ACTUALIZADO, {
+        participantId: intervencion.participantId,
+        delta: puntaje,
+        categoria: 'argumento',
+        motivo: 'Intervención hablada sin argumento escrito',
+        nuevoTotal: aplicarDelta(intervencion.participantId, puntaje),
+      });
+    }
+
+    for (const intervencion of Object.values(estado.intervencionesVerbales)) {
+      if (!intervencion.calificacion || calificacionesVerbalesYaProcesadas.has(intervencion.intervencionId)) {
+        continue;
+      }
+      calificacionesVerbalesYaProcesadas.add(intervencion.intervencionId);
+
+      const ajuste = ajustePorCalidadDeIntervencion(intervencion.calificacion.calidad, parametros);
+      if (ajuste === 0) {
+        continue;
+      }
+      publicar(EVENTOS.PUNTAJE_ACTUALIZADO, {
+        participantId: intervencion.participantId,
+        delta: ajuste,
+        categoria: 'argumento',
+        motivo: `Intervención hablada calificada como ${intervencion.calificacion.calidad}`,
+        nuevoTotal: aplicarDelta(intervencion.participantId, ajuste),
+      });
+    }
   }
 
   // El puntaje base de un argumento (posición × ronda × vía, ver docs/05) NO depende de que un
@@ -160,11 +295,14 @@ export function crearMotorDeSesion({ programa }) {
       }
       argumentosYaPuntuados.add(argumento.argumentId);
 
-      const puntajeBase = calcularPuntajeDeArgumento({
-        posicionEnRonda: argumento.posicionEnRonda,
-        ronda: argumento.ronda,
-        viaCoModerador: argumento.viaCoModerador,
-      });
+      const puntajeBase = calcularPuntajeDeArgumento(
+        {
+          posicionEnRonda: argumento.posicionEnRonda,
+          ronda: argumento.ronda,
+          viaCoModerador: argumento.viaCoModerador,
+        },
+        parametrosDePuntajeVigentes()
+      );
       publicar(EVENTOS.PUNTAJE_ACTUALIZADO, {
         participantId: argumento.participantId,
         delta: puntajeBase,
@@ -184,6 +322,7 @@ export function crearMotorDeSesion({ programa }) {
       return;
     }
     const aplicarDelta = crearAcumuladorDePuntaje(estado);
+    const PUNTAJE_DE_COMODERADOR = calcularBonosDeCoModerador(parametrosDePuntajeVigentes());
 
     for (const argumento of Object.values(estado.argumentos)) {
       if (!argumento.validacion || validacionesYaProcesadas.has(argumento.argumentId)) {
@@ -234,6 +373,7 @@ export function crearMotorDeSesion({ programa }) {
       return;
     }
     const aplicarDelta = crearAcumuladorDePuntaje(estado);
+    const PUNTAJE_DE_COMODERADOR = calcularBonosDeCoModerador(parametrosDePuntajeVigentes());
 
     for (const bid of Object.values(estado.bids)) {
       if (!bid.decisionFinal || bidsYaProcesados.has(bid.bidId)) {
@@ -260,7 +400,10 @@ export function crearMotorDeSesion({ programa }) {
           viaCoModerador: false,
         });
 
-        const puntajeBase = calcularPuntajeDeArgumento({ posicionEnRonda, ronda: bid.ronda, viaCoModerador: false });
+        const puntajeBase = calcularPuntajeDeArgumento(
+          { posicionEnRonda, ronda: bid.ronda, viaCoModerador: false },
+          parametrosDePuntajeVigentes()
+        );
         publicar(EVENTOS.PUNTAJE_ACTUALIZADO, {
           participantId: bid.participantId,
           delta: puntajeBase,
@@ -458,6 +601,8 @@ export function crearMotorDeSesion({ programa }) {
     ofrecerSiguienteTurnoSiHaceFalta();
     procesarArgumentosNuevos();
     procesarValidacionesDeCoModerador();
+    procesarRechazosDeTurno();
+    procesarIntervencionesVerbales();
     procesarBidsResueltos();
     iniciarTemporizadoresDeBidsNuevos();
     cerrarTopicosDeBidsResueltosAutomaticamente();

@@ -69,6 +69,25 @@ Flujo (gestionado enteramente por el host, sin cierre automático por temporizad
 
 Nota de costo de Ably: el chequeo de Groq contra un borrador (`/api/groq-validar-argumento`) es una llamada HTTP directa del cliente, no pasa por el canal — el estudiante puede corregir su argumento tantas veces como quiera sin publicar nada. Recién se publica al canal (`argument.submit_attempt` → `argument.validation_result` → `argument.submitted`) una vez que el intento queda aprobado, igual que hoy.
 
+## Ingreso con argumento obligatorio
+
+```
+ingreso.confirmado  { participantId, stanceId, argumentId }
+```
+
+El participante NO aparece en la sala por conectarse. Se suscribe al canal sin entrar a presencia, lee el Programa, elige postura y redacta su argumento revisándolo con Groq por HTTP (sin publicar nada). Al confirmar se publica todo junto — `argument.submit_attempt`, `argument.validation_result`, `stance.assigned`, `argument.submitted` e `ingreso.confirmado` — y recién ahí hace `presence.enter()`.
+
+Quien está en la sala sin `ingreso.confirmado` es **oyente**: ve todo el debate, no entra a la ruleta de turnos y no puntúa. Puede convertirse en participante si completa su argumento antes de que el moderador inicie la sesión.
+
+## Propuesta de postura nueva
+
+```
+stance.proposed            { propuestaId, participantId, nombre, emoji, etiquetaPropuesta, textoDelArgumento }
+stance.decision_moderador  { propuestaId, decision: "aceptada" | "rechazada", stanceId }
+```
+
+Solo si el Programa tiene `permitirPosturasNuevas: true` (por defecto `false`). Si Groq detecta que el argumento no defiende ninguna de las posturas de la lista, el estudiante puede proponer la suya. Al aceptarla, el host republica `programa.publicado` con la postura agregada: el grafo, el ranking y el resto de la UI la toman del canal como a cualquier otra.
+
 ## Postura
 
 ```
@@ -87,8 +106,27 @@ Publicado una vez por el Moderador al iniciar la sesión, tras aplicar `ceil(n *
 
 ## Turnos
 
+**El turno es para defender un argumento ya escrito, nunca una invitación a escribir contra reloj.** El estudiante prepara su argumento mientras escucha a los demás (revisándolo con Groq por HTTP, sin gastar Ably) y al aprobarse publica:
+
 ```
-turn.offered   { turnId, candidateId, ofrecidoEn, expiraEn }
+argument.ready  { participantId, listoEn }
+```
+
+Solo quien publicó esto entra a la ruleta. Al exponer el argumento, el "listo" se consume: para volver a la ruleta hay que preparar otro.
+
+Cuando **no queda ningún argumento preparado por exponer** y todavía hay alguien que no tomó la palabra ni una vez, se le ofrece un turno hablado (`modo: "verbal"`):
+
+```
+intervencion_verbal.registrada  { intervencionId, participantId, turnId, resumen }
+intervencion_verbal.calificada  { intervencionId, coModeradorId, calidad: "buena" | "aceptable" | "insuficiente", nota }
+```
+
+Vale como la posición de menor valor con descuento de vía — sale de la fórmula única, así escala solo con el perfil de puntaje. Se acredita al registrarse (no depende de que existan co-moderadores) y la calificación posterior lo ajusta hacia arriba o hacia abajo.
+
+Rechazar un turno **cuesta puntos**, y el botón de rechazar muestra el costo antes de confirmar.
+
+```
+turn.offered   { turnId, candidateId, ofrecidoEn, expiraEn, modo: "argumento" | "verbal" }
 turn.accepted  { turnId, participantId }
 turn.rejected  { turnId, participantId, totalRechazosDelParticipante }
 turn.timeout   { turnId, candidateId }

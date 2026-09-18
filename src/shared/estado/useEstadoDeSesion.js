@@ -15,7 +15,7 @@ import { estadoInicial, reducirEventos } from './reducirEventos.js';
 // Cada sesión marca sus `programa.publicado` con un identificadorDeSesion propio (el host lo
 // republica al elegir posturas, por eso puede haber más de uno por sesión). Se toma el
 // identificador del último y se descarta todo lo anterior a su primera aparición.
-function mensajesDeLaSesionVigente(mensajesEnOrdenCronologico) {
+export function mensajesDeLaSesionVigente(mensajesEnOrdenCronologico) {
   const publicacionesDePrograma = mensajesEnOrdenCronologico.filter(
     (mensaje) => mensaje.name === EVENTOS.PROGRAMA_PUBLICADO
   );
@@ -45,6 +45,7 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
   const [presencia, setPresencia] = useState([]);
   const [cargando, setCargando] = useState(true);
   const canalRef = useRef(null);
+  const yaEntroAPresencia = useRef(false);
 
   useEffect(() => {
     let cancelado = false;
@@ -140,7 +141,11 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
       }
       canal.presence.subscribe(manejarPresencia);
 
+      // `datosDePresencia` en null NO significa "solo observo": el host observa sin entrar
+      // nunca, pero el participante ahora entra recién cuando confirma su ingreso con un
+      // argumento aprobado (ver reglasDeIngreso.js), llamando a entrarAPresencia().
       if (datosDePresencia) {
+        yaEntroAPresencia.current = true;
         await canal.presence.enter(datosDePresencia);
       }
 
@@ -157,11 +162,21 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
       cancelado = true;
       canal.presence.unsubscribe(manejarPresencia);
       canal.unsubscribe(manejarMensajeEnVivo);
-      if (datosDePresencia) {
+      if (yaEntroAPresencia.current) {
         canal.presence.leave().catch(() => {});
       }
     };
   }, [clientId, sessionId]);
+
+  // El participante aparece en el roster recién al llamar esto — antes puede leer el Programa,
+  // elegir postura y redactar su argumento sin que nadie lo vea todavía.
+  async function entrarAPresencia(datos) {
+    if (!canalRef.current || yaEntroAPresencia.current) {
+      return;
+    }
+    yaEntroAPresencia.current = true;
+    await canalRef.current.presence.enter(datos);
+  }
 
   function publicar(nombreDeEvento, payload) {
     if (!canalRef.current) {
@@ -170,5 +185,5 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
     return canalRef.current.publish(nombreDeEvento, { timestamp: Date.now(), ...payload });
   }
 
-  return { estado, eventos, presencia, publicar, cargando };
+  return { estado, eventos, presencia, publicar, cargando, entrarAPresencia };
 }

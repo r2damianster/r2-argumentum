@@ -2,6 +2,26 @@
 
 Todo el puntaje sigue una sola fórmula, no valores sueltos, para que sea una norma clara y defendible ante los estudiantes.
 
+## Perfiles de puntaje
+
+El docente elige el modo de calificación al configurar la sesión. Los perfiles **no son tablas paralelas**: son juegos de parámetros que alimentan esta misma fórmula.
+
+| Perfil | Posiciones | Descuento R2 | Descuento vía | Rechazo de turno |
+|---|---|---|---|---|
+| Liviano | 10 / 8 / 3 | 0.85 | 0.7 | −2 |
+| Estándar | 100 / 80 / 30 | 0.7 | 0.5 | −20 |
+| Estricto | 1000 / 800 / 300 | 0.5 | 0.3 | −300 |
+
+Los tres mantienen la proporción 10 : 8 : 3 entre posiciones (hay una prueba que lo verifica), así el ranking por percentiles dentro de cada postura funciona igual con cualquiera. Los bonos de co-moderación escalan con el perfil (`factorDeBonosDeCoModeracion`): con escala de miles, un +8 fijo sería ruido estadístico y el rol dejaría de ser comparable en valor al de argumentar.
+
+## Puntaje del turno hablado
+
+Una intervención de viva voz sin argumento escrito vale como **la posición de menor valor con el descuento de vía aplicado** — sale de la misma fórmula en vez de ser un número suelto, así escala sola con el perfil. Se acredita al registrarse; la calificación del co-moderador la ajusta: "buena" la duplica, "aceptable" la deja igual, "insuficiente" la anula.
+
+## Puntaje base y revisión del co-moderador
+
+El puntaje base de un argumento (`posición × ronda × vía`) **no depende** de que un co-moderador lo revise: se acredita apenas el argumento entra al canal. Solo los bonos de co-moderación dependen de esa revisión. Antes estaban acoplados, y en una sala de 2 participantes —donde el sorteo correctamente asigna 0 co-moderadores— nadie podía puntuar nunca.
+
 ## Fórmula base (argumentos de estudiantes)
 
 ```

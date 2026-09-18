@@ -8,6 +8,10 @@ import { useMotorDeSesion } from './useMotorDeSesion.js';
 import { ControlDeFases } from './componentes/ControlDeFases.jsx';
 import { ListaDeParticipantes } from './componentes/ListaDeParticipantes.jsx';
 import { PanelDeDecisionDeBids } from './componentes/PanelDeDecisionDeBids.jsx';
+import { PanelDePosturasPropuestas } from './componentes/PanelDePosturasPropuestas.jsx';
+import { VistaEspejoDeParticipante } from './componentes/VistaEspejoDeParticipante.jsx';
+import { PanelDeAvisos } from './componentes/PanelDeAvisos.jsx';
+import { InformeDelDebate } from './componentes/InformeDelDebate.jsx';
 import { PantallaDeRanking } from './componentes/PantallaDeRanking.jsx';
 import { GrafoDeArgumentos } from '../shared/componentes/GrafoDeArgumentos.jsx';
 import { FeedDeActividad } from '../shared/componentes/FeedDeActividad.jsx';
@@ -271,6 +275,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
   });
   const motor = useMotorDeSesion({ estado, presencia, publicar, programa });
 
+  const [modoProyeccion, setModoProyeccion] = useState(false);
   const programaYaPublicadoRef = useRef(false);
   useEffect(() => {
     if (!cargando && !programaYaPublicadoRef.current) {
@@ -297,13 +302,39 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
   // posturas al iniciar sesión (ver ControlDeFases). Antes de eso, cae al prop cargado.
   const programaVisible = estado.programa ?? programa;
 
+  // Modo proyección: la consola se usa casi siempre desde una laptop conectada al proyector,
+  // y los controles del moderador no tienen por qué leerse desde el fondo del aula. Este modo
+  // agranda todo y deja solo lo que la clase necesita ver.
+  if (modoProyeccion) {
+    return (
+      <main className="consola-de-sesion modo-proyeccion">
+        <div className="barra-superior">
+          <h1>{programaVisible.titulo}</h1>
+          <button type="button" className="boton-cerrar-sesion" onClick={() => setModoProyeccion(false)}>
+            Salir de proyección
+          </button>
+        </div>
+        <FeedDeActividad estado={estado} presencia={presencia} />
+        <GrafoDeArgumentos estado={estado} programa={programaVisible} presencia={presencia} />
+        <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
+      </main>
+    );
+  }
+
   return (
     <main className="consola-de-sesion">
       <div className="barra-superior">
         <h1>Consola del host</h1>
-        <button type="button" className="boton-cerrar-sesion" onClick={onCerrarSesion}>
-          Cerrar sesión
-        </button>
+        <div className="acciones-de-barra">
+          {sesionIniciada && (
+            <button type="button" className="boton-cerrar-sesion" onClick={() => setModoProyeccion(true)}>
+              📽️ Proyectar
+            </button>
+          )}
+          <button type="button" className="boton-cerrar-sesion" onClick={onCerrarSesion}>
+            Cerrar sesión
+          </button>
+        </div>
       </div>
 
       <section className="tarjeta-de-programa">
@@ -347,6 +378,13 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
             <BotonCopiarLink url={urlDeIngreso} />
           </div>
           <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
+          <PanelDeAvisos estado={estado} presencia={presencia} />
+          <PanelDePosturasPropuestas
+            estado={estado}
+            programa={programaVisible}
+            identificadorDeSesion={identificadorDeSesion}
+            publicar={publicar}
+          />
           <ControlDeFases
             estado={estado}
             motor={motor}
@@ -357,6 +395,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
         </section>
       ) : (
         <>
+          <PanelDeAvisos estado={estado} presencia={presencia} />
           <ControlDeFases
             estado={estado}
             motor={motor}
@@ -366,8 +405,18 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
           />
           <FeedDeActividad estado={estado} presencia={presencia} />
           <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
+          <PanelDePosturasPropuestas
+            estado={estado}
+            programa={programaVisible}
+            identificadorDeSesion={identificadorDeSesion}
+            publicar={publicar}
+          />
           <PanelDeDecisionDeBids estado={estado} motor={motor} />
+          <VistaEspejoDeParticipante estado={estado} presencia={presencia} programa={programaVisible} />
           <GrafoDeArgumentos estado={estado} programa={programaVisible} presencia={presencia} />
+          {mostrarRanking && (
+            <InformeDelDebate estado={estado} programa={programaVisible} presencia={presencia} eventos={eventos} />
+          )}
           {mostrarRanking && (
             <PantallaDeRanking
               estado={estado}

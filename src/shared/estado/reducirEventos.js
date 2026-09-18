@@ -13,9 +13,19 @@ export function estadoInicial() {
     programa: null,
     fase: { actual: null, historial: [] },
     apertura: null,
+    posturasPropuestas: {},
+    intervencionesVerbales: {},
     participantes: {},
     coModeradores: null,
-    turnos: { ofertaActiva: null, turnoEnCurso: null, excluidosTemporalmente: [], ultimoResultadoPorTurnId: {} },
+    turnos: {
+      ofertaActiva: null,
+      turnoEnCurso: null,
+      excluidosTemporalmente: [],
+      ultimoResultadoPorTurnId: {},
+      // Historial de rechazos, para que el motor pueda aplicar la penalidad una sola vez
+      // por turno rechazado (ver procesarRechazosDeTurno).
+      rechazos: [],
+    },
     argumentos: {},
     intentosEnCurso: {},
     bids: {},
@@ -35,6 +45,15 @@ function crearParticipanteVacio(participantId) {
     rechazosAcumulados: 0,
     posicionesCompletadas: 0,
     puntajeTotal: 0,
+    // Requisito de ingreso (docs/09): se confirma al entrar con un argumento aprobado. Quien
+    // está en la sala sin confirmarlo es oyente — ve todo, no recibe turnos y no puntúa.
+    ingresoConfirmado: false,
+    // Veces que esta persona tomó la palabra, por argumento escrito o por turno hablado. El
+    // debate no cierra hasta que todos tengan al menos una (ver reglasDeIngreso.js).
+    intervenciones: 0,
+    // Tiene un argumento redactado y aprobado esperando turno. Solo a quien lo tiene se le
+    // ofrece la palabra: el turno es para defender lo escrito, no para escribir (docs/04).
+    argumentoListo: false,
     // true solo tras el cierre DEFINITIVO de la apertura (ver EVENTOS.APERTURA_RONDA_CERRADA
     // con esFinal:true) si esta persona nunca logró un argumento aprobado — excluida de la
     // ruleta de turnos del resto de la sesión (ver elegirCandidatoParaTurno en motorDeSesion.js).
@@ -73,6 +92,36 @@ export function reducirEventos(estado, evento) {
       return {
         ...estado,
         fase: { actual: null, historial: [...estado.fase.historial, faseCerrada] },
+      };
+    }
+
+    case EVENTOS.INGRESO_CONFIRMADO:
+      return conParticipanteActualizado(estado, data.participantId, (participante) => ({
+        ...participante,
+        ingresoConfirmado: true,
+        stanceId: data.stanceId ?? participante.stanceId,
+      }));
+
+    case EVENTOS.POSTURA_PROPUESTA:
+      return {
+        ...estado,
+        posturasPropuestas: {
+          ...estado.posturasPropuestas,
+          [data.propuestaId]: { ...data, decision: null },
+        },
+      };
+
+    case EVENTOS.POSTURA_DECISION_MODERADOR: {
+      const propuestaExistente = estado.posturasPropuestas[data.propuestaId];
+      if (!propuestaExistente || propuestaExistente.decision) {
+        return estado;
+      }
+      return {
+        ...estado,
+        posturasPropuestas: {
+          ...estado.posturasPropuestas,
+          [data.propuestaId]: { ...propuestaExistente, decision: data.decision, stanceId: data.stanceId ?? null },
+        },
       };
     }
 
@@ -146,6 +195,8 @@ export function reducirEventos(estado, evento) {
             candidateId: data.candidateId,
             ofrecidoEn: data.ofrecidoEn,
             expiraEn: data.expiraEn,
+            // "argumento" (defender algo ya escrito) o "verbal" (intervenir sin argumento).
+            modo: data.modo ?? 'argumento',
             estado: 'pendiente',
           },
         },
@@ -162,7 +213,11 @@ export function reducirEventos(estado, evento) {
           ...siguiente.turnos,
           ofertaActiva:
             siguiente.turnos.ofertaActiva?.turnId === data.turnId ? null : siguiente.turnos.ofertaActiva,
-          turnoEnCurso: { turnId: data.turnId, participantId: data.participantId },
+          turnoEnCurso: {
+            turnId: data.turnId,
+            participantId: data.participantId,
+            modo: siguiente.turnos.ofertaActiva?.modo ?? 'argumento',
+          },
           excluidosTemporalmente: [],
           ultimoResultadoPorTurnId: { ...siguiente.turnos.ultimoResultadoPorTurnId, [data.turnId]: 'accepted' },
         },
@@ -184,6 +239,7 @@ export function reducirEventos(estado, evento) {
             new Set([...siguiente.turnos.excluidosTemporalmente, data.participantId])
           ),
           ultimoResultadoPorTurnId: { ...siguiente.turnos.ultimoResultadoPorTurnId, [data.turnId]: 'rejected' },
+          rechazos: [...siguiente.turnos.rechazos, { turnId: data.turnId, participantId: data.participantId }],
         },
       };
     }
@@ -219,6 +275,48 @@ export function reducirEventos(estado, evento) {
       };
     }
 
+    case EVENTOS.ARGUMENTO_LISTO:
+      return conParticipanteActualizado(estado, data.participantId, (participante) => ({
+        ...participante,
+        argumentoListo: true,
+      }));
+
+    case EVENTOS.INTERVENCION_VERBAL_REGISTRADA: {
+      const siguiente = conParticipanteActualizado(estado, data.participantId, (participante) => ({
+        ...participante,
+        intervenciones: participante.intervenciones + 1,
+      }));
+      return {
+        ...siguiente,
+        turnos: {
+          ...siguiente.turnos,
+          turnoEnCurso:
+            siguiente.turnos.turnoEnCurso?.turnId === data.turnId ? null : siguiente.turnos.turnoEnCurso,
+        },
+        intervencionesVerbales: {
+          ...siguiente.intervencionesVerbales,
+          [data.intervencionId]: { ...data, calificacion: null },
+        },
+      };
+    }
+
+    case EVENTOS.INTERVENCION_VERBAL_CALIFICADA: {
+      const intervencionExistente = estado.intervencionesVerbales[data.intervencionId];
+      if (!intervencionExistente || intervencionExistente.calificacion) {
+        return estado;
+      }
+      return {
+        ...estado,
+        intervencionesVerbales: {
+          ...estado.intervencionesVerbales,
+          [data.intervencionId]: {
+            ...intervencionExistente,
+            calificacion: { calidad: data.calidad, coModeradorId: data.coModeradorId, nota: data.nota ?? '' },
+          },
+        },
+      };
+    }
+
     case EVENTOS.ARGUMENTO_INTENTO:
       return {
         ...estado,
@@ -249,6 +347,10 @@ export function reducirEventos(estado, evento) {
       const siguiente = conParticipanteActualizado(estado, data.participantId, (participante) => ({
         ...participante,
         posicionesCompletadas: Math.max(participante.posicionesCompletadas, data.posicionEnRonda),
+        intervenciones: participante.intervenciones + 1,
+        // El argumento que esperaba turno ya se expuso: para volver a la ruleta hay que
+        // preparar uno nuevo.
+        argumentoListo: false,
       }));
       return {
         ...siguiente,

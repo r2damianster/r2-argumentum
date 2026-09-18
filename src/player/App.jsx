@@ -12,11 +12,15 @@ import { PantallaDeTurnoOfrecido } from './componentes/PantallaDeTurnoOfrecido.j
 import { FormularioDeArgumento } from './componentes/FormularioDeArgumento.jsx';
 import { GrafoDeArgumentos } from '../shared/componentes/GrafoDeArgumentos.jsx';
 import { FeedDeActividad } from '../shared/componentes/FeedDeActividad.jsx';
+import { CapaInstruccional } from '../shared/componentes/CapaInstruccional.jsx';
 import { PanelDeConexionLibre } from './componentes/PanelDeConexionLibre.jsx';
 import { PanelDeSugerencias } from './componentes/PanelDeSugerencias.jsx';
 import { PanelDeBid } from './componentes/PanelDeBid.jsx';
 import { PanelDeCoModerador } from './componentes/PanelDeCoModerador.jsx';
-import { SelectorDePosturaPropia } from './componentes/SelectorDePosturaPropia.jsx';
+import { IngresoConArgumento } from './componentes/IngresoConArgumento.jsx';
+import { PrepararArgumento } from './componentes/PrepararArgumento.jsx';
+import { IntervencionVerbal } from './componentes/IntervencionVerbal.jsx';
+import { ingresoEstaCerrado } from '../shared/ingreso/reglasDeIngreso.js';
 
 // Mismo set de emojis que R2 Quiz, ver docs/07-acceso-y-paginas.md.
 const EMOJIS_DISPONIBLES = [
@@ -149,10 +153,11 @@ export default function App() {
 }
 
 function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSalir }) {
-  const { estado, presencia, publicar, cargando } = useEstadoDeSesion({
+  // Sin datosDePresencia: el participante lee el Programa y redacta su argumento sin aparecer
+  // en el roster. Entra a presencia recién al confirmar el ingreso (ver reglasDeIngreso.js).
+  const { estado, presencia, publicar, cargando, entrarAPresencia } = useEstadoDeSesion({
     clientId: participantId,
     sessionId: codigoDeSala,
-    datosDePresencia: { nombre, emoji },
   });
 
   if (!cargando && !estado.programa) {
@@ -192,18 +197,35 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
   const miPostura = programa.posturas.find((postura) => postura.id === estado.participantes[participantId]?.stanceId);
   const miPuntaje = estado.participantes[participantId]?.puntajeTotal ?? 0;
   const sesionCerrada = estado.fase.actual?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING || estado.sesion.cerrada;
-  // Si el Programa deja elegir postura libremente (en vez de asignarla al azar), esperamos
-  // a saber si soy co-moderador (comod.selected ya publicado) antes de mostrar el selector —
-  // los co-moderadores no argumentan, no deben elegir postura.
-  const debeElegirPostura =
-    !sesionCerrada &&
-    programa.asignacionPostura === 'libre' &&
-    estado.coModeradores !== null &&
-    !soyComoderador &&
-    !estado.participantes[participantId]?.stanceId;
   const enFaseDeApertura = estado.fase.actual?.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA;
   const yaEscribiMiApertura = (estado.participantes[participantId]?.posicionesCompletadas ?? 0) >= 1;
   const sinArgumentoDeApertura = Boolean(estado.participantes[participantId]?.sinArgumentoDeApertura);
+  const ingresoConfirmado = Boolean(estado.participantes[participantId]?.ingresoConfirmado);
+  const ingresoCerrado = ingresoEstaCerrado(estado);
+
+  // Requisito de ingreso: sin argumento aprobado no se entra al roster (docs/09). Si el debate
+  // ya arrancó, quien no alcanzó a confirmar se queda como oyente y solo mira.
+  if (!ingresoConfirmado && !ingresoCerrado) {
+    return (
+      <main>
+        <div className="barra-superior">
+          <h1>{programa.titulo}</h1>
+        </div>
+        <p className="texto-de-ayuda">
+          {emoji} {nombre} · {programa.temaCentral}
+        </p>
+        <IngresoConArgumento
+          estado={estado}
+          programa={programa}
+          participantId={participantId}
+          nombre={nombre}
+          emoji={emoji}
+          publicar={publicar}
+          onConfirmado={() => entrarAPresencia({ nombre, emoji })}
+        />
+      </main>
+    );
+  }
 
   return (
     <main>
@@ -220,10 +242,19 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
         · {miPuntaje} pts
       </p>
 
+      <div className="layout-de-participante">
+        <CapaInstruccional estado={estado} presencia={presencia} participantId={participantId} />
+
+        <div className="columna-de-trabajo">
       {sesionCerrada && <PantallaDeResultadoDelParticipante estado={estado} programa={programa} participantId={participantId} />}
 
-      {debeElegirPostura && (
-        <SelectorDePosturaPropia programa={programa} participantId={participantId} publicar={publicar} />
+      {!sesionCerrada && !ingresoConfirmado && (
+        <section className="tarjeta-de-turno-ofrecido">
+          <p className="mensaje-de-error">
+            Estás como oyente: el debate empezó antes de que confirmaras tu argumento de ingreso. Puedes seguir
+            todo lo que pasa, pero no recibes turnos ni puntaje.
+          </p>
+        </section>
       )}
 
       {!sesionCerrada && sinArgumentoDeApertura && (
@@ -240,10 +271,10 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
       {!sesionCerrada && <FeedDeActividad estado={estado} presencia={presencia} />}
 
       {!sesionCerrada && soyComoderador && (
-        <PanelDeCoModerador estado={estado} participantId={participantId} publicar={publicar} />
+        <PanelDeCoModerador estado={estado} presencia={presencia} participantId={participantId} publicar={publicar} />
       )}
 
-      {!sesionCerrada && !soyComoderador && !debeElegirPostura && enFaseDeApertura && !yaEscribiMiApertura && (
+      {!sesionCerrada && !soyComoderador && ingresoConfirmado && enFaseDeApertura && !yaEscribiMiApertura && (
         <FormularioDeArgumento
           estado={estado}
           programa={programa}
@@ -260,32 +291,49 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
       )}
 
       {!sesionCerrada && !soyComoderador && oferta && (
-        <PantallaDeTurnoOfrecido oferta={oferta} estado={estado} participantId={participantId} publicar={publicar} />
-      )}
-
-      {!sesionCerrada && !soyComoderador && tengoElTurno && (
-        <FormularioDeArgumento
+        <PantallaDeTurnoOfrecido
+          oferta={oferta}
           estado={estado}
           programa={programa}
           participantId={participantId}
-          turnoEnCurso={estado.turnos.turnoEnCurso}
           publicar={publicar}
         />
       )}
 
+      {/* Turno hablado sin argumento escrito: no hay nada que publicar, solo registrar que
+          habló para que un co-moderador lo califique. */}
+      {!sesionCerrada && !soyComoderador && tengoElTurno && estado.turnos.turnoEnCurso.modo === 'verbal' && (
+        <IntervencionVerbal
+          turnoEnCurso={estado.turnos.turnoEnCurso}
+          participantId={participantId}
+          publicar={publicar}
+        />
+      )}
+
+      {/* Preparación de argumentos: se escribe mientras otros hablan y queda esperando turno.
+          El mismo componente muestra el argumento listo cuando llega la palabra. */}
       {!sesionCerrada &&
         !soyComoderador &&
+        ingresoConfirmado &&
+        !enFaseDeApertura &&
+        estado.turnos.turnoEnCurso?.modo !== 'verbal' && (
+          <PrepararArgumento estado={estado} programa={programa} participantId={participantId} publicar={publicar} />
+        )}
+
+      {!sesionCerrada &&
+        !soyComoderador &&
+        ingresoConfirmado &&
         !tengoElTurno &&
         estado.turnos.turnoEnCurso &&
         estado.turnos.turnoEnCurso.participantId !== participantId && (
           <PanelDeBid estado={estado} participantId={participantId} turnoEnCurso={estado.turnos.turnoEnCurso} publicar={publicar} />
         )}
 
-      {!sesionCerrada && sugerenciasVisibles.length > 0 && (
+      {!sesionCerrada && ingresoConfirmado && sugerenciasVisibles.length > 0 && (
         <PanelDeSugerencias estado={estado} participantId={participantId} publicar={publicar} />
       )}
 
-      {!sesionCerrada && !soyComoderador && misArgumentosLibres.length > 0 && (
+      {!sesionCerrada && !soyComoderador && ingresoConfirmado && misArgumentosLibres.length > 0 && (
         <PanelDeConexionLibre estado={estado} participantId={participantId} publicar={publicar} />
       )}
 
@@ -295,6 +343,8 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
         Conectado — {presencia.filter((presente) => presente.conectado !== false).length} participante(s) en la
         sala.
       </p>
+        </div>
+      </div>
     </main>
   );
 }

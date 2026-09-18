@@ -14,6 +14,14 @@ export const EVENTOS = {
 
   POSTURA_ASIGNADA: 'stance.assigned',
 
+  // Ingreso con argumento obligatorio (ver docs/09): el participante existe para el debate
+  // recién cuando confirma su ingreso con un argumento aprobado.
+  INGRESO_CONFIRMADO: 'ingreso.confirmado',
+
+  // Propuesta de postura fuera de la lista — solo si el Programa tiene permitirPosturasNuevas.
+  POSTURA_PROPUESTA: 'stance.proposed',
+  POSTURA_DECISION_MODERADOR: 'stance.decision_moderador',
+
   COMODERADORES_SELECCIONADOS: 'comod.selected',
 
   TURNO_OFRECIDO: 'turn.offered',
@@ -21,6 +29,15 @@ export const EVENTOS = {
   TURNO_RECHAZADO: 'turn.rejected',
   TURNO_EXPIRADO: 'turn.timeout',
   TURNO_FORZADO: 'turn.forced',
+
+  // "Tengo un argumento escrito y aprobado, esperando mi turno para defenderlo". El turno se
+  // ofrece SOLO a quien publicó esto: no es una invitación a escribir (ver docs/04).
+  ARGUMENTO_LISTO: 'argument.ready',
+
+  // Intervención hablada sin argumento escrito, para quienes no alcanzaron a preparar uno y
+  // todavía no tomaron la palabra. La califica un co-moderador después.
+  INTERVENCION_VERBAL_REGISTRADA: 'intervencion_verbal.registrada',
+  INTERVENCION_VERBAL_CALIFICADA: 'intervencion_verbal.calificada',
 
   ARGUMENTO_INTENTO: 'argument.submit_attempt',
   ARGUMENTO_RESULTADO_VALIDACION: 'argument.validation_result',

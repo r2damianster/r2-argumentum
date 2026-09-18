@@ -29,7 +29,6 @@
   "permiteCambioPostura": false,
 
   "fases": [
-    { "tipo": "apertura_simultanea", "ronda": 1, "duracionMin": 5 },
     { "tipo": "escritura_argumentos", "ronda": 1, "limiteArgumentos": 3, "duracionMin": 12 },
     { "tipo": "escritura_argumentos", "ronda": 2, "limiteArgumentos": "segun_ronda_1", "duracionMin": 10 },
     { "tipo": "conexion_sugerida", "disparadoPor": "moderador" },

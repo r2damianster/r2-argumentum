@@ -56,12 +56,23 @@ function FilaDeValidacion({ argumento, participantId, publicar }) {
   );
 }
 
-export function PanelDeCoModerador({ estado, participantId, publicar }) {
+export function PanelDeCoModerador({ estado, presencia, participantId, publicar }) {
   const argumentosSinValidar = obtenerArgumentosSinValidar(estado);
   const bidsAbiertos = obtenerBidsAbiertos(estado);
+  const intervencionesSinCalificar = Object.values(estado.intervencionesVerbales).filter(
+    (intervencion) => !intervencion.calificacion
+  );
 
   function votar(bidId, voto) {
     publicar(EVENTOS.BID_VOTO_COMODERADOR, { bidId, coModeradorId: participantId, voto });
+  }
+
+  function calificarIntervencion(intervencionId, calidad) {
+    publicar(EVENTOS.INTERVENCION_VERBAL_CALIFICADA, { intervencionId, coModeradorId: participantId, calidad });
+  }
+
+  function nombreDe(otroParticipantId) {
+    return presencia?.find((presente) => presente.participantId === otroParticipantId)?.nombre ?? 'Alguien';
   }
 
   return (
@@ -114,7 +125,47 @@ export function PanelDeCoModerador({ estado, participantId, publicar }) {
         </div>
       )}
 
-      {argumentosSinValidar.length === 0 && bidsAbiertos.length === 0 && (
+      {intervencionesSinCalificar.length > 0 && (
+        <div>
+          <p className="texto-de-ayuda">
+            Intervenciones habladas por calificar — juzga si aportó una razón, no si estás de acuerdo.
+          </p>
+          <ul className="lista-de-validaciones-pendientes">
+            {intervencionesSinCalificar.map((intervencion) => (
+              <li key={intervencion.intervencionId}>
+                <p>
+                  <strong>{nombreDe(intervencion.participantId)}</strong> intervino sin argumento escrito.
+                </p>
+                {intervencion.resumen && <p className="texto-de-ayuda">“{intervencion.resumen}”</p>}
+                <div className="botonera-de-bid">
+                  <button
+                    type="button"
+                    onClick={() => calificarIntervencion(intervencion.intervencionId, 'buena')}
+                  >
+                    Aportó una razón
+                  </button>
+                  <button
+                    type="button"
+                    className="boton-cambiar-programa"
+                    onClick={() => calificarIntervencion(intervencion.intervencionId, 'aceptable')}
+                  >
+                    Aceptable
+                  </button>
+                  <button
+                    type="button"
+                    className="boton-cambiar-programa"
+                    onClick={() => calificarIntervencion(intervencion.intervencionId, 'insuficiente')}
+                  >
+                    Solo opinión
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {argumentosSinValidar.length === 0 && bidsAbiertos.length === 0 && intervencionesSinCalificar.length === 0 && (
         <p className="texto-de-ayuda">Nada pendiente por ahora.</p>
       )}
     </section>

@@ -15,6 +15,9 @@ export function combinarParticipantesConPresencia(estado, presencia) {
       rechazosAcumulados: participanteDelReducer?.rechazosAcumulados ?? 0,
       posicionesCompletadas: participanteDelReducer?.posicionesCompletadas ?? 0,
       puntajeTotal: participanteDelReducer?.puntajeTotal ?? 0,
+      ingresoConfirmado: participanteDelReducer?.ingresoConfirmado ?? false,
+      intervenciones: participanteDelReducer?.intervenciones ?? 0,
+      argumentoListo: participanteDelReducer?.argumentoListo ?? false,
     };
   });
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { TIPOS_DE_FASE, EVENTOS } from '../../shared/eventos/nombresDeEventos.js';
+import { PERFILES_DE_PUNTAJE, PERFIL_POR_DEFECTO } from '../../shared/puntaje/formulaDePuntaje.js';
 
 const ETIQUETA_DE_FASE = {
   [TIPOS_DE_FASE.APERTURA_SIMULTANEA]: 'Apertura simultánea (todos escriben)',
@@ -14,6 +15,11 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
   const faseActual = estado.fase.actual;
   const [posturasSeleccionadas, setPosturasSeleccionadas] = useState(
     () => new Set(programa.posturas.map((postura) => postura.id))
+  );
+  const [perfilDePuntaje, setPerfilDePuntaje] = useState(programa.perfilDePuntaje ?? PERFIL_POR_DEFECTO);
+  // Por defecto en "No": el debate se juega con las posturas que el docente preparó.
+  const [permitirPosturasNuevas, setPermitirPosturasNuevas] = useState(
+    Boolean(programa.permitirPosturasNuevas)
   );
 
   function alternarPostura(posturaId) {
@@ -33,10 +39,11 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
     if (posturasElegidas.length < 2) {
       return;
     }
-    // Republica el Programa con solo las posturas elegidas — así el resto de la UI
-    // (grafo, ranking, chips) ya no vuelve a ver las que el moderador destildó.
+    // Republica el Programa con la configuración de esta sesión — así el resto de la UI
+    // (grafo, ranking, chips) ya no vuelve a ver las posturas que el moderador destildó, y el
+    // motor toma el perfil de puntaje elegido desde el canal (ver parametrosDePuntajeVigentes).
     publicar(EVENTOS.PROGRAMA_PUBLICADO, {
-      programa: { ...programa, posturas: posturasElegidas },
+      programa: { ...programa, posturas: posturasElegidas, perfilDePuntaje, permitirPosturasNuevas },
       identificadorDeSesion,
     });
     motor.iniciarSesion(posturasElegidas);
@@ -68,6 +75,44 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
             </ul>
           </div>
         )}
+        <div className="bloque-de-configuracion">
+          <p className="texto-de-ayuda">Modo de calificación</p>
+          <ul className="lista-de-perfiles">
+            {Object.entries(PERFILES_DE_PUNTAJE).map(([clave, perfil]) => (
+              <li key={clave}>
+                <label>
+                  <input
+                    type="radio"
+                    name="perfil-de-puntaje"
+                    checked={perfilDePuntaje === clave}
+                    onChange={() => setPerfilDePuntaje(clave)}
+                  />
+                  <span>
+                    <strong>{perfil.etiqueta}</strong> ({perfil.valoresBasePosicion.join(' / ')} pts)
+                    <br />
+                    <span className="texto-de-ayuda">{perfil.descripcion}</span>
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="bloque-de-configuracion">
+          <label className="casilla-de-falta">
+            <input
+              type="checkbox"
+              checked={permitirPosturasNuevas}
+              onChange={(evento) => setPermitirPosturasNuevas(evento.target.checked)}
+            />
+            Permitir que los estudiantes propongan posturas nuevas
+          </label>
+          <p className="texto-de-ayuda">
+            Si está activo y un argumento no encaja en ninguna postura de la lista, el estudiante puede
+            proponerla y tú decides si entra al debate. Si está inactivo, se le pide reescribir.
+          </p>
+        </div>
+
         <button type="button" disabled={posturasSeleccionadas.size < 2} onClick={confirmarEIniciarSesion}>
           Iniciar sesión
         </button>

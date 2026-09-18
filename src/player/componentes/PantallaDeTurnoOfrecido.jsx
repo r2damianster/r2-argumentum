@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react';
 import { EVENTOS } from '../../shared/eventos/nombresDeEventos.js';
+import {
+  calcularPenalidadPorRechazoDeTurno,
+  resolverParametrosDePuntaje,
+} from '../../shared/puntaje/formulaDePuntaje.js';
 
-export function PantallaDeTurnoOfrecido({ oferta, estado, participantId, publicar }) {
+// El turno nunca es una invitación a ponerse a escribir: o vienes a defender un argumento que
+// ya preparaste (modo "argumento"), o es un turno hablado sin argumento escrito porque ya no
+// queda nada preparado por exponer y todavía no tomaste la palabra (modo "verbal"). Ver docs/04.
+export function PantallaDeTurnoOfrecido({ oferta, estado, programa, participantId, publicar }) {
   const [segundosRestantes, setSegundosRestantes] = useState(
     Math.max(0, Math.round((oferta.expiraEn - Date.now()) / 1000))
   );
@@ -12,6 +19,9 @@ export function PantallaDeTurnoOfrecido({ oferta, estado, participantId, publica
     }, 500);
     return () => clearInterval(intervalo);
   }, [oferta.expiraEn]);
+
+  const esVerbal = oferta.modo === 'verbal';
+  const penalidad = calcularPenalidadPorRechazoDeTurno(resolverParametrosDePuntaje(programa));
 
   function aceptar() {
     publicar(EVENTOS.TURNO_ACEPTADO, { turnId: oferta.turnId, participantId });
@@ -24,17 +34,27 @@ export function PantallaDeTurnoOfrecido({ oferta, estado, participantId, publica
 
   return (
     <section className="tarjeta-de-turno-ofrecido">
-      <p className="texto-de-ayuda">🎙️ ¡Es tu turno de hablar!</p>
+      <p className="texto-de-ayuda">🎙️ Es tu turno de hablar</p>
       <p className="cuenta-regresiva">{segundosRestantes}s</p>
-      <p className="texto-de-ayuda">Acepta para escribir un argumento nuevo, o rechaza si todavía no estás listo.</p>
+      {esVerbal ? (
+        <p className="texto-de-ayuda">
+          No queda ningún argumento escrito por exponer y todavía no has tomado la palabra. Puedes intervenir
+          hablando, sin argumento escrito: vale menos puntos y un co-moderador califica lo que digas.
+        </p>
+      ) : (
+        <p className="texto-de-ayuda">
+          Acepta para defender en voz alta el argumento que ya preparaste. No tienes que escribir nada ahora.
+        </p>
+      )}
       <div className="botonera-de-turno">
         <button type="button" onClick={aceptar}>
-          Aceptar y hablar
+          {esVerbal ? 'Aceptar e intervenir' : 'Aceptar y defender mi argumento'}
         </button>
         <button type="button" className="boton-cambiar-programa" onClick={rechazar}>
-          Rechazar
+          Rechazar ({penalidad} pts)
         </button>
       </div>
+      <p className="texto-de-ayuda">Si rechazas, pierdes {Math.abs(penalidad)} puntos.</p>
     </section>
   );
 }
