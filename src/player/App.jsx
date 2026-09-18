@@ -153,11 +153,14 @@ export default function App() {
 }
 
 function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSalir }) {
-  // Sin datosDePresencia: el participante lee el Programa y redacta su argumento sin aparecer
-  // en el roster. Entra a presencia recién al confirmar el ingreso (ver reglasDeIngreso.js).
-  const { estado, presencia, publicar, cargando, entrarAPresencia } = useEstadoDeSesion({
+  // Entra a presencia apenas se conecta — el requisito de ingreso con argumento (docs/09) lo
+  // marca `ingresoConfirmado` en el reducer, no la presencia de Ably. Entrar antes de confirmar
+  // es lo que le permite al host ver, en la sala de configuración previa, quién está conectado
+  // pero todavía escribiendo (ver ListaDeParticipantes.jsx y PanelDeAvisos.jsx).
+  const { estado, presencia, publicar, cargando } = useEstadoDeSesion({
     clientId: participantId,
     sessionId: codigoDeSala,
+    datosDePresencia: { nombre, emoji },
   });
 
   if (!cargando && !estado.programa) {
@@ -221,7 +224,6 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
           nombre={nombre}
           emoji={emoji}
           publicar={publicar}
-          onConfirmado={() => entrarAPresencia({ nombre, emoji })}
         />
       </main>
     );
@@ -340,8 +342,14 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
       <GrafoDeArgumentos estado={estado} programa={programa} presencia={presencia} />
 
       <p className="texto-de-ayuda">
-        Conectado — {presencia.filter((presente) => presente.conectado !== false).length} participante(s) en la
-        sala.
+        Conectado —{' '}
+        {
+          presencia.filter(
+            (presente) =>
+              presente.conectado !== false && estado.participantes[presente.participantId]?.ingresoConfirmado
+          ).length
+        }{' '}
+        participante(s) en el debate.
       </p>
         </div>
       </div>

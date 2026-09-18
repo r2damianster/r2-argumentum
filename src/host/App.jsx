@@ -103,6 +103,22 @@ export default function App() {
   );
 }
 
+// "Cerrar sesión" desconecta al host del canal — con el debate en curso eso apaga la
+// proyección y, si pasan más de ~2 minutos antes de volver a entrar, el historial de Ably ya
+// expiró y la vista en vivo no se puede reconstruir (queda como sala de configuración vacía).
+// Antes no avisaba nada, mismo botón con el mismo riesgo silencioso estuviera el debate
+// arrancado o no. Bug real reportado en prueba en vivo.
+function cerrarSesionConAviso(sesionIniciada, onCerrarSesion) {
+  if (
+    !sesionIniciada ||
+    window.confirm(
+      'El debate sigue en curso. Si tardas en volver a entrar, la vista en vivo puede perderse. ¿Cerrar sesión igual?'
+    )
+  ) {
+    onCerrarSesion();
+  }
+}
+
 function generarCodigoDeSala() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
@@ -331,7 +347,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
               📽️ Proyectar
             </button>
           )}
-          <button type="button" className="boton-cerrar-sesion" onClick={onCerrarSesion}>
+          <button type="button" className="boton-cerrar-sesion" onClick={() => cerrarSesionConAviso(sesionIniciada, onCerrarSesion)}>
             Cerrar sesión
           </button>
         </div>

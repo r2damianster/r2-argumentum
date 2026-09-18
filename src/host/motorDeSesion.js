@@ -133,6 +133,18 @@ export function crearMotorDeSesion({ programa }) {
     return Boolean(contexto.estado?.sesion?.cerrada);
   }
 
+  // Mismo criterio que usa el host para mostrar la sala de configuración previa. Antes de que
+  // arranque la primera fase, el perfil de puntaje elegido por el docente todavía puede no
+  // estar publicado (se republica recién al hacer clic en "Iniciar sesión", ver ControlDeFases)
+  // — puntuar un argumento de ingreso antes de eso lo deja fijado con parámetros por defecto
+  // para siempre, aunque el docente después elija otro perfil. Bug real reportado en prueba en
+  // vivo: el argumento de ingreso quedaba en la escala Liviana aunque se hubiera elegido
+  // Estándar, porque se puntuaba en cuanto llegaba, no cuando el perfil ya era definitivo.
+  function sesionIniciada() {
+    const { estado } = contexto;
+    return Boolean(estado?.fase.actual) || (estado?.fase.historial.length ?? 0) > 0;
+  }
+
   function limiteDePosiciones() {
     return parametrosDePuntajeVigentes().valoresBasePosicion.length;
   }
@@ -284,7 +296,7 @@ export function crearMotorDeSesion({ programa }) {
   // todos, para siempre. Bug real reportado en prueba en vivo.
   function procesarArgumentosNuevos() {
     const { estado, publicar } = contexto;
-    if (!estado) {
+    if (!estado || !sesionIniciada()) {
       return;
     }
     const aplicarDelta = crearAcumuladorDePuntaje(estado);
@@ -399,17 +411,20 @@ export function crearMotorDeSesion({ programa }) {
           stanceId,
           viaCoModerador: false,
         });
+        // El puntaje base de este argumento lo acredita procesarArgumentosNuevos, igual que a
+        // cualquier otro (misma fórmula de posición/ronda/vía) — publicarlo también acá lo
+        // puntuaba dos veces, porque ese argumentId no estaba en `argumentosYaPuntuados`.
+        // Bug real reportado en prueba en vivo.
 
-        const puntajeBase = calcularPuntajeDeArgumento(
-          { posicionEnRonda, ronda: bid.ronda, viaCoModerador: false },
-          parametrosDePuntajeVigentes()
-        );
-        publicar(EVENTOS.PUNTAJE_ACTUALIZADO, {
-          participantId: bid.participantId,
-          delta: puntajeBase,
-          categoria: 'argumento',
-          motivo: `Bid de intervención aprobado (${bid.tipoDeBid})`,
-          nuevoTotal: aplicarDelta(bid.participantId, puntajeBase),
+        // El bid ya conoce el objetivo exacto (no hace falta esperar una sugerencia de Groq
+        // ni que el participante lo conecte a mano): se publica el link de una vez. Bug real
+        // reportado en prueba en vivo — el argumento quedaba suelto, sin arista, en el grafo.
+        publicar(EVENTOS.CONEXION_CREADA, {
+          linkId: generarId('conexion'),
+          sourceArgumentId: argumentId,
+          targetArgumentId: bid.argumentoObjetivoId,
+          tipoDeRelacion: tipoDeclarado,
+          porParticipanteId: bid.participantId,
         });
       }
 
@@ -609,12 +624,8 @@ export function crearMotorDeSesion({ programa }) {
     gestionarFaseDeAperturaSiHaceFalta();
   }
 
-  // posturasParaAsignar: opcional, subconjunto de programa.posturas elegido por el
-  // moderador para esta sesión (ver selector de posturas en ControlDeFases). Si no se
-  // pasa, se usan todas las del Programa — mantiene el comportamiento anterior.
-  function iniciarSesion(posturasParaAsignar) {
-    const { estado, presencia, publicar } = contexto;
-    const posturas = posturasParaAsignar && posturasParaAsignar.length > 0 ? posturasParaAsignar : programa.posturas;
+  function iniciarSesion() {
+    const { presencia, publicar } = contexto;
     const participantesElegibles = presencia
       .filter((presente) => presente.conectado !== false)
       .map((presente) => presente.participantId);
@@ -640,17 +651,13 @@ export function crearMotorDeSesion({ programa }) {
       totalParticipantes: participantesElegibles.length,
     });
 
-    if (programa.asignacionPostura !== 'libre') {
-      const argumentadores = participantesElegibles.filter((id) => !coModeradoresSorteados.includes(id));
-      argumentadores.forEach((participantId, indice) => {
-        const stance = posturas[indice % posturas.length];
-        publicar(EVENTOS.POSTURA_ASIGNADA, {
-          participantId,
-          stanceId: stance.id,
-          metodo: programa.asignacionPostura,
-        });
-      });
-    }
+    // La postura ya se asignó al confirmar el ingreso (ver IngresoConArgumento.jsx): con
+    // asignación aleatoria, `elegirPosturaMenosRepresentada` la fijó de forma balanceada antes
+    // de escribir el argumento; con "libre", el estudiante la eligió. Reasignarla acá por
+    // round-robin (como se hacía antes de que el ingreso incluyera la postura) le pisaba la
+    // postura ya elegida sin avisar — el argumento de ingreso quedaba con un stanceId y el
+    // participante con otro distinto, y el ranking/informe los mostraban en columnas
+    // contradictorias. Bug real reportado en prueba en vivo.
 
     indiceDeFase = 0;
     const primeraFase = programa.fases[indiceDeFase];

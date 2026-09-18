@@ -16,7 +16,16 @@ export const DECISIONES = {
 // mejor que el clasificador qué está defendiendo.
 const CONFIANZA_MINIMA_PARA_CONTRADECIR = 0.6;
 
-export function decidirValidacion({ resultadoDeGroq, stanceElegido, permitirPosturasNuevas = false, posturas = [] }) {
+export function decidirValidacion({
+  resultadoDeGroq,
+  stanceElegido,
+  permitirPosturasNuevas = false,
+  posturas = [],
+  // Con asignación aleatoria nadie "eligió" su postura, y no tiene sentido ofrecer cambiarse
+  // a la que Groq detectó — el ejercicio es justo defender la que le tocó. Sin esto, el
+  // mensaje ofrecía un botón de cambio que en ese modo no existe en pantalla.
+  permiteCambioDePostura = true,
+}) {
   if (!resultadoDeGroq.aprobado) {
     return {
       decision: DECISIONES.FORMA_INVALIDA,
@@ -53,8 +62,12 @@ export function decidirValidacion({ resultadoDeGroq, stanceElegido, permitirPost
       resultadoDeGroq.posturaDetectada;
     return {
       decision: DECISIONES.POSTURA_DISTINTA,
-      mensaje: `Tu argumento parece defender "${etiquetaDetectada}", que no es la postura que elegiste.`,
-      sugerencia: 'Puedes cambiar tu postura a esa, o reescribir el argumento para defender la que elegiste.',
+      mensaje: permiteCambioDePostura
+        ? `Tu argumento parece defender "${etiquetaDetectada}", que no es la postura que elegiste.`
+        : `Tu argumento parece defender "${etiquetaDetectada}", pero te toca defender otra postura.`,
+      sugerencia: permiteCambioDePostura
+        ? 'Puedes cambiar tu postura a esa, o reescribir el argumento para defender la que elegiste.'
+        : 'Reescribe tu argumento para defender la postura que te tocó.',
       posturaDetectada: resultadoDeGroq.posturaDetectada,
     };
   }

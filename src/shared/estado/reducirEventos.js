@@ -344,20 +344,30 @@ export function reducirEventos(estado, evento) {
     }
 
     case EVENTOS.ARGUMENTO_PUBLICADO: {
+      // Un bid aprobado publica su argumento reusando el turnId del turno PRINCIPAL en curso
+      // (así queda registrado durante qué turno pasó — ver procesarBidsResueltos en
+      // motorDeSesion.js), pero lo publica OTRA persona, no quien tiene la palabra. Comparar
+      // solo el turnId cerraba el turno de quien seguía hablando apenas se aprobaba el bid de
+      // otro participante — su argumento preparado quedaba huérfano y se le volvía a ofrecer
+      // el mismo turno. Bug real reportado en prueba en vivo.
+      const esQuienTieneLaPalabra = estado.turnos.turnoEnCurso?.participantId === data.participantId;
       const siguiente = conParticipanteActualizado(estado, data.participantId, (participante) => ({
         ...participante,
         posicionesCompletadas: Math.max(participante.posicionesCompletadas, data.posicionEnRonda),
         intervenciones: participante.intervenciones + 1,
         // El argumento que esperaba turno ya se expuso: para volver a la ruleta hay que
-        // preparar uno nuevo.
-        argumentoListo: false,
+        // preparar uno nuevo. Si esto vino de un bid aprobado de otro participante, no toca
+        // el "listo" de nadie más.
+        argumentoListo: esQuienTieneLaPalabra ? false : participante.argumentoListo,
       }));
       return {
         ...siguiente,
         turnos: {
           ...siguiente.turnos,
           turnoEnCurso:
-            siguiente.turnos.turnoEnCurso?.turnId === data.turnId ? null : siguiente.turnos.turnoEnCurso,
+            esQuienTieneLaPalabra && siguiente.turnos.turnoEnCurso?.turnId === data.turnId
+              ? null
+              : siguiente.turnos.turnoEnCurso,
         },
         argumentos: {
           ...siguiente.argumentos,

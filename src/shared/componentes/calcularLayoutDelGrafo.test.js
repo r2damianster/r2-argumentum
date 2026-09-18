@@ -10,10 +10,14 @@ describe('layout del mapa argumental', () => {
     expect(calcularLayoutDelGrafo([], [])).toEqual([]);
   });
 
-  it('coloca a quien responde por debajo del argumento al que responde', () => {
+  // En link.created (ver PanelDeConexionLibre.jsx) `source` es "tu argumento" — el más nuevo,
+  // el que reacciona — y `target` es "se conecta con" — el argumento existente al que
+  // responde. Bug real: dagre ubicaba el `source` de cada arista arriba, así que la respuesta
+  // quedaba sobre el argumento original en vez de debajo.
+  it('coloca la respuesta (source) por debajo del argumento al que responde (target)', () => {
     const ubicados = calcularLayoutDelGrafo(
       [nodo('original'), nodo('respuesta')],
-      [{ source: 'original', target: 'respuesta' }]
+      [{ source: 'respuesta', target: 'original' }]
     );
 
     const original = ubicados.find((unNodo) => unNodo.id === 'original');
@@ -22,10 +26,27 @@ describe('layout del mapa argumental', () => {
     expect(respuesta.position.y).toBeGreaterThan(original.position.y);
   });
 
+  it('encadena varias respuestas en orden: cada una debajo de la anterior', () => {
+    // Ana → arg1. Luis responde con arg2 (source:arg2, target:arg1). Ana responde a Luis con
+    // arg3 (source:arg3, target:arg2). arg1 debe quedar arriba de todo, arg3 abajo de todo.
+    const ubicados = calcularLayoutDelGrafo(
+      [nodo('arg1'), nodo('arg2'), nodo('arg3')],
+      [
+        { source: 'arg2', target: 'arg1' },
+        { source: 'arg3', target: 'arg2' },
+      ]
+    );
+
+    const [arg1, arg2, arg3] = ['arg1', 'arg2', 'arg3'].map((id) => ubicados.find((n) => n.id === id));
+
+    expect(arg1.position.y).toBeLessThan(arg2.position.y);
+    expect(arg2.position.y).toBeLessThan(arg3.position.y);
+  });
+
   it('separa los niveles lo suficiente para que dos nodos nunca se superpongan', () => {
     const ubicados = calcularLayoutDelGrafo(
       [nodo('a'), nodo('b')],
-      [{ source: 'a', target: 'b' }]
+      [{ source: 'b', target: 'a' }]
     );
 
     const [a, b] = ['a', 'b'].map((id) => ubicados.find((unNodo) => unNodo.id === id));

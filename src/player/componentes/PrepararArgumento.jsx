@@ -67,6 +67,7 @@ export function PrepararArgumento({ estado, programa, participantId, publicar })
       stanceElegido: stanceId,
       permitirPosturasNuevas: Boolean(programa.permitirPosturasNuevas),
       posturas: programa.posturas,
+      permiteCambioDePostura: programa.asignacionPostura === 'libre',
     });
     setResultado(decision);
 

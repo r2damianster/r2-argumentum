@@ -20,15 +20,61 @@ describe('argumento listo — entrada a la ruleta', () => {
   it('exponer el argumento consume el "listo": hay que preparar otro para volver a la ruleta', () => {
     const estado = reducirTodos([
       evento(EVENTOS.ARGUMENTO_LISTO, { participantId: 'ana' }),
+      evento(EVENTOS.TURNO_OFRECIDO, { turnId: 't1', candidateId: 'ana', expiraEn: Date.now() + 1000 }),
+      evento(EVENTOS.TURNO_ACEPTADO, { turnId: 't1', participantId: 'ana' }),
       evento(EVENTOS.ARGUMENTO_PUBLICADO, {
         argumentId: 'a1',
         participantId: 'ana',
+        turnId: 't1',
         posicionEnRonda: 1,
         ronda: 1,
       }),
     ]);
 
     expect(estado.participantes.ana.argumentoListo).toBe(false);
+  });
+
+  it('un argumento publicado sin turno en curso (ej. ingreso) también consume el "listo" propio', () => {
+    // El ingreso nunca pasa por turno.ofrecido/aceptado, pero tampoco depende de este caso:
+    // si no hay turnoEnCurso, no hay nadie a quien "cortarle" el turno, así que el listo de
+    // quien publica se actualiza igual porque nunca estaba en true en primer lugar.
+    const estado = reducirTodos([
+      evento(EVENTOS.ARGUMENTO_PUBLICADO, {
+        argumentId: 'ingreso-1',
+        participantId: 'marta',
+        turnId: 'ingreso-marta',
+        posicionEnRonda: 1,
+        ronda: 1,
+      }),
+    ]);
+
+    expect(estado.participantes.marta.argumentoListo).toBe(false);
+  });
+
+  it('un bid aprobado de otro participante NO corta el turno de quien tiene la palabra ni le toca su "listo"', () => {
+    // Bug real reportado en prueba en vivo: al aprobar el bid de Luis, el reducer cortaba el
+    // turno de Ana (que seguía exponiendo) porque el argumento del bid reusa el turnId del
+    // turno principal — y de paso apagaba el "listo" de Luis para su propio argumento
+    // preparado, que quedaba huérfano.
+    const estado = reducirTodos([
+      evento(EVENTOS.ARGUMENTO_LISTO, { participantId: 'ana' }),
+      evento(EVENTOS.TURNO_OFRECIDO, { turnId: 't1', candidateId: 'ana', expiraEn: Date.now() + 1000 }),
+      evento(EVENTOS.TURNO_ACEPTADO, { turnId: 't1', participantId: 'ana' }),
+      evento(EVENTOS.ARGUMENTO_LISTO, { participantId: 'luis' }),
+      // El bid de Luis se aprueba mientras Ana sigue con la palabra — motorDeSesion publica
+      // esto con turnId: bid.turnoPrincipalId, que es el mismo t1 de Ana.
+      evento(EVENTOS.ARGUMENTO_PUBLICADO, {
+        argumentId: 'bid-arg-1',
+        participantId: 'luis',
+        turnId: 't1',
+        posicionEnRonda: 1,
+        ronda: 1,
+        tipoDeclarado: 'contraargumento',
+      }),
+    ]);
+
+    expect(estado.turnos.turnoEnCurso).toEqual({ turnId: 't1', participantId: 'ana', modo: 'argumento' });
+    expect(estado.participantes.luis.argumentoListo).toBe(true);
   });
 });
 

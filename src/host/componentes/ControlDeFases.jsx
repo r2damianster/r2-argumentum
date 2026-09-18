@@ -46,7 +46,7 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
       programa: { ...programa, posturas: posturasElegidas, perfilDePuntaje, permitirPosturasNuevas },
       identificadorDeSesion,
     });
-    motor.iniciarSesion(posturasElegidas);
+    motor.iniciarSesion();
   }
 
   if (!sesionIniciada) {

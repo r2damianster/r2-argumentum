@@ -76,6 +76,22 @@ describe('postura distinta a la elegida', () => {
     expect(resultado.mensaje).toContain('Más mercado / libertad individual');
   });
 
+  it('con asignación aleatoria no ofrece cambiar de postura, solo reescribir', () => {
+    // Bug real reportado en prueba en vivo: el mensaje decía "puedes cambiar tu postura a
+    // esa" pero la pantalla de ingreso con asignación aleatoria no tiene ningún control para
+    // hacerlo — ahí no se "eligió" nada, se asignó.
+    const resultado = decidirValidacion({
+      resultadoDeGroq: respuestaDeGroq({ posturaDetectada: 'derecha', confianza: 0.95 }),
+      stanceElegido: 'izquierda',
+      posturas: POSTURAS,
+      permiteCambioDePostura: false,
+    });
+
+    expect(resultado.decision).toBe(DECISIONES.POSTURA_DISTINTA);
+    expect(resultado.mensaje).not.toContain('elegiste');
+    expect(resultado.sugerencia).not.toContain('cambiar');
+  });
+
   it('NO contradice al estudiante si la clasificación viene con poca confianza', () => {
     const resultado = decidirValidacion({
       resultadoDeGroq: respuestaDeGroq({ posturaDetectada: 'derecha', confianza: 0.3 }),

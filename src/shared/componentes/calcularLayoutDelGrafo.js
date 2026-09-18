@@ -37,10 +37,18 @@ export function calcularLayoutDelGrafo(nodos, aristas) {
 
   // Solo las aristas entre nodos existentes: una sugerencia de Groq puede apuntar a un
   // argumento que todavía no llegó por el canal, y dagre falla si el nodo no existe.
+  //
+  // OJO con la dirección: en `link.created` (ver PanelDeConexionLibre.jsx) `source` es "tu
+  // argumento" — el más nuevo, el que reacciona — y `target` es "se conecta con" — el
+  // argumento ya existente al que responde. Esa es la dirección correcta para la FLECHA
+  // (apunta de la reacción hacia lo que contesta), pero para el LAYOUT es al revés: querés
+  // que lo más viejo quede arriba y la respuesta abajo. Bug real reportado en prueba en vivo:
+  // sin este swap, dagre ponía la respuesta más nueva arriba y el argumento original al
+  // final, porque dagre ubica el origen de cada arista por encima de su destino en TB.
   const idsDeNodos = new Set(nodos.map((nodo) => nodo.id));
   for (const arista of aristas) {
     if (idsDeNodos.has(arista.source) && idsDeNodos.has(arista.target)) {
-      grafo.setEdge(arista.source, arista.target);
+      grafo.setEdge(arista.target, arista.source);
     }
   }
 

@@ -12,7 +12,7 @@ function generarId(prefijo) {
 //
 // Groq se consulta por HTTP directo, sin publicar nada al canal, así que corregir el borrador
 // las veces que haga falta no gasta cuota de Ably. Recién al confirmar se publican los eventos.
-export function IngresoConArgumento({ estado, programa, participantId, nombre, emoji, publicar, onConfirmado }) {
+export function IngresoConArgumento({ estado, programa, participantId, nombre, emoji, publicar }) {
   const posturas = programa.posturas;
   const asignacionEsLibre = programa.asignacionPostura === 'libre';
 
@@ -57,6 +57,7 @@ export function IngresoConArgumento({ estado, programa, participantId, nombre, e
         stanceElegido,
         permitirPosturasNuevas: Boolean(programa.permitirPosturasNuevas),
         posturas,
+        permiteCambioDePostura: asignacionEsLibre,
       })
     );
     setRevisando(false);
@@ -101,8 +102,9 @@ export function IngresoConArgumento({ estado, programa, participantId, nombre, e
       viaCoModerador: false,
     });
     publicar(EVENTOS.INGRESO_CONFIRMADO, { participantId, stanceId: stanceElegido, argumentId });
-
-    await onConfirmado();
+    // No hace falta esperar nada más: el participante ya está en presencia desde que se
+    // conectó (ver useEstadoDeSesion.js). En cuanto este evento vuelva por el canal, App.jsx
+    // deja de mostrar esta pantalla porque `ingresoConfirmado` pasa a true.
   }
 
   function proponerPosturaNueva() {

@@ -45,7 +45,6 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
   const [presencia, setPresencia] = useState([]);
   const [cargando, setCargando] = useState(true);
   const canalRef = useRef(null);
-  const yaEntroAPresencia = useRef(false);
 
   useEffect(() => {
     let cancelado = false;
@@ -141,11 +140,15 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
       }
       canal.presence.subscribe(manejarPresencia);
 
-      // `datosDePresencia` en null NO significa "solo observo": el host observa sin entrar
-      // nunca, pero el participante ahora entra recién cuando confirma su ingreso con un
-      // argumento aprobado (ver reglasDeIngreso.js), llamando a entrarAPresencia().
+      // `datosDePresencia` en null significa "solo observo" (el host: nunca entra a presence).
+      // El participante entra apenas se conecta — el requisito de ingreso con argumento (ver
+      // reglasDeIngreso.js) NO depende de estar o no en presence, depende de `ingresoConfirmado`
+      // en el reducer. Entrar antes de confirmar es justamente lo que le permite al host ver
+      // en "Todavía escribiendo su argumento de ingreso" y en el panel de avisos quién está en
+      // la sala pero no terminó — con presence diferida, esas personas eran invisibles del
+      // todo: nunca aparecían en `presencia`, así que ninguna lista podía mostrarlas. Bug real
+      // reportado en prueba en vivo.
       if (datosDePresencia) {
-        yaEntroAPresencia.current = true;
         await canal.presence.enter(datosDePresencia);
       }
 
@@ -162,21 +165,11 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
       cancelado = true;
       canal.presence.unsubscribe(manejarPresencia);
       canal.unsubscribe(manejarMensajeEnVivo);
-      if (yaEntroAPresencia.current) {
+      if (datosDePresencia) {
         canal.presence.leave().catch(() => {});
       }
     };
   }, [clientId, sessionId]);
-
-  // El participante aparece en el roster recién al llamar esto — antes puede leer el Programa,
-  // elegir postura y redactar su argumento sin que nadie lo vea todavía.
-  async function entrarAPresencia(datos) {
-    if (!canalRef.current || yaEntroAPresencia.current) {
-      return;
-    }
-    yaEntroAPresencia.current = true;
-    await canalRef.current.presence.enter(datos);
-  }
 
   function publicar(nombreDeEvento, payload) {
     if (!canalRef.current) {
@@ -185,5 +178,5 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
     return canalRef.current.publish(nombreDeEvento, { timestamp: Date.now(), ...payload });
   }
 
-  return { estado, eventos, presencia, publicar, cargando, entrarAPresencia };
+  return { estado, eventos, presencia, publicar, cargando };
 }
