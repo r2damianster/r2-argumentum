@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ReactFlow, Background, MarkerType } from '@xyflow/react';
+import { ReactFlow, Background, Controls, MarkerType } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { COLORES_SEMANTICOS_DEL_GRAFO } from '../estilos/colores.js';
 import { TIPOS_DE_RELACION } from '../eventos/nombresDeEventos.js';
@@ -90,8 +90,22 @@ export function GrafoDeArgumentos({ estado, programa, presencia }) {
     <section className="tarjeta-de-grafo">
       <p className="texto-de-ayuda">Mapa argumental</p>
       <div className="contenedor-de-grafo">
-        <ReactFlow nodes={nodos} edges={aristas} fitView proOptions={{ hideAttribution: true }}>
+        {/* zoomOnScroll/panOnScroll en false: sin esto, pasar el mouse por el grafo para
+            bajar la página lo zoomeaba sin querer (bug reportado: "el zoom es difícil de
+            manejar"). El zoom deliberado ahora es con los botones de <Controls/> o pellizco
+            táctil (zoomOnPinch queda en su default true). */}
+        <ReactFlow
+          nodes={nodos}
+          edges={aristas}
+          fitView
+          minZoom={0.3}
+          maxZoom={1.5}
+          zoomOnScroll={false}
+          panOnScroll={false}
+          proOptions={{ hideAttribution: true }}
+        >
           <Background />
+          <Controls showInteractive={false} />
         </ReactFlow>
       </div>
     </section>
