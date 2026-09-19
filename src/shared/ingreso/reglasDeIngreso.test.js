@@ -63,7 +63,7 @@ describe('asignación balanceada de posturas', () => {
   });
 
   it('con la sala vacía cualquiera de las dos es válida', () => {
-    const elegida = elegirPosturaMenosRepresentada(estadoInicial(), POSTURAS, () => 0);
+    const elegida = elegirPosturaMenosRepresentada(estadoInicial(), POSTURAS, { participantId: 'ana' });
 
     expect(POSTURAS.map((postura) => postura.id)).toContain(elegida);
   });
@@ -76,6 +76,23 @@ describe('asignación balanceada de posturas', () => {
     estado = reducirEventos(estado, evento(EVENTOS.POSTURA_ASIGNADA, { participantId: 'luis', stanceId: 'derecha' }));
 
     expect(elegirPosturaMenosRepresentada(estado, POSTURAS)).toBe('derecha');
+  });
+
+  it('reparte los bandos aunque todos entren con la sala vacía', () => {
+    // Ocho personas abriendo la pantalla a la vez ven el mismo estado inicial: el reparto no
+    // puede depender del azar de cada cliente o quedan bandos de 5-2-1 (bug real en prueba).
+    const quienes = ['ana', 'luis', 'marta', 'diego', 'sofia', 'carlos', 'valeria', 'jorge'];
+    const asignadas = quienes.map((quien) =>
+      elegirPosturaMenosRepresentada(estadoInicial(), POSTURAS, {
+        participantId: quien,
+        participantesEnLaSala: quienes,
+      })
+    );
+    const porPostura = POSTURAS.map(
+      (postura) => asignadas.filter((asignada) => asignada === postura.id).length
+    );
+
+    expect(Math.max(...porPostura) - Math.min(...porPostura)).toBeLessThanOrEqual(1);
   });
 
   it('devuelve null si el Programa no tiene posturas activas', () => {

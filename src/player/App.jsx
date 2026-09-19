@@ -220,6 +220,7 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
         <IngresoConArgumento
           estado={estado}
           programa={programa}
+          presencia={presencia}
           participantId={participantId}
           nombre={nombre}
           emoji={emoji}

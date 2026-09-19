@@ -361,7 +361,12 @@ export function reducirEventos(estado, evento) {
       const siguiente = conParticipanteActualizado(estado, data.participantId, (participante) => ({
         ...participante,
         posicionesCompletadas: Math.max(participante.posicionesCompletadas, data.posicionEnRonda),
-        intervenciones: participante.intervenciones + 1,
+        // El argumento de ingreso NO cuenta como haber tomado la palabra: se escribe antes de
+        // que arranque el debate y nadie lo escuchó (ver IngresoConArgumento.jsx). Contarlo
+        // dejaba a todo el mundo con intervenciones >= 1 apenas entraba, así que
+        // participantesSinIntervenir quedaba vacío y el turno hablado de respaldo no se
+        // ofrecía nunca. Bug real reportado en prueba en vivo con 8 participantes.
+        intervenciones: participante.intervenciones + (data.esArgumentoDeIngreso ? 0 : 1),
         // El argumento que esperaba turno ya se expuso: para volver a la ruleta hay que
         // preparar uno nuevo. Si esto vino de un bid aprobado de otro participante, no toca
         // el "listo" de nadie más.

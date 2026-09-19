@@ -114,7 +114,14 @@ argument.ready  { participantId, listoEn }
 
 Solo quien publicó esto entra a la ruleta. Al exponer el argumento, el "listo" se consume: para volver a la ruleta hay que preparar otro.
 
-Cuando **no queda ningún argumento preparado por exponer** y todavía hay alguien que no tomó la palabra ni una vez, se le ofrece un turno hablado (`modo: "verbal"`):
+Cuando **no queda ningún argumento preparado por exponer** y todavía hay alguien que no tomó la palabra ni una vez, se le ofrece un turno hablado (`modo: "verbal"`).
+
+Dos precisiones que el código respeta y conviene no perder de vista:
+
+- **El argumento de ingreso no cuenta como haber tomado la palabra.** Se escribe antes de que empiece el debate y nadie lo escuchó: viaja con `esArgumentoDeIngreso: true` y el reducer no lo suma a `intervenciones`. Sin esa marca, todo el mundo entraba al debate con una intervención ya contada y el turno hablado no se ofrecía nunca.
+- **Hay un margen de un minuto desde que arranca la fase** antes del primer turno hablado. Recién empezada la ronda nadie alcanzó a preparar nada, y ofrecer la palabra en ese instante sería empujar a hablar sin argumento en el primer segundo.
+
+
 
 ```
 intervencion_verbal.registrada  { intervencionId, participantId, turnId, resumen }

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ReactFlow, Background, Controls, MiniMap, MarkerType } from '@xyflow/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ReactFlow, Background, Controls, MiniMap, MarkerType, Position, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { COLORES_SEMANTICOS_DEL_GRAFO } from '../estilos/colores.js';
 import { TIPOS_DE_RELACION } from '../eventos/nombresDeEventos.js';
@@ -20,6 +20,17 @@ const ETIQUETA_DE_TIPO = {
   pregunta: 'Pregunta',
   concesion: 'Concesión',
 };
+
+// React Flow calcula por dónde entra y sale cada arista midiendo los conectores en el DOM.
+// Si el grafo se monta dentro de un contenedor sin caja (pestaña oculta, iframe sin alto,
+// sección todavía plegada), esa medición devuelve 0 y la librería descarta TODAS las aristas
+// aunque los nodos sigan dibujados y bien ubicados — exactamente el síntoma reportado en
+// prueba en vivo: nodos en su lugar, cero aristas. Declarar los conectores a mano hace que la
+// geometría no dependa de la medición: los nodos tienen tamaño fijo y conocido.
+const CONECTORES_DEL_NODO = [
+  { id: null, type: 'target', position: Position.Top, x: ANCHO_DE_NODO / 2, y: 0 },
+  { id: null, type: 'source', position: Position.Bottom, x: ANCHO_DE_NODO / 2, y: ALTO_DE_NODO },
+];
 
 function colorDelArgumento(argumento) {
   const tipo = argumento.validacion?.tipoFinal || argumento.tipoDeclarado;
@@ -61,6 +72,7 @@ export function GrafoDeArgumentos({ estado, programa, presencia }) {
         position: { x: 0, y: 0 },
         width: ANCHO_DE_NODO,
         height: ALTO_DE_NODO,
+        handles: CONECTORES_DEL_NODO,
         data: {
           label: (
             <div>
@@ -101,7 +113,13 @@ export function GrafoDeArgumentos({ estado, programa, presencia }) {
         markerEnd: { type: MarkerType.ArrowClosed },
       }));
 
-    const todasLasAristas = [...aristasDeConexiones, ...aristasDeSugerencias];
+    // Una sugerencia de Groq puede nombrar un argumento que no existe (inventa ids), y una
+    // conexión puede apuntar a un argumento que todavía no llegó por el canal. Esas aristas
+    // colgadas no se pueden dibujar: se descartan acá, igual que en el layout.
+    const idsDeNodos = new Set(nodosSinUbicar.map((nodo) => nodo.id));
+    const todasLasAristas = [...aristasDeConexiones, ...aristasDeSugerencias].filter(
+      (arista) => idsDeNodos.has(arista.source) && idsDeNodos.has(arista.target)
+    );
     return { nodos: calcularLayoutDelGrafo(nodosSinUbicar, todasLasAristas), aristas: todasLasAristas };
   }, [estado.argumentos, estado.conexiones, estado.sugerencias, presencia]);
 
@@ -129,10 +147,28 @@ export function GrafoDeArgumentos({ estado, programa, presencia }) {
           <Background />
           <Controls showInteractive={false} />
           <MiniMap pannable zoomable />
+          <ReencuadrarAlCrecerElMapa cantidadDeNodos={nodos.length} />
         </ReactFlow>
       </div>
     </section>
   );
+}
+
+// `fitView` del prop solo encuadra al montar. Cuando se publica un argumento nuevo con el
+// mapa ya abierto, el nodo aparecía cortado contra el borde (reportado en prueba en vivo).
+// Este ayudante vuelve a encuadrar cada vez que el mapa crece.
+function ReencuadrarAlCrecerElMapa({ cantidadDeNodos }) {
+  const { fitView } = useReactFlow();
+  const cantidadPrevia = useRef(cantidadDeNodos);
+
+  useEffect(() => {
+    if (cantidadDeNodos > cantidadPrevia.current) {
+      fitView({ duration: 300, padding: 0.15 });
+    }
+    cantidadPrevia.current = cantidadDeNodos;
+  }, [cantidadDeNodos, fitView]);
+
+  return null;
 }
 
 function LeyendaDeTipos() {

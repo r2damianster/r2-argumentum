@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
 import { decidirValidacion, DECISIONES } from '../../shared/argumentos/decidirValidacion.js';
 import { elegirPosturaMenosRepresentada } from '../../shared/ingreso/reglasDeIngreso.js';
@@ -12,20 +12,42 @@ function generarId(prefijo) {
 //
 // Groq se consulta por HTTP directo, sin publicar nada al canal, así que corregir el borrador
 // las veces que haga falta no gasta cuota de Ably. Recién al confirmar se publican los eventos.
-export function IngresoConArgumento({ estado, programa, participantId, nombre, emoji, publicar }) {
+export function IngresoConArgumento({ estado, programa, presencia, participantId, nombre, emoji, publicar }) {
   const posturas = programa.posturas;
   const asignacionEsLibre = programa.asignacionPostura === 'libre';
+  // Quiénes están en la sala ahora mismo: con eso el reparto de posturas se hace por turnos
+  // entre los presentes en vez de sortear cada cliente por su cuenta (ver reglasDeIngreso).
+  const participantesEnLaSala = (presencia ?? [])
+    .filter((presente) => presente.conectado !== false)
+    .map((presente) => presente.participantId);
 
   // Con asignación aleatoria el Programa quiere que defiendas una postura que no elegiste: se
   // resuelve acá, balanceando bandos contra quienes ya confirmaron su ingreso.
   const [stanceElegido, setStanceElegido] = useState(() =>
-    asignacionEsLibre ? '' : elegirPosturaMenosRepresentada(estado, posturas)
+    asignacionEsLibre ? '' : elegirPosturaMenosRepresentada(estado, posturas, { participantId, participantesEnLaSala })
   );
   const [texto, setTexto] = useState('');
   const [revisando, setRevisando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [ultimaRespuestaDeGroq, setUltimaRespuestaDeGroq] = useState(null);
+
+  // Mientras no hayas escrito nada, la postura asignada se recalcula con la sala al día: los
+  // primeros en abrir la pantalla la veían vacía y todos sorteaban contra el mismo conteo en
+  // cero. En cuanto empiezas a escribir queda fija, para no cambiarte el pie a mitad de frase.
+  useEffect(() => {
+    if (asignacionEsLibre || texto.trim() !== '') {
+      return;
+    }
+    const posturaAlDia = elegirPosturaMenosRepresentada(estado, posturas, {
+      participantId,
+      participantesEnLaSala,
+    });
+    if (posturaAlDia && posturaAlDia !== stanceElegido) {
+      setStanceElegido(posturaAlDia);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asignacionEsLibre, texto, estado.participantes, posturas, participantesEnLaSala.join(',')]);
 
   const posturaElegida = posturas.find((postura) => postura.id === stanceElegido);
   const estaAprobado = resultado?.decision === DECISIONES.APROBADO;
@@ -100,6 +122,11 @@ export function IngresoConArgumento({ estado, programa, participantId, nombre, e
       texto,
       stanceId: stanceElegido,
       viaCoModerador: false,
+      // El argumento de ingreso es el boleto de entrada, no una intervención en el debate: se
+      // escribe antes de que empiece y nadie lo escuchó. Sin esta marca el reducer lo contaba
+      // como "ya tomó la palabra" y el turno hablado de respaldo no se le ofrecía nunca a
+      // nadie (ver reducirEventos.js y participantesSinIntervenir en reglasDeIngreso.js).
+      esArgumentoDeIngreso: true,
     });
     publicar(EVENTOS.INGRESO_CONFIRMADO, { participantId, stanceId: stanceElegido, argumentId });
     // No hace falta esperar nada más: el participante ya está en presencia desde que se

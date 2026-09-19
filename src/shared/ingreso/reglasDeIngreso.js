@@ -25,12 +25,29 @@ export function oyentes(estado, presencia) {
     .filter((presente) => !estado.participantes[presente.participantId]?.ingresoConfirmado);
 }
 
+// Reparte los empates por el lugar que ocupa cada persona en la sala, no al azar. Con azar
+// puro, ocho estudiantes que abren la pantalla a la vez ven la sala igual de vacía y sortean
+// cada uno por su cuenta: en prueba en vivo quedaron 5-2-1, y con dos personas ambas en el
+// mismo bando, o sea un debate de un solo lado. Ordenando los ids de quienes están conectados
+// y repartiendo por turnos, cada cliente llega al mismo reparto sin que nadie coordine nada.
+//
+// Un id que todavía no figura en la sala (presencia recién llegando) cae al final del orden.
+function lugarEnLaSala(participantId, participantesEnLaSala) {
+  const ordenados = [...new Set(participantesEnLaSala)].sort();
+  const lugar = ordenados.indexOf(participantId);
+  return lugar >= 0 ? lugar : ordenados.length;
+}
+
 // Con asignacionPostura "aleatoria" el Programa quiere que el estudiante defienda una postura
-// que no eligió (ejercicio clásico de debate). Como ahora el ingreso ocurre antes de que el
-// host inicie la sesión, la asignación se resuelve en el cliente: se elige la postura menos
+// que no eligió (ejercicio clásico de debate). Como el ingreso ocurre antes de que el host
+// inicie la sesión, la asignación se resuelve en el cliente: se elige la postura menos
 // representada entre quienes ya confirmaron, para que los bandos queden parejos sin que nadie
-// coordine nada. Ante empate, se desempata al azar para no dar siempre la primera de la lista.
-export function elegirPosturaMenosRepresentada(estado, posturas, azar = Math.random) {
+// coordine nada. Ante empate manda el lugar de cada quien en la sala.
+export function elegirPosturaMenosRepresentada(
+  estado,
+  posturas,
+  { participantId = '', participantesEnLaSala = [] } = {}
+) {
   if (posturas.length === 0) {
     return null;
   }
@@ -47,7 +64,7 @@ export function elegirPosturaMenosRepresentada(estado, posturas, azar = Math.ran
 
   const minimo = Math.min(...conteoPorPostura.values());
   const candidatas = posturas.filter((postura) => conteoPorPostura.get(postura.id) === minimo);
-  return candidatas[Math.floor(azar() * candidatas.length)].id;
+  return candidatas[lugarEnLaSala(participantId, participantesEnLaSala) % candidatas.length].id;
 }
 
 // El debate no puede cerrarse hasta que cada participante haya intervenido al menos una vez,

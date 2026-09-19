@@ -15,11 +15,24 @@ export function CapaInstruccional({ estado, presencia, participantId, soloLectur
     if (soloLectura) {
       return undefined;
     }
-    function alScrollear() {
-      setColapsada(window.scrollY > 120);
+    // Se escucha en captura sobre el documento y no solo en `window`: según el alto de la
+    // pantalla, lo que scrollea puede ser la ventana o un contenedor interno, y en ese caso el
+    // evento nunca llegaba a `window`. Al volver arriba también se suelta la expansión manual,
+    // que si no quedaba pegada para el resto de la sesión.
+    function alScrollear(evento) {
+      const contenedor = evento.target;
+      const desplazamiento =
+        contenedor && contenedor !== document && contenedor !== document.documentElement && contenedor !== document.body
+          ? contenedor.scrollTop ?? window.scrollY
+          : window.scrollY;
+      const estaArriba = desplazamiento <= 120;
+      setColapsada(!estaArriba);
+      if (estaArriba) {
+        setExpandidaAMano(false);
+      }
     }
-    window.addEventListener('scroll', alScrollear, { passive: true });
-    return () => window.removeEventListener('scroll', alScrollear);
+    document.addEventListener('scroll', alScrollear, { passive: true, capture: true });
+    return () => document.removeEventListener('scroll', alScrollear, { capture: true });
   }, [soloLectura]);
 
   const instrucciones = calcularInstruccionesDelParticipante(estado, participantId, presencia);

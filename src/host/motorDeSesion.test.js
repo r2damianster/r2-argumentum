@@ -36,14 +36,19 @@ function construirEstado(eventos) {
   );
 }
 
-// Estado base: Ana y Luis dentro del debate, fase de escritura en curso.
-function estadoEnDebate(eventosExtra = []) {
+// Estado base: Ana y Luis dentro del debate, fase de escritura en curso. La fase arranca hace
+// rato a propósito: el turno hablado de respaldo solo entra tras un margen desde que empieza
+// la fase (ver ESPERA_ANTES_DEL_TURNO_HABLADO_MS en motorDeSesion.js).
+function estadoEnDebate(eventosExtra = [], { faseIniciadaHaceMs = 5 * 60 * 1000 } = {}) {
   return construirEstado([
     evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'ana', stanceId: 'izquierda' }),
     evento(EVENTOS.POSTURA_ASIGNADA, { participantId: 'ana', stanceId: 'izquierda' }),
     evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'luis', stanceId: 'derecha' }),
     evento(EVENTOS.POSTURA_ASIGNADA, { participantId: 'luis', stanceId: 'derecha' }),
-    evento(EVENTOS.FASE_INICIADA, { phaseType: 'escritura_argumentos', ronda: 1 }),
+    {
+      name: EVENTOS.FASE_INICIADA,
+      data: { timestamp: Date.now() - faseIniciadaHaceMs, phaseType: 'escritura_argumentos', ronda: 1 },
+    },
     ...eventosExtra,
   ]);
 }
@@ -119,6 +124,41 @@ describe('turno hablado de respaldo', () => {
 
     expect(ofertas).toHaveLength(1);
     expect(ofertas[0].candidateId).toBe('luis');
+    expect(ofertas[0].modo).toBe('verbal');
+  });
+
+  it('no ofrece turno hablado en los primeros segundos de la fase: nadie tuvo tiempo de preparar nada', () => {
+    const estado = estadoEnDebate([], { faseIniciadaHaceMs: 0 });
+
+    const { publicar } = sincronizarCon(estado);
+
+    expect(eventosPublicados(publicar, EVENTOS.TURNO_OFRECIDO)).toHaveLength(0);
+  });
+
+  it('el argumento de ingreso no cuenta como haber tomado la palabra', () => {
+    // Todo el mundo entra al debate con un argumento escrito: si ese argumento contara como
+    // intervención, nadie quedaría nunca "sin intervenir" y el turno hablado no se ofrecería
+    // jamás. Bug real reportado en prueba en vivo con 8 participantes.
+    const estado = estadoEnDebate([
+      evento(EVENTOS.ARGUMENTO_PUBLICADO, {
+        argumentId: 'ingreso-ana',
+        participantId: 'ana',
+        posicionEnRonda: 1,
+        ronda: 1,
+        esArgumentoDeIngreso: true,
+      }),
+      evento(EVENTOS.ARGUMENTO_PUBLICADO, {
+        argumentId: 'ingreso-luis',
+        participantId: 'luis',
+        posicionEnRonda: 1,
+        ronda: 1,
+        esArgumentoDeIngreso: true,
+      }),
+    ]);
+
+    const ofertas = eventosPublicados(sincronizarCon(estado).publicar, EVENTOS.TURNO_OFRECIDO);
+
+    expect(ofertas).toHaveLength(1);
     expect(ofertas[0].modo).toBe('verbal');
   });
 

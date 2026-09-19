@@ -10,6 +10,7 @@ import { ingresoEstaCerrado } from '../ingreso/reglasDeIngreso.js';
 import { calcularPenalidadPorRechazoDeTurno, resolverParametrosDePuntaje } from '../puntaje/formulaDePuntaje.js';
 import {
   obtenerArgumentosSinValidar,
+  obtenerIntervencionesSinCalificar,
   obtenerBidsAbiertos,
   obtenerSugerenciasVisiblesParaParticipante,
   misArgumentosSinConexionSaliente,
@@ -122,9 +123,9 @@ function accionObligatoria(estado, participantId, esCoModerador, ingresoConfirma
 
   if (esCoModerador) {
     const pendientes =
-      obtenerArgumentosSinValidar(estado).length +
-      obtenerBidsAbiertos(estado).length +
-      Object.values(estado.intervencionesVerbales).filter((intervencion) => !intervencion.calificacion).length;
+      obtenerArgumentosSinValidar(estado, { excluirParticipantId: participantId }).length +
+      obtenerBidsAbiertos(estado).filter((bid) => bid.participantId !== participantId).length +
+      obtenerIntervencionesSinCalificar(estado, { excluirParticipantId: participantId }).length;
     if (pendientes > 0) {
       return {
         texto: `Tienes ${pendientes} caso(s) esperando tu revisión en el panel de co-moderador.`,

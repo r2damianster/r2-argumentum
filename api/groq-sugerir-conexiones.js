@@ -41,7 +41,9 @@ Devuelve SOLO un JSON con esta forma exacta:
           { role: 'system', content: promptSistema },
           { role: 'user', content: listaDeArgumentos },
         ],
-        temperature: 0.3,
+        temperature: 0,
+        top_p: 1,
+        seed: 7,
         max_tokens: 1500,
         response_format: { type: 'json_object' },
       }),
@@ -59,7 +61,17 @@ Devuelve SOLO un JSON con esta forma exacta:
 
   try {
     const resultado = JSON.parse(datos.choices[0].message.content);
-    response.status(200).json(resultado);
+    // Groq inventa o recorta ids con frecuencia. Una sugerencia que nombra un argumento
+    // inexistente no se puede dibujar ni aceptar: se descarta acá en vez de viajar al canal
+    // y quedar como una arista colgada en el mapa.
+    const idsValidos = new Set(argumentos.map((argumento) => argumento.argumentId));
+    const sugerencias = (resultado.sugerencias || []).filter(
+      (sugerencia) =>
+        idsValidos.has(sugerencia.sourceArgumentId) &&
+        idsValidos.has(sugerencia.targetArgumentId) &&
+        sugerencia.sourceArgumentId !== sugerencia.targetArgumentId
+    );
+    response.status(200).json({ sugerencias });
   } catch (error) {
     response.status(502).json({ error: 'Groq no devolvió JSON válido', detalle: datos });
   }

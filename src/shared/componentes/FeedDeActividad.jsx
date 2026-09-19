@@ -22,6 +22,10 @@ const ETIQUETA_DE_RELACION = {
 // útil para el participante mientras espera su turno.
 export function FeedDeActividad({ estado, presencia }) {
   const enFaseDeApertura = estado.fase.actual?.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA;
+  // En cierre y ranking ya no hay ruleta de turnos: el banner de espera seguía prometiendo un
+  // turno que nunca iba a llegar. Bug real reportado en prueba en vivo.
+  const hayRuletaDeTurnos =
+    !estado.sesion.cerrada && estado.fase.actual?.tipo === TIPOS_DE_FASE.ESCRITURA_ARGUMENTOS;
   const elegiblesParaApertura = presencia
     .filter((presente) => presente.conectado !== false)
     .filter((presente) => estado.participantes[presente.participantId]?.rol !== 'co_moderador');
@@ -59,12 +63,13 @@ export function FeedDeActividad({ estado, presencia }) {
 
   return (
     <section className="tarjeta-de-actividad">
-      {enFaseDeApertura ? (
+      {enFaseDeApertura && (
         <p className="banner-de-turno banner-de-espera">
           ✍️ Todos escriben su argumento inicial — {yaEscribieronSuApertura}/{elegiblesParaApertura.length} ya
           enviaron el suyo
         </p>
-      ) : (
+      )}
+      {!enFaseDeApertura && hayRuletaDeTurnos && (
         <>
           {quienHabla && <p className="banner-de-turno">🗣️ {quienHabla} está hablando ahora</p>}
           {quienFueOfrecido && (

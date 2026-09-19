@@ -6,7 +6,11 @@
 // por una razón pedagógica: que nadie quede fuera del debate sin que el docente se entere.
 
 import { ingresoEstaCerrado } from '../ingreso/reglasDeIngreso.js';
-import { obtenerArgumentosSinValidar, obtenerBidsAbiertos } from '../estado/seleccionesDerivadas.js';
+import {
+  obtenerArgumentosSinValidar,
+  obtenerBidsAbiertos,
+  obtenerIntervencionesSinCalificar,
+} from '../estado/seleccionesDerivadas.js';
 
 export const GRAVEDAD = {
   ALTA: 'alta',
@@ -79,7 +83,7 @@ export function calcularAvisosParaElModerador(estado, presencia, ahora = Date.no
   const pendientesDeCoModeracion =
     obtenerArgumentosSinValidar(estado).length +
     obtenerBidsAbiertos(estado).length +
-    Object.values(estado.intervencionesVerbales).filter((intervencion) => !intervencion.calificacion).length;
+    obtenerIntervencionesSinCalificar(estado).length;
   const hayCoModeradores = (estado.coModeradores?.participantIds.length ?? 0) > 0;
 
   if (pendientesDeCoModeracion > 0 && hayCoModeradores) {

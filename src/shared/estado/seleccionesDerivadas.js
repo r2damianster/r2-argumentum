@@ -65,8 +65,30 @@ export function obtenerSugerenciasVisiblesParaParticipante(estado, participantId
   });
 }
 
-export function obtenerArgumentosSinValidar(estado) {
-  return Object.values(estado.argumentos).filter((argumento) => !argumento.validacion);
+// Nadie califica lo suyo. Un co-moderador veía su propio argumento de ingreso en su cola de
+// validación (bug real reportado en prueba en vivo): es juez y parte, y si además es el único
+// co-moderador ese caso no le corresponde a nadie, así que tampoco debe figurar como pendiente
+// en los contadores del host ni en su propia capa instruccional.
+function hayQuienPuedaRevisar(estado, autorId) {
+  return (estado.coModeradores?.participantIds ?? []).some((coModeradorId) => coModeradorId !== autorId);
+}
+
+export function obtenerArgumentosSinValidar(estado, { excluirParticipantId = null } = {}) {
+  return Object.values(estado.argumentos).filter(
+    (argumento) =>
+      !argumento.validacion &&
+      argumento.participantId !== excluirParticipantId &&
+      hayQuienPuedaRevisar(estado, argumento.participantId)
+  );
+}
+
+export function obtenerIntervencionesSinCalificar(estado, { excluirParticipantId = null } = {}) {
+  return Object.values(estado.intervencionesVerbales).filter(
+    (intervencion) =>
+      !intervencion.calificacion &&
+      intervencion.participantId !== excluirParticipantId &&
+      hayQuienPuedaRevisar(estado, intervencion.participantId)
+  );
 }
 
 // El reducer no guarda nombre/emoji (viven en presence, ver reducirEventos.js) — esto

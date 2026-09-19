@@ -13,14 +13,34 @@ const ETIQUETA_DE_FASE = {
 export function ControlDeFases({ estado, motor, programa, identificadorDeSesion, publicar }) {
   const sesionIniciada = estado.fase.actual !== null || estado.fase.historial.length > 0;
   const faseActual = estado.fase.actual;
+  // Lista completa del Programa: la configuración se republica en vivo (ver abajo) y eso deja
+  // `programa.posturas` ya filtrado, así que sin esta copia una postura destildada desaparecía
+  // de la lista y no se podía volver a tildar.
+  const [posturasDelPrograma, setPosturasDelPrograma] = useState(() => programa.posturas);
   const [posturasSeleccionadas, setPosturasSeleccionadas] = useState(
-    () => new Set(programa.posturas.map((postura) => postura.id))
+    () => new Set(posturasDelPrograma.map((postura) => postura.id))
   );
   const [perfilDePuntaje, setPerfilDePuntaje] = useState(programa.perfilDePuntaje ?? PERFIL_POR_DEFECTO);
   // Por defecto en "No": el debate se juega con las posturas que el docente preparó.
   const [permitirPosturasNuevas, setPermitirPosturasNuevas] = useState(
     Boolean(programa.permitirPosturasNuevas)
   );
+
+  // Una postura propuesta por un estudiante y aceptada por el moderador entra al Programa por
+  // el canal (ver PanelDePosturasPropuestas): se suma a la lista y queda tildada. Sin esto, la
+  // republicación de configuración de abajo la habría vuelto a sacar del debate enseguida.
+  useEffect(() => {
+    const posturasNuevas = (estado.programa?.posturas ?? []).filter(
+      (postura) => !posturasDelPrograma.some((conocida) => conocida.id === postura.id)
+    );
+    if (posturasNuevas.length === 0) {
+      return;
+    }
+    setPosturasDelPrograma((conocidas) => [...conocidas, ...posturasNuevas]);
+    setPosturasSeleccionadas(
+      (elegidas) => new Set([...elegidas, ...posturasNuevas.map((postura) => postura.id)])
+    );
+  }, [estado.programa, posturasDelPrograma]);
 
   function alternarPostura(posturaId) {
     setPosturasSeleccionadas((actuales) => {
@@ -34,8 +54,44 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
     });
   }
 
+  function configuracionDeEstaSesion() {
+    return {
+      ...programa,
+      posturas: posturasDelPrograma.filter((postura) => posturasSeleccionadas.has(postura.id)),
+      perfilDePuntaje,
+      permitirPosturasNuevas,
+    };
+  }
+
+  // La configuración se republica mientras la sala está en espera, no solo al iniciar. Los
+  // estudiantes ingresan con su argumento ANTES de que el moderador arranque la sesión (ver
+  // IngresoConArgumento), así que un Programa que se publica recién al iniciar les llega
+  // tarde: validaban su ingreso con la configuración por defecto. Bug real reportado en
+  // prueba en vivo — con "Permitir posturas nuevas" tildado, a los estudiantes se les seguía
+  // diciendo que el debate solo admite las posturas de la lista.
+  useEffect(() => {
+    if (sesionIniciada || !estado.programa) {
+      return undefined;
+    }
+    const publicado = estado.programa;
+    const yaEstaPublicado =
+      Boolean(publicado.permitirPosturasNuevas) === permitirPosturasNuevas &&
+      (publicado.perfilDePuntaje ?? PERFIL_POR_DEFECTO) === perfilDePuntaje &&
+      publicado.posturas.length === posturasSeleccionadas.size &&
+      publicado.posturas.every((postura) => posturasSeleccionadas.has(postura.id));
+    if (yaEstaPublicado || posturasSeleccionadas.size < 2) {
+      return undefined;
+    }
+    // Pequeña espera para no publicar una vez por cada clic mientras el moderador tilda.
+    const temporizador = setTimeout(() => {
+      publicar(EVENTOS.PROGRAMA_PUBLICADO, { programa: configuracionDeEstaSesion(), identificadorDeSesion });
+    }, 500);
+    return () => clearTimeout(temporizador);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sesionIniciada, estado.programa, perfilDePuntaje, permitirPosturasNuevas, posturasSeleccionadas]);
+
   function confirmarEIniciarSesion() {
-    const posturasElegidas = programa.posturas.filter((postura) => posturasSeleccionadas.has(postura.id));
+    const posturasElegidas = posturasDelPrograma.filter((postura) => posturasSeleccionadas.has(postura.id));
     if (posturasElegidas.length < 2) {
       return;
     }
@@ -43,24 +99,24 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
     // (grafo, ranking, chips) ya no vuelve a ver las posturas que el moderador destildó, y el
     // motor toma el perfil de puntaje elegido desde el canal (ver parametrosDePuntajeVigentes).
     publicar(EVENTOS.PROGRAMA_PUBLICADO, {
-      programa: { ...programa, posturas: posturasElegidas, perfilDePuntaje, permitirPosturasNuevas },
+      programa: configuracionDeEstaSesion(),
       identificadorDeSesion,
     });
     motor.iniciarSesion();
   }
 
   if (!sesionIniciada) {
-    const hayQueElegir = programa.posturas.length > 2;
+    const hayQueElegir = posturasDelPrograma.length > 2;
     return (
       <section className="tarjeta-de-fase">
         {hayQueElegir && (
           <div className="selector-de-posturas">
             <p className="texto-de-ayuda">
-              Este Programa tiene {programa.posturas.length} posturas — elegí cuáles se debaten hoy (mínimo 2,
-              todas tildadas por defecto):
+              Este Programa tiene {posturasDelPrograma.length} posturas — elige cuáles se debaten hoy (mínimo
+              2, todas tildadas por defecto):
             </p>
             <ul className="lista-de-posturas-seleccionables">
-              {programa.posturas.map((postura) => (
+              {posturasDelPrograma.map((postura) => (
                 <li key={postura.id}>
                   <label>
                     <input

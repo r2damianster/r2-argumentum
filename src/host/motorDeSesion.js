@@ -32,6 +32,12 @@ function generarId(prefijo) {
   return `${prefijo}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// Margen desde que arranca la fase antes de ofrecer el primer turno HABLADO de respaldo. El
+// turno hablado es la salida para que el debate no quede en silencio cuando nadie preparó
+// nada (docs/04), no la forma normal de abrir una ronda: sin esta espera se ofrecería en el
+// mismo segundo en que empieza la fase, cuando todavía nadie pudo escribir.
+const ESPERA_ANTES_DEL_TURNO_HABLADO_MS = 60 * 1000;
+
 function sorteoPonderado(candidatos, pesos) {
   const pesoTotal = pesos.reduce((suma, peso) => suma + peso, 0);
   let punto = Math.random() * pesoTotal;
@@ -176,11 +182,23 @@ export function crearMotorDeSesion({ programa }) {
     // vez de dejar el debate en silencio se le ofrece un turno HABLADO sin argumento escrito:
     // vale pocos puntos y lo califica un co-moderador después (decisión del usuario, docs/04).
     if (!candidatoId) {
-      const sinIntervenir = participantesSinIntervenir(estado, presencia).filter(
+      // Recién arrancada la fase todavía nadie tuvo tiempo de preparar nada: ofrecer la
+      // palabra en ese instante sería empujar a hablar sin argumento al primer segundo de la
+      // ronda. Se espera un rato antes de caer al turno hablado de respaldo.
+      const iniciadaEn = estado.fase.actual?.iniciadaEn ?? 0;
+      if (Date.now() - iniciadaEn < ESPERA_ANTES_DEL_TURNO_HABLADO_MS) {
+        return;
+      }
+      const sinIntervenir = participantesSinIntervenir(estado, presencia);
+      const disponibles = sinIntervenir.filter(
         (participantId) => !estado.turnos.excluidosTemporalmente.includes(participantId)
       );
-      if (sinIntervenir.length > 0) {
-        ofrecerTurnoVerbal(sinIntervenir[Math.floor(Math.random() * sinIntervenir.length)]);
+      // Misma salvedad que en la ruleta de argumentos: si TODOS los que faltan por hablar
+      // están excluidos temporalmente, ignorar la exclusión es lo único que evita que el
+      // turno hablado quede bloqueado para siempre.
+      const candidatos = disponibles.length > 0 ? disponibles : sinIntervenir;
+      if (candidatos.length > 0) {
+        ofrecerTurnoVerbal(candidatos[Math.floor(Math.random() * candidatos.length)]);
       }
       return;
     }
@@ -694,7 +712,17 @@ export function crearMotorDeSesion({ programa }) {
         return;
       }
       const { sugerencias } = await respuesta.json();
-      for (const sugerencia of sugerencias || []) {
+      // Segunda red, además de la del endpoint: una sugerencia que nombra un argumento
+      // inexistente no se puede dibujar como arista ni aceptar, y publicarla solo ensucia el
+      // canal y el mapa.
+      const idsDeArgumentos = new Set(todosLosArgumentos.map((argumento) => argumento.argumentId));
+      const sugerenciasUtilizables = (sugerencias || []).filter(
+        (sugerencia) =>
+          idsDeArgumentos.has(sugerencia.sourceArgumentId) &&
+          idsDeArgumentos.has(sugerencia.targetArgumentId) &&
+          sugerencia.sourceArgumentId !== sugerencia.targetArgumentId
+      );
+      for (const sugerencia of sugerenciasUtilizables) {
         publicar(EVENTOS.CONEXION_SUGERIDA, { suggestionId: generarId('sugerencia'), ronda: 1, ...sugerencia });
       }
     } catch {

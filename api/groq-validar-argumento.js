@@ -5,6 +5,22 @@
 // Quién puede proponer una postura nueva lo decide el cliente según `permitirPosturasNuevas`
 // del Programa — acá solo se informa el hallazgo.
 
+// Groq a veces devuelve en "posturaSugerida" el id técnico de una postura inventada
+// ("homo_scientificus") en vez de una etiqueta legible, y ese texto va derecho a la pantalla
+// del estudiante. Si coincide con una postura real se usa su etiqueta; si no, al menos se
+// limpia el formato de id. Bug real reportado en prueba en vivo.
+function etiquetaLegibleDePostura(posturaSugerida, posturas) {
+  const texto = String(posturaSugerida ?? '').trim();
+  if (!texto) {
+    return '';
+  }
+  const posturaConocida = posturas.find((postura) => postura.id === texto);
+  if (posturaConocida) {
+    return posturaConocida.etiqueta;
+  }
+  return texto.includes('_') && !texto.includes(' ') ? texto.replace(/_/g, ' ') : texto;
+}
+
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     response.status(405).json({ error: 'Método no permitido' });
@@ -50,8 +66,13 @@ Decide cuál de esas posturas defiende el texto. Reglas:
 - Si defiende una posición coherente pero que NO corresponde a ninguna de la lista, devuelve
   "posturaDetectada": null y "esPosturaNueva": true, y describe esa posición en "posturaSugerida".
 - No fuerces la clasificación: si dudas entre dos, elige la más cercana y baja la "confianza".
+- Si el texto es condicional, matizado o depende de circunstancias ("depende de…", "en algunos
+  casos sí y en otros no"), no lo asignes con seguridad: devuelve "confianza" por debajo de 0.6.
+  Contradecir al estudiante sobre qué está defendiendo cuesta más caro que dejarlo pasar.
 - La clasificación es independiente de la forma: un texto puede tener mala forma y aun así
   dejar clara su postura.
+- "posturaSugerida" se usa TAL CUAL en una frase que lee el estudiante: escríbela como una
+  etiqueta corta en español, legible, nunca como un identificador técnico con guiones bajos.
 
 ${ejemplosFormateados}
 
@@ -73,7 +94,12 @@ Devuelve SOLO JSON válido con esta forma exacta:
           { role: 'system', content: promptSistema },
           { role: 'user', content: texto },
         ],
-        temperature: 0.2,
+        // Temperatura 0: el mismo argumento tiene que dar el mismo veredicto. Con 0.2 el
+        // mismo texto pasaba de "postura nueva" a aprobado al reenviarlo, y eso el estudiante
+        // lo lee como arbitrariedad. Bug real reportado en prueba en vivo.
+        temperature: 0,
+        top_p: 1,
+        seed: 7,
         max_tokens: 800,
         response_format: { type: 'json_object' },
       }),
@@ -102,7 +128,7 @@ Devuelve SOLO JSON válido con esta forma exacta:
       sugerenciaDeCorreccion: resultado.sugerenciaDeCorreccion ?? '',
       posturaDetectada,
       esPosturaNueva: posturaDetectada === null && Boolean(resultado.esPosturaNueva),
-      posturaSugerida: resultado.posturaSugerida ?? '',
+      posturaSugerida: etiquetaLegibleDePostura(resultado.posturaSugerida, posturas),
       confianza: typeof resultado.confianza === 'number' ? resultado.confianza : null,
     });
   } catch (error) {

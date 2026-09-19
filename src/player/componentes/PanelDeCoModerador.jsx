@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
-import { obtenerArgumentosSinValidar, obtenerBidsAbiertos } from '../../shared/estado/seleccionesDerivadas.js';
+import {
+  obtenerArgumentosSinValidar,
+  obtenerBidsAbiertos,
+  obtenerIntervencionesSinCalificar,
+} from '../../shared/estado/seleccionesDerivadas.js';
 
 const ETIQUETA_DE_TIPO = {
   [TIPOS_DE_RELACION.NUEVO]: 'Argumento nuevo',
@@ -42,7 +46,7 @@ function FilaDeValidacion({ argumento, participantId, publicar }) {
         </select>
       </label>
       <label>
-        Nota (opcional, obligatoria si marcás falta)
+        Nota (opcional, obligatoria si marcas falta)
         <input value={nota} onChange={(evento) => setNota(evento.target.value)} />
       </label>
       <label className="casilla-de-falta">
@@ -57,11 +61,12 @@ function FilaDeValidacion({ argumento, participantId, publicar }) {
 }
 
 export function PanelDeCoModerador({ estado, presencia, participantId, publicar }) {
-  const argumentosSinValidar = obtenerArgumentosSinValidar(estado);
-  const bidsAbiertos = obtenerBidsAbiertos(estado);
-  const intervencionesSinCalificar = Object.values(estado.intervencionesVerbales).filter(
-    (intervencion) => !intervencion.calificacion
-  );
+  // Juez y parte no: lo propio queda fuera de la cola (ver seleccionesDerivadas.js).
+  const argumentosSinValidar = obtenerArgumentosSinValidar(estado, { excluirParticipantId: participantId });
+  const bidsAbiertos = obtenerBidsAbiertos(estado).filter((bid) => bid.participantId !== participantId);
+  const intervencionesSinCalificar = obtenerIntervencionesSinCalificar(estado, {
+    excluirParticipantId: participantId,
+  });
 
   function votar(bidId, voto) {
     publicar(EVENTOS.BID_VOTO_COMODERADOR, { bidId, coModeradorId: participantId, voto });
@@ -84,7 +89,7 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
           <p className="texto-de-ayuda">
             Evalúa el argumento, no la postura — tu voto es anónimo, nadie ve quién votó qué (ni el moderador).
           </p>
-          <p className="texto-de-ayuda">Bids abiertos — votá aprobar/rechazar</p>
+          <p className="texto-de-ayuda">Bids abiertos — vota aprobar o rechazar</p>
           <ul className="lista-de-bids-pendientes">
             {bidsAbiertos.map((bid) => (
               <li key={bid.bidId}>
