@@ -8,6 +8,8 @@ Plataforma educativa para debates estructurados en tiempo real. El objetivo no e
 
 Probado de punta a punta contra producción en varias sesiones de prueba manual (la última: 8 participantes más una sesión corta de casos borde; la siguiente ronda, con **elenco de actores distintos** — hablador, callado, co-moderador experto y perdido, rechazos, copión, pestaña cerrada — está definida en la guía y pendiente de correr) — ver `docs/10-guia-prueba-manual-chrome.md` para el procedimiento y `docs/06-pendientes.md` para el detalle de lo cerrado y lo que sigue abierto (el más relevante: el puntaje de conexiones todavía no está implementado). Hay pruebas automatizadas con vitest sobre la lógica pura (`npm test`).
 
+Cada debate se juega en **español (por defecto) o en inglés**, a elección del docente al configurar la sala: cambia el corrector ortográfico de los campos de texto y el idioma en que Groq valida los argumentos. La interfaz sigue siempre en español (no hay capa de traducción).
+
 ## Idea central
 
 No se registra solo quién habla, sino cómo se relacionan los argumentos entre sí. El debate se convierte en un grafo argumental dinámico que el profesor puede proyectar en vivo mientras los estudiantes participan desde el celular.
