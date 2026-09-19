@@ -20,7 +20,10 @@ export function AvisoDeZoom() {
     return () => window.removeEventListener('resize', remedir);
   }, []);
 
-  if (oculto || !zoomEstaMuyReducido(zoom)) {
+  // En celulares y tabletas no se compensa nada (ver compensarZoomDelNavegador.js), así que
+  // tampoco se avisa: incluye el modo dispositivo de las herramientas de desarrollo (F12).
+  const esDispositivoTactil = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+  if (oculto || esDispositivoTactil || !zoomEstaMuyReducido(zoom)) {
     return null;
   }
 

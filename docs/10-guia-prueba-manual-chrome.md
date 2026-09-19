@@ -166,7 +166,7 @@ Una prueba con participantes idénticos no encuentra los fallos del aula. Corre 
 
 **Variantes de «se le cierra la pestaña»** (usa una persona distinta para cada una, o repítelas en orden). En todas, vuelve a entrar por el mismo link `/?sala=XXXX`:
 
-- **a) En pleno ingreso**, sin confirmar: al volver debe aparecer «Ya habías entrado a la sala… Continuar como X».
+- **a) En pleno ingreso**, sin confirmar: al volver debe aparecer «Ya habías entrado a la sala…» con un botón «Continuar como X» por cada identidad de esa sala en este navegador; elige la de la persona que se cerró.
 - **b) Con el argumento ya aprobado y esperando turno**: al continuar debe ver «Tu argumento está listo» **con su texto** y los mismos puntos.
 - **c) Teniendo la palabra**: el host ve el aviso rojo «X tiene la palabra pero está sin conexión»; pulsa «⏭️ Terminar el turno de X» y la ruleta sigue con otra persona. Si X vuelve antes, puede continuar y publicar.
 - **d) Siendo co-moderador**: al volver conserva su rol y su cola.
@@ -200,9 +200,38 @@ Una prueba con participantes idénticos no encuentra los fallos del aula. Corre 
 - Cargar un `.json` de Programa inválido → mensaje de error, no avanza.
 - **Ranking con co-moderadora**: cierra el debate con al menos un co-moderador con puntos. **Es intencional** que no aparezca en el ranking ni en el informe (no defiende postura); no lo anotes como fallo, pero deja constancia de cuántos puntos tenía por si se decide mostrarlos.
 
+## 5B. Probar como celular con F12 (modo dispositivo)
+
+Sirve para revisar el diseño de celular sin tener varios teléfonos. Es **muy buena aproximación** pero no sustituye a un celular real (ver «Qué no comprueba»).
+
+**Cómo montarlo**
+
+1. **Host en una pestaña normal de escritorio, sin emulación**, con el zoom en 100 %. La ventana «Proyectar en otra ventana» solo funciona dentro del mismo navegador y se maneja mejor con teclado y ratón.
+2. **Cada participante en su propia pestaña** con F12 → `Ctrl+Shift+M` (barra de dispositivos). La emulación es **por pestaña**: hay que activarla en cada una.
+3. Elige un dispositivo de ~375–390 px (iPhone SE / 12 / 14, Pixel 7) para el caso vertical. El botón de **rotar** de la barra da el caso horizontal (~667×375 u 844×390).
+4. **Desacopla F12 a una ventana aparte** (⋮ → *Dock side* → *Undock*) o ciérralo tras configurar: acoplado, roba espacio y el viewport deja de ser el del dispositivo elegido. El «Fit to window» de la barra solo achica el dibujo, no es zoom del navegador.
+5. Anota siempre en el reporte **qué dispositivo emulaste, en qué orientación y a qué ancho**.
+
+**Qué debe verse en cada modo**
+
+- **Vertical (< 600 px)**: el mapa se reemplaza por la **lista agrupada por postura**; la capa instruccional queda fija arriba y se colapsa al scrollear, y se re-expande al volver arriba; el **argumento destacado** aparece en grande sin tapar los botones de turno y se cierra con un toque; los botones son tocables sin pinchar el vecino.
+- **Horizontal bajo (~700×400)**: layout partido, instrucciones fijas a la izquierda y trabajo a la derecha.
+- **Sin ampliación por zoom ni barra ámbar**: en modo dispositivo el puntero es táctil y la app no compensa nada. Si aparece la barra o la página sale ampliada, es un fallo.
+- **Desconexión**: `Network` → *Offline* tres o cuatro minutos y de vuelta a *No throttling* (ver casos borde).
+- **Varias pestañas en el mismo navegador comparten `localStorage`**: al abrir el link de la sala aparecerá «Continuar como…» con todas las identidades que ya entraron. Para entrar como persona nueva **ignóralo y llena el formulario**; para las variantes de pestaña cerrada elige la identidad correcta. Si quieres aislar del todo a cada participante, usa una **ventana de incógnito** por persona (la proyección solo necesita al host y su ventana en el mismo navegador normal).
+
+**Qué no comprueba** (anótalo como «no verificado», no como bueno):
+
+- Teclado virtual tapando el cuadro de texto, notch y barras del sistema.
+- Bloqueo de pantalla, cambio de app o pérdida de red real del celular (lo que más desconecta en clase).
+- Corrector ortográfico y autocorrección del teclado del teléfono, y el escaneo del QR.
+- Rendimiento con 20+ nodos o varias pestañas en un teléfono de gama baja.
+
+Si puedes, cierra la ronda con **un celular real** entrando por el QR de la sala.
+
 ## 6. Formato de reporte
 
-| # | Pantalla | Pasos para reproducir | Esperado | Obtenido | Severidad |
+| # | Pantalla / dispositivo | Pasos para reproducir | Esperado | Obtenido | Severidad |
 |---|----------|------------------------|----------|----------|-----------|
 
 - Si algo falla por historial de Ably expirado tras varios minutos, anótalo aparte como "esperado por retención de Ably", no en la tabla.
@@ -225,7 +254,7 @@ Una prueba con participantes idénticos no encuentra los fallos del aula. Corre 
 **Pendientes de rondas anteriores** (por limitaciones del navegador de automatización; si puedes usar ratón real y viewports normales, prioriza estos):
 
 - **Rueda del mouse sobre el grafo**: debe scrollear la página, no zoomear.
-- **Celular vertical (~375 px) y horizontal (~700×400)** (con `minimum-scale=1` la página no debe alejarse sola) y el **reencuadre del grafo** al publicar nodos nuevos.
+- **Celular vertical (~375 px) y horizontal (~700×400)**: ahora se puede con el modo dispositivo de F12 (sección 5B). Con `minimum-scale=1` la página no debe alejarse sola. Comprueba también el **reencuadre del grafo** al publicar nodos nuevos (en escritorio).
 - **Re-expansión de la capa instruccional** al volver arriba tras colapsarse.
 - **JSON de Programa inválido** en la carga.
 - **Casilla «permitir posturas nuevas» desactivada** con textos claramente ajenos a la lista: debe pedir reescribir sin ofrecer proponerla.

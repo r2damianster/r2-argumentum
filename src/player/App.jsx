@@ -50,20 +50,37 @@ function leerParticipanteGuardado(codigoDeSala) {
 }
 
 // sessionStorage vuelve solo tras un F5 (misma pestaña), pero se pierde al cerrar la pestaña —
-// justo el accidente típico en el aula. Por eso la identidad también se guarda en localStorage y,
-// al volver a la sala, se ofrece recuperarla con un clic. No se aplica sola: en un dispositivo
-// compartido podría ponerle a otra persona la identidad de quien lo usó antes.
-const CLAVE_DE_IDENTIDAD_RECORDADA = 'r2-argumentum-identidad-recordada';
+// justo el accidente típico en el aula. Por eso las identidades también se guardan en
+// localStorage y, al volver a la sala, se ofrece recuperarlas con un clic. No se aplican solas:
+// en un dispositivo compartido podrían ponerle a otra persona la identidad de quien lo usó antes.
+//
+// Se guarda una LISTA por navegador (no solo la última): en una prueba con varias pestañas del
+// mismo navegador, o en un dispositivo que usan varias personas, cada quien elige la suya.
+const CLAVE_DE_IDENTIDADES_RECORDADAS = 'r2-argumentum-identidades-recordadas';
 const VIDA_MAXIMA_DE_LA_IDENTIDAD_MS = 12 * 60 * 60 * 1000;
+const MAXIMO_DE_IDENTIDADES_GUARDADAS = 12;
 
-function leerIdentidadRecordada(codigoDeSala) {
+function leerTodasLasIdentidades() {
   try {
-    const guardada = JSON.parse(localStorage.getItem(CLAVE_DE_IDENTIDAD_RECORDADA) || 'null');
-    const vigente = guardada && Date.now() - (guardada.guardadaEn ?? 0) < VIDA_MAXIMA_DE_LA_IDENTIDAD_MS;
-    return vigente && guardada.codigoDeSala === codigoDeSala ? guardada : null;
+    const guardadas = JSON.parse(localStorage.getItem(CLAVE_DE_IDENTIDADES_RECORDADAS) || '[]');
+    return Array.isArray(guardadas)
+      ? guardadas.filter((identidad) => Date.now() - (identidad.guardadaEn ?? 0) < VIDA_MAXIMA_DE_LA_IDENTIDAD_MS)
+      : [];
   } catch {
-    return null;
+    return [];
   }
+}
+
+function escribirIdentidades(identidades) {
+  try {
+    localStorage.setItem(CLAVE_DE_IDENTIDADES_RECORDADAS, JSON.stringify(identidades));
+  } catch {
+    // Sin localStorage no se puede recuperar la identidad tras cerrar la pestaña.
+  }
+}
+
+function leerIdentidadesRecordadas(codigoDeSala) {
+  return leerTodasLasIdentidades().filter((identidad) => identidad.codigoDeSala === codigoDeSala);
 }
 
 function guardarParticipanteActivo(datos) {
@@ -72,20 +89,17 @@ function guardarParticipanteActivo(datos) {
   } catch {
     // Sin sessionStorage disponible, simplemente no sobrevive a un refresh.
   }
-  try {
-    localStorage.setItem(CLAVE_DE_IDENTIDAD_RECORDADA, JSON.stringify({ ...datos, guardadaEn: Date.now() }));
-  } catch {
-    // Sin localStorage no se puede recuperar la identidad tras cerrar la pestaña.
-  }
+  const otras = leerTodasLasIdentidades().filter((identidad) => identidad.participantId !== datos.participantId);
+  escribirIdentidades([...otras, { ...datos, guardadaEn: Date.now() }].slice(-MAXIMO_DE_IDENTIDADES_GUARDADAS));
 }
 
-function borrarParticipanteActivo() {
+function borrarParticipanteActivo(participantId) {
   try {
     sessionStorage.removeItem(CLAVE_DE_PARTICIPANTE_ACTIVO);
-    localStorage.removeItem(CLAVE_DE_IDENTIDAD_RECORDADA);
   } catch {
     // no-op
   }
+  escribirIdentidades(leerTodasLasIdentidades().filter((identidad) => identidad.participantId !== participantId));
 }
 
 export default function App() {
@@ -111,14 +125,14 @@ export default function App() {
     setEmojiElegido(EMOJIS_DISPONIBLES[indiceAleatorio]);
   }
 
-  // Identidad de una visita anterior a esta misma sala (pestaña cerrada por error, por ejemplo).
-  const identidadRecordada = useMemo(
-    () => (codigoDeSala.length === 4 ? leerIdentidadRecordada(codigoDeSala) : null),
+  // Identidades de visitas anteriores a esta misma sala (pestaña cerrada por error, por ejemplo).
+  const identidadesRecordadas = useMemo(
+    () => (codigoDeSala.length === 4 ? leerIdentidadesRecordadas(codigoDeSala) : []),
     [codigoDeSala]
   );
 
-  function continuarConIdentidadRecordada() {
-    const { guardadaEn, ...datos } = identidadRecordada;
+  function continuarConIdentidadRecordada(identidadElegida) {
+    const { guardadaEn, ...datos } = identidadElegida;
     guardarParticipanteActivo(datos);
     setParticipanteActivo(datos);
   }
@@ -135,7 +149,7 @@ export default function App() {
       <SesionDeParticipante
         {...participanteActivo}
         onSalir={() => {
-          borrarParticipanteActivo();
+          borrarParticipanteActivo(participanteActivo.participantId);
           setParticipanteActivo(null);
         }}
       />
@@ -146,18 +160,17 @@ export default function App() {
     <main>
       <h1>R2 Argumentum</h1>
       <h2>Unirme a la sala</h2>
-      {identidadRecordada && (
+      {identidadesRecordadas.length > 0 && (
         <section className="tarjeta-de-identidad-recordada">
           <p>
-            Ya habías entrado a la sala {identidadRecordada.codigoDeSala} como{' '}
-            <strong>
-              {identidadRecordada.emoji} {identidadRecordada.nombre}
-            </strong>
-            . ¿Se cerró la pestaña sin querer?
+            Ya habías entrado a la sala {codigoDeSala} en este navegador. ¿Se cerró la pestaña sin querer?
+            Continúa con tu identidad y conservas tus puntos y argumentos:
           </p>
-          <button type="button" onClick={continuarConIdentidadRecordada}>
-            Continuar como {identidadRecordada.nombre} (conservo mis puntos y argumentos)
-          </button>
+          {identidadesRecordadas.map((identidad) => (
+            <button key={identidad.participantId} type="button" onClick={() => continuarConIdentidadRecordada(identidad)}>
+              Continuar como {identidad.emoji} {identidad.nombre}
+            </button>
+          ))}
           <p className="texto-de-ayuda">
             Si eres otra persona que usa este mismo dispositivo, completa el formulario de abajo.
           </p>
