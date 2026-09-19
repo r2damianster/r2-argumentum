@@ -20,6 +20,10 @@ Sistema basado en eventos, no un CRUD de estudiantes/argumentos/calificaciones. 
 - Reduce fricción de despliegue: no hay backend con estado que mantener ni migrar.
 - Ably ya resuelve sincronización en tiempo real y presencia (quién está conectado, útil para la ruleta de turnos).
 - El historial de mensajes de Ably tiene retención limitada por diseño — no se debe confundir con un archivo académico permanente. Por eso la sesión se exporta explícitamente al cierre, no se deja "flotando" en Ably.
+- Esa retención corta es el punto frágil del aula real: un celular bloqueado unos minutos, un F5 o una pestaña cerrada dejaban a ese cliente sin poder reconstruir el debate. Tres defensas, ninguna de ellas una base de datos:
+  1. **Copia local del log** en `localStorage`, por sala (`instantaneaLocal.js`). Como el estado es una función pura del log de eventos, guardar el log alcanza para volver a levantarlo sin servidor. Sobrevive a cerrar la pestaña y al navegador; se descarta sola a las 12 horas y si el canal dice que el debate en curso es otro.
+  2. **Recuperación al reconectar**: al volver de una caída se vuelve a leer el historial y se rellena lo que falte (los mensajes ya aplicados se descartan por id). Si quedó un hueco irrecuperable, se dice en pantalla en vez de seguir en silencio.
+  3. **Idempotencia del motor sobre el log**: cada acción irrepetible del motor viaja con una `claveDeIdempotencia` que queda registrada en el estado, así un motor nuevo (host que refrescó) sabe qué se hizo antes de él.
 
 ## Por qué no hay reconocimiento de voz en v1
 

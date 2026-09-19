@@ -13,10 +13,11 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 
 ## 1. Restricciones operativas — leer antes de empezar
 
-**Ably retiene el historial del canal ~2 minutos.** No es un bug, es la arquitectura ("sin base de datos"):
+**Ably retiene el historial del canal ~2 minutos.** No es un bug, es la arquitectura ("sin base de datos"). Desde esta ronda hay tres defensas encima (copia local del log, recuperación al reconectar y aviso en pantalla), así que las reglas cambian:
 
-- **Muévete rápido entre pasos.** Si te tomas varios minutos entre acciones, al refrescar una pestaña el historial ya expiró y la sesión aparece vacía. **Eso NO es un fallo a reportar.** Si pasa con menos de ~90 segundos de por medio, sí es sospechoso.
-- Si pierdes una sesión, abre una **nueva** (nuevo código) en vez de pelear por recuperar la vieja.
+- **Refrescar una pestaña ya NO debería vaciar la sesión**, aunque hayan pasado más de dos minutos: el cliente guarda el log en `localStorage` y arranca de ahí. Si tras un F5 aparece "No se pudo recuperar la sesión" o el debate sale vacío, **eso sí es un fallo** — antes no lo era.
+- Lo que sigue sin poder recuperarse es lo que pasó **mientras un cliente estaba desconectado** más tiempo del que Ably retiene. En ese caso debe aparecer el aviso ámbar de estado incompleto; si el cliente sigue como si nada, es un fallo.
+- Si pierdes una sesión igual, abre una **nueva** (nuevo código) en vez de pelear por recuperar la vieja.
 
 **Cierra las pestañas de sesiones anteriores.** Cada sesión marca sus eventos con un `identificadorDeSesion` y el historial viejo se descarta al reconstruir el estado, pero ese filtro no alcanza a los eventos **en vivo** de una pestaña de host anterior que siga publicando sobre el mismo código de sala.
 
@@ -79,6 +80,12 @@ Si alguno reaparece es una **regresión real**, va primero en la tabla, severida
 9. **La capa instruccional no se re-expandía.** Colapsa al scrollear y debe volver a expandirse al volver arriba, aunque lo que scrollee sea un contenedor interno y no la ventana.
 10. **Voseo suelto** ("votá", "marcás") en el panel de co-moderador. Todo el texto visible va en "tú".
 
+**Blindaje de refrescos y cortes de conexión (agregado después de ese reporte):**
+
+11. **El host que refresca duplicaba medio debate.** El motor vive en la pestaña del docente: al recrearse volvía a puntuar cada argumento, a repartir cada bono, a republicar el argumento de cada bid aprobado (nodo duplicado en el grafo) y a mandar el debate a la primera fase del Programa. Además republicaba el Programa original, borrando las posturas filtradas y el perfil de puntaje de la sesión. **Cómo verificar**: ver el caso borde "host que refresca".
+12. **Oferta de turno huérfana.** Si el host refrescaba con un turno ofrecido, el temporizador moría con la pestaña y la oferta quedaba colgada para siempre. Ahora el motor nuevo la adopta y la hace expirar.
+13. **Cliente desconectado en silencio.** Un celular bloqueado unos minutos volvía y seguía recibiendo lo nuevo sin enterarse de lo que se perdió: menos nodos y menos puntos que el resto, sin ninguna señal. Ahora se avisa en pantalla y se rellena lo que el historial todavía alcance.
+
 **Arreglados en rondas anteriores (16):**
 
 - **Los 3 de la ronda previa**: puntaje imposible en salas sin co-moderador (con 2 participantes exactos el marcador debe mostrar puntos **sin que nadie valide nada**), debates mezclados por reuso del código de sala (una sesión nueva arranca con grafo vacío y marcador en cero), y "Copiar link" sin feedback (cambia a "Copiado", o muestra el link seleccionable si el portapapeles está bloqueado).
@@ -114,12 +121,16 @@ Los cuatro más valiosos de re-verificar: **turno hablado de respaldo**, **arist
 - **Posturas nuevas**: con el Programa de 12 posturas filosóficas, **tildar la casilla en la sala de espera antes de que el estudiante escriba** y esperar un segundo a que se republique el Programa. Escribir un argumento que no defienda ninguna postura de la lista. Confirmar que Groq lo detecta, que aparece el botón para proponerla al moderador, que el nombre de la postura sugerida se lee **en texto legible y no como id** (`homo scientificus`, no `homo_scientificus`), que al host le llega la propuesta y que al aceptarla la postura se suma al debate y queda tildada. Repetir con la casilla **desactivada** → debe pedir reescribir, sin opción de proponer.
 - **Turno hablado de respaldo**: con la sesión iniciada y **nadie** preparando argumento, esperar poco más de un minuto. Debe ofrecerse un turno en modo verbal a alguien que no haya hablado. Registrarlo y confirmar que el co-moderador puede calificarlo y que el puntaje se acredita.
 - **Aristas del grafo**: publicar al menos 3 conexiones y contar `.react-flow__edge` en el DOM del host y de un participante. Debe coincidir con la cantidad de conexiones. Repetir dejando la pestaña del grafo en segundo plano mientras se publican los nodos y volviendo a ella después.
+- **Host que refresca** (importante): con el debate andando, varios argumentos publicados y al menos un bid aprobado, anotar el marcador de cada participante y la cantidad de nodos del grafo. Refrescar la pestaña del host (F5) y esperar a que reconstruya. Verificar que **los puntajes son los mismos** (no el doble), que **no aparecieron nodos duplicados**, que la fase sigue siendo la misma (no volvió a la ronda 1) y que las posturas destildadas siguen fuera. Después cerrar una fase y confirmar que avanza a la que sigue, no a la primera.
+- **Host que refresca con un turno ofrecido**: refrescar justo mientras hay una oferta de turno en pantalla. La oferta debe expirar sola y la ruleta volver a girar, en vez de quedar colgada.
+- **Co-moderador que refresca**: con el debate avanzado, F5 en la pestaña del co-moderador. Debe reaparecer con el debate completo (no vacío), con su rol y su cola de validación.
+- **Desconexión larga de un participante**: en Chrome DevTools, poner la pestaña de un participante en modo offline (Network → Offline) tres o cuatro minutos mientras el debate sigue, y volver a ponerla online. Debe aparecer primero el aviso rojo de conexión caída, después el de "poniéndote al día", y —si se perdió algo— el aviso ámbar permanente de estado incompleto. Lo que pase después de reconectar debe verse normalmente.
 - **Postura distinta a la elegida**: elegir "Más mercado" y escribir un argumento claramente estatista. Confirmar el aviso y la opción de cambiarse de postura. *(Si Groq viene con poca confianza, el sistema aprueba igual — eso es deliberado, no un fallo.)*
 - **Deadlock de turnos** (regresión del bug #5): dejar expirar una oferta cuando quede un solo elegible. La ruleta debe volver a ofrecérsela.
 - **Perfil Estricto**: iniciar otra sesión con modo Estricto y confirmar que el primer argumento da **1000 puntos** y que rechazar un turno cuesta **300**.
 - **Celular vertical**: reducir el viewport de un participante a ~375px. Confirmar que el grafo se reemplaza por la **lista agrupada por postura**, que la capa instruccional queda fija arriba, que se colapsa al scrollear y que **se vuelve a expandir al volver arriba**.
 - **Celular horizontal**: viewport apaisado y bajo (~700×400). Confirmar el **layout partido**: instrucciones fijas a la izquierda, trabajo a la derecha.
-- Refrescar (F5) una pestaña de participante dentro del minuto → debe reconstruir el estado.
+- Refrescar (F5) una pestaña de participante, dentro del minuto y también pasados varios minutos → en los dos casos debe reconstruir el estado, ahora desde la copia local.
 - Conectar el mismo argumento propio dos veces → no debe permitirlo.
 - Cargar un `.json` de Programa inválido → mensaje de error, no avanza.
 

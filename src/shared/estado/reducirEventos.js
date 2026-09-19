@@ -32,7 +32,15 @@ export function estadoInicial() {
     cierresDeBids: [],
     conexiones: {},
     sugerencias: {},
-    sesion: { cerrada: false, cerradaEn: null },
+    // `identificador` distingue esta sesión de otra que haya usado el mismo código de sala
+    // (ver mensajesDeLaSesionVigente y la instantánea local).
+    sesion: { cerrada: false, cerradaEn: null, identificador: null },
+    // Acciones que el motor del host ya ejecutó, marcadas en el propio log de eventos. El
+    // motor llevaba esa cuenta solo en memoria: si el host refrescaba la pestaña a mitad del
+    // debate, arrancaba con la cuenta en blanco y volvía a puntuar cada argumento, a repartir
+    // cada bono y a republicar el argumento de cada bid aprobado. Con la marca en el estado,
+    // un motor recién creado sabe qué se hizo antes de él (ver motorDeSesion.js).
+    accionesDelMotor: {},
   };
 }
 
@@ -72,12 +80,30 @@ function conParticipanteActualizado(estado, participantId, actualizar) {
   };
 }
 
+// Cualquier evento publicado por el motor puede traer una `claveDeIdempotencia`: queda
+// registrada en el estado para que un motor nuevo (host que refrescó) no repita esa acción.
 export function reducirEventos(estado, evento) {
+  const siguiente = aplicarEvento(estado, evento);
+  const clave = evento.data?.claveDeIdempotencia;
+  if (!clave || siguiente.accionesDelMotor?.[clave]) {
+    return siguiente;
+  }
+  return {
+    ...siguiente,
+    accionesDelMotor: { ...siguiente.accionesDelMotor, [clave]: true },
+  };
+}
+
+function aplicarEvento(estado, evento) {
   const { name, data } = evento;
 
   switch (name) {
     case EVENTOS.PROGRAMA_PUBLICADO:
-      return { ...estado, programa: data.programa };
+      return {
+        ...estado,
+        programa: data.programa,
+        sesion: { ...estado.sesion, identificador: data.identificadorDeSesion ?? estado.sesion.identificador },
+      };
 
     case EVENTOS.FASE_INICIADA:
       return {
@@ -513,7 +539,7 @@ export function reducirEventos(estado, evento) {
       }));
 
     case EVENTOS.SESION_CERRADA:
-      return { ...estado, sesion: { cerrada: true, cerradaEn: data.timestamp } };
+      return { ...estado, sesion: { ...estado.sesion, cerrada: true, cerradaEn: data.timestamp } };
 
     default:
       return estado;

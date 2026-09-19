@@ -106,6 +106,31 @@ textarea {
   margin: 12px 0;
 }
 
+/* Aviso de conexión — ver AvisoDeConexion.jsx */
+
+.aviso-de-conexion {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #bae6fd;
+  background: #f0f9ff;
+  color: #075985;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.aviso-de-conexion-caida {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.aviso-de-conexion-incompleta {
+  border-color: #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+}
+
 /* Capa instruccional — "qué pasa y qué tengo que hacer", siempre visible (docs/07) */
 
 .capa-instruccional {

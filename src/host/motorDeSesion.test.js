@@ -64,6 +64,20 @@ function eventosPublicados(publicar, nombre) {
   return publicar.mock.calls.filter(([nombreDelEvento]) => nombreDelEvento === nombre).map(([, datos]) => datos);
 }
 
+// Corre un motor contra un estado y le devuelve por el canal lo que va publicando, como pasa
+// en vivo: así el estado resultante incluye las marcas de lo que el motor ya ejecutó.
+function correrMotorYRealimentar(estadoDePartida, vueltas = 3) {
+  let estado = estadoDePartida;
+  const publicar = vi.fn((name, data) => {
+    estado = reducirEventos(estado, { name, data: { timestamp: Date.now(), ...data } });
+  });
+  const motor = crearMotorDeSesion({ programa: PROGRAMA });
+  for (let vuelta = 0; vuelta < vueltas; vuelta += 1) {
+    motor.sincronizar({ estado, presencia: PRESENCIA, publicar });
+  }
+  return { estado, publicar, motor };
+}
+
 beforeEach(() => {
   vi.useFakeTimers();
 });
@@ -371,5 +385,104 @@ describe('bids aprobados', () => {
     expect(conexiones[0].targetArgumentId).toBe('arg-ana-1');
     expect(conexiones[0].tipoDeRelacion).toBe('contraargumento');
     expect(conexiones[0].porParticipanteId).toBe('luis');
+  });
+});
+
+// El motor del host vive en memoria. Si el docente refresca la pestaña a mitad del debate se
+// crea uno nuevo contra el estado reconstruido del canal, y ese motor no puede rehacer nada de
+// lo ya hecho: duplicaría puntajes, nodos del grafo y saltos de fase.
+describe('host que refresca la pestaña a mitad del debate', () => {
+  it('no vuelve a puntuar los argumentos ya puntuados', () => {
+    const { estado, publicar } = correrMotorYRealimentar(
+      estadoEnDebate([
+        evento(EVENTOS.ARGUMENTO_PUBLICADO, { argumentId: 'a1', participantId: 'ana', posicionEnRonda: 1, ronda: 1 }),
+        evento(EVENTOS.ARGUMENTO_PUBLICADO, { argumentId: 'a2', participantId: 'luis', posicionEnRonda: 1, ronda: 1 }),
+      ])
+    );
+    expect(eventosPublicados(publicar, EVENTOS.PUNTAJE_ACTUALIZADO)).toHaveLength(2);
+
+    const { publicar: publicarTrasRefrescar } = sincronizarCon(estado);
+
+    expect(eventosPublicados(publicarTrasRefrescar, EVENTOS.PUNTAJE_ACTUALIZADO)).toHaveLength(0);
+  });
+
+  it('no republica el argumento de un bid ya resuelto', () => {
+    const { estado, publicar } = correrMotorYRealimentar(
+      estadoEnDebate([
+        evento(EVENTOS.ARGUMENTO_PUBLICADO, { argumentId: 'a1', participantId: 'ana', posicionEnRonda: 1, ronda: 1 }),
+        evento(EVENTOS.BID_ENVIADO, {
+          bidId: 'b1',
+          participantId: 'luis',
+          tipoDeBid: 'desmontar',
+          argumentoObjetivoId: 'a1',
+          texto: 'Eso no se sostiene porque…',
+          ronda: 1,
+          turnoPrincipalId: 't1',
+        }),
+        evento(EVENTOS.BID_DECISION_MODERADOR, { bidId: 'b1', decisionFinal: 'aprobado' }),
+      ])
+    );
+    expect(eventosPublicados(publicar, EVENTOS.CONEXION_CREADA)).toHaveLength(1);
+
+    const { publicar: publicarTrasRefrescar } = sincronizarCon(estado);
+
+    expect(eventosPublicados(publicarTrasRefrescar, EVENTOS.ARGUMENTO_PUBLICADO)).toHaveLength(0);
+    expect(eventosPublicados(publicarTrasRefrescar, EVENTOS.CONEXION_CREADA)).toHaveLength(0);
+    expect(eventosPublicados(publicarTrasRefrescar, EVENTOS.PUNTAJE_ACTUALIZADO)).toHaveLength(0);
+  });
+
+  it('no manda el debate de vuelta a la primera fase al cerrar la siguiente', async () => {
+    // El debate va por la ronda 2; cerrarla debe llevar a la fase que sigue en el Programa, no
+    // a la ronda 1 otra vez (que es lo que hacía el contador en memoria al arrancar en -1).
+    const programaConVariasFases = {
+      ...PROGRAMA,
+      fases: [
+        { tipo: 'escritura_argumentos', ronda: 1 },
+        { tipo: 'escritura_argumentos', ronda: 2 },
+        { tipo: 'conexion_sugerida' },
+        { tipo: 'conexion_libre' },
+        { tipo: 'cierre_y_ranking' },
+      ],
+    };
+    const estado = [
+      evento(EVENTOS.PROGRAMA_PUBLICADO, { programa: programaConVariasFases }),
+      evento(EVENTOS.FASE_INICIADA, { phaseType: 'escritura_argumentos', ronda: 1 }),
+      evento(EVENTOS.FASE_CERRADA, { phaseType: 'escritura_argumentos', ronda: 1 }),
+      evento(EVENTOS.FASE_INICIADA, { phaseType: 'escritura_argumentos', ronda: 2 }),
+    ].reduce((acumulado, siguiente) => reducirEventos(acumulado, siguiente), estadoInicial());
+
+    const publicar = vi.fn();
+    const motor = crearMotorDeSesion({ programa: programaConVariasFases });
+    motor.sincronizar({ estado, presencia: PRESENCIA, publicar });
+    // La fase de escritura dispara las sugerencias de Groq antes de abrir la siguiente: sin el
+    // await, el phase.started todavía no se publicó.
+    await motor.cerrarFaseActual();
+
+    const iniciadas = eventosPublicados(publicar, EVENTOS.FASE_INICIADA);
+    expect(iniciadas).toHaveLength(1);
+    // conexion_sugerida no abre fase propia: el disparo de Groq ya ocurrió al cerrar.
+    expect(iniciadas[0]).toMatchObject({ phaseType: 'conexion_libre' });
+  });
+
+  it('adopta la oferta de turno que quedó huérfana y la hace expirar', () => {
+    // El temporizador de la oferta vivía en la pestaña que se cerró: sin adopción, la oferta
+    // queda colgada para siempre y la ruleta no vuelve a girar.
+    const estado = construirEstado([
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'ana', stanceId: 'izquierda' }),
+      evento(EVENTOS.FASE_INICIADA, { phaseType: 'escritura_argumentos', ronda: 1 }),
+      evento(EVENTOS.TURNO_OFRECIDO, {
+        turnId: 't-huerfano',
+        candidateId: 'ana',
+        ofrecidoEn: Date.now() - 60 * 1000,
+        expiraEn: Date.now() - 40 * 1000,
+        modo: 'argumento',
+      }),
+    ]);
+
+    const { publicar } = sincronizarCon(estado);
+    const expirados = eventosPublicados(publicar, EVENTOS.TURNO_EXPIRADO);
+
+    expect(expirados).toHaveLength(1);
+    expect(expirados[0].turnId).toBe('t-huerfano');
   });
 });

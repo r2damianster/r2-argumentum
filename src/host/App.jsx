@@ -14,6 +14,7 @@ import { PanelDeAvisos } from './componentes/PanelDeAvisos.jsx';
 import { InformeDelDebate } from './componentes/InformeDelDebate.jsx';
 import { PantallaDeRanking } from './componentes/PantallaDeRanking.jsx';
 import { GrafoDeArgumentos } from '../shared/componentes/GrafoDeArgumentos.jsx';
+import { AvisoDeConexion } from '../shared/componentes/AvisoDeConexion.jsx';
 import { FeedDeActividad } from '../shared/componentes/FeedDeActividad.jsx';
 
 // Credencial hardcodeada a propósito, mismo criterio que R2 Quiz (ver docs/07-acceso-y-paginas.md):
@@ -285,7 +286,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
   // Link corto para compartir (WhatsApp, etc.) — la raíz con ?sala= redirige a
   // /player.html?sala= vía vercel.json (solo en el deploy, no en `npm run dev` local).
   const urlDeIngreso = `${window.location.origin}/?sala=${codigoDeSala}`;
-  const { estado, eventos, presencia, publicar, cargando } = useEstadoDeSesion({
+  const { estado, eventos, presencia, publicar, cargando, conexion } = useEstadoDeSesion({
     clientId: 'host',
     sessionId: codigoDeSala,
   });
@@ -294,10 +295,18 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
   const [modoProyeccion, setModoProyeccion] = useState(false);
   const programaYaPublicadoRef = useRef(false);
   useEffect(() => {
-    if (!cargando && !programaYaPublicadoRef.current) {
-      programaYaPublicadoRef.current = true;
-      publicar(EVENTOS.PROGRAMA_PUBLICADO, { programa, identificadorDeSesion });
+    if (cargando || programaYaPublicadoRef.current) {
+      return;
     }
+    programaYaPublicadoRef.current = true;
+    // Si el canal ya trae el Programa de ESTA sesión, no se republica. El host guarda el
+    // Programa tal como lo cargó, sin las posturas filtradas ni el perfil de puntaje que
+    // eligió después: republicarlo al refrescar la pestaña le pisaba al debate en curso su
+    // propia configuración y devolvía al tablero las posturas que el moderador había sacado.
+    if (estado.programa && estado.sesion.identificador === identificadorDeSesion) {
+      return;
+    }
+    publicar(EVENTOS.PROGRAMA_PUBLICADO, { programa, identificadorDeSesion });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargando]);
 
@@ -308,10 +317,17 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
   // no reabrir directo esta configuración a medio hacer (ver resolverSesionInicial arriba).
   useEffect(() => {
     if (sesionIniciada) {
-      guardarSesionActiva({ programa, codigoDeSala, identificadorDeSesion, iniciada: true });
+      // Se guarda el Programa VIGENTE (el del canal, con las posturas y el perfil que eligió
+      // el moderador), no el archivo original: es el que hay que reabrir si refresca.
+      guardarSesionActiva({
+        programa: estado.programa ?? programa,
+        codigoDeSala,
+        identificadorDeSesion,
+        iniciada: true,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sesionIniciada]);
+  }, [sesionIniciada, estado.programa]);
   const mostrarRanking = estado.fase.actual?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING || estado.sesion.cerrada;
   // Una vez que el Programa se publicó al canal (ver efecto arriba), estado.programa es la
   // fuente de verdad — puede diferir del prop `programa` original si el moderador filtró
@@ -330,6 +346,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
             Salir de proyección
           </button>
         </div>
+        <AvisoDeConexion conexion={conexion} />
         <FeedDeActividad estado={estado} presencia={presencia} />
         <GrafoDeArgumentos estado={estado} programa={programaVisible} presencia={presencia} />
         <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
@@ -352,6 +369,8 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
           </button>
         </div>
       </div>
+
+      <AvisoDeConexion conexion={conexion} />
 
       <section className="tarjeta-de-programa">
         <p className="texto-de-ayuda">Programa activo</p>

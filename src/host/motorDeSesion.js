@@ -131,17 +131,31 @@ export function crearMotorDeSesion({ programa }) {
   }
   const temporizadoresDeOferta = new Map(); // turnId -> timeoutId
   const temporizadoresDeBid = new Map(); // bidId -> timeoutId
-  const argumentosYaPuntuados = new Set();
-  const validacionesYaProcesadas = new Set();
-  const rechazosYaPenalizados = new Set();
-  const intervencionesVerbalesYaPuntuadas = new Set();
-  const calificacionesVerbalesYaProcesadas = new Set();
-  const bidsYaProcesados = new Set();
-  const fasesYaAnalizadasPorGroq = new Set(); // clave: `${tipo}:${iniciadaEn}`
-  const instanciasDeAperturaYaIniciadas = new Set(); // clave: faseActual.iniciadaEn
-  const rondasDeAperturaAutoCerradas = new Set(); // clave: `${faseActual.iniciadaEn}:${ronda}`
-  const turnosConTopicoDeBidsYaCerrado = new Set();
-  let indiceDeFase = -1;
+  const ofertasYaExpiradas = new Set();
+
+  // Cada acción irrepetible del motor (puntuar un argumento, resolver un bid, cerrar una
+  // ronda) tiene una clave estable. El conjunto local cubre el lapso entre publicar y que el
+  // evento vuelva por el canal; el log del estado cubre el caso grande: un host que refresca
+  // la pestaña a mitad del debate y crea un motor nuevo, que sin esto volvía a puntuar todo
+  // y a republicar el argumento de cada bid aprobado.
+  const accionesDeEsteMotor = new Set();
+
+  function yaSeHizo(clave) {
+    return accionesDeEsteMotor.has(clave) || Boolean(contexto.estado?.accionesDelMotor?.[clave]);
+  }
+
+  // Marca la acción y devuelve un publicador que le pega la clave al PRIMER evento que emita
+  // (una acción puede publicar varios eventos, o ninguno).
+  function comenzarAccion(clave) {
+    accionesDeEsteMotor.add(clave);
+    let claveYaAdjuntada = false;
+    return function publicarDeLaAccion(nombreDeEvento, datos) {
+      const datosFinales = claveYaAdjuntada ? datos : { ...datos, claveDeIdempotencia: clave };
+      claveYaAdjuntada = true;
+      contexto.publicar(nombreDeEvento, datosFinales);
+    };
+  }
+
   let contexto = { estado: null, presencia: [], publicar: () => {} };
 
   function estaCerrada() {
@@ -162,6 +176,36 @@ export function crearMotorDeSesion({ programa }) {
 
   function limiteDePosiciones() {
     return parametrosDePuntajeVigentes().valoresBasePosicion.length;
+  }
+
+  function esLaMismaEntradaDeFase(entradaDelPrograma, faseDelEstado) {
+    return (
+      entradaDelPrograma.tipo === faseDelEstado.tipo &&
+      (entradaDelPrograma.ronda ?? null) === (faseDelEstado.ronda ?? null)
+    );
+  }
+
+  // En qué punto del Programa está el debate, deducido del log de fases y no de un contador en
+  // memoria. Con el contador, un host que refrescaba la pestaña arrancaba de nuevo en -1 y la
+  // siguiente fase que cerrara mandaba el debate de vuelta a la primera fase del Programa.
+  function indiceDeLaFaseMasReciente() {
+    const { estado } = contexto;
+    const recorridas = [...(estado?.fase.historial ?? [])];
+    if (estado?.fase.actual) {
+      recorridas.push(estado.fase.actual);
+    }
+
+    let indice = -1;
+    for (const recorrida of recorridas) {
+      indice += 1;
+      while (indice < programa.fases.length && !esLaMismaEntradaDeFase(programa.fases[indice], recorrida)) {
+        indice += 1;
+      }
+      if (indice >= programa.fases.length) {
+        return programa.fases.length;
+      }
+    }
+    return indice;
   }
 
   function ofrecerSiguienteTurnoSiHaceFalta() {
@@ -224,6 +268,34 @@ export function crearMotorDeSesion({ programa }) {
     temporizadoresDeOferta.set(turnId, timeoutId);
   }
 
+  // El temporizador que hace expirar una oferta vive en memoria: si el host refresca la
+  // pestaña con un turno ofrecido, ese temporizador se pierde y la oferta queda colgada para
+  // siempre — nadie tiene la palabra y la ruleta no vuelve a girar. El motor nuevo adopta la
+  // oferta que encuentra en el estado y la hace expirar en el plazo que le quedaba.
+  function vigilarOfertaHuerfana() {
+    const { estado, publicar } = contexto;
+    const oferta = estado?.turnos.ofertaActiva;
+    if (!oferta || temporizadoresDeOferta.has(oferta.turnId) || ofertasYaExpiradas.has(oferta.turnId)) {
+      return;
+    }
+
+    const milisegundosRestantes = (oferta.expiraEn ?? 0) - Date.now();
+    if (milisegundosRestantes <= 0) {
+      ofertasYaExpiradas.add(oferta.turnId);
+      publicar(EVENTOS.TURNO_EXPIRADO, { turnId: oferta.turnId, candidateId: oferta.candidateId });
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      temporizadoresDeOferta.delete(oferta.turnId);
+      if (contexto.estado?.turnos.ofertaActiva?.turnId === oferta.turnId) {
+        ofertasYaExpiradas.add(oferta.turnId);
+        contexto.publicar(EVENTOS.TURNO_EXPIRADO, { turnId: oferta.turnId, candidateId: oferta.candidateId });
+      }
+    }, milisegundosRestantes);
+    temporizadoresDeOferta.set(oferta.turnId, timeoutId);
+  }
+
   // Turno hablado sin argumento escrito. Se ofrece solo cuando ya no queda ningún argumento
   // preparado por exponer y todavía hay gente que no tomó la palabra ni una vez.
   function ofrecerTurnoVerbal(candidatoId) {
@@ -246,7 +318,7 @@ export function crearMotorDeSesion({ programa }) {
   // Rechazar el turno cuesta puntos, y al estudiante se le avisa en el propio botón antes de
   // confirmar (docs/04). El descuento sale de la fórmula única, escalado por el perfil.
   function procesarRechazosDeTurno() {
-    const { estado, publicar } = contexto;
+    const { estado } = contexto;
     if (!estado) {
       return;
     }
@@ -254,10 +326,11 @@ export function crearMotorDeSesion({ programa }) {
     const penalidad = calcularPenalidadPorRechazoDeTurno(parametrosDePuntajeVigentes());
 
     for (const { turnId, participantId } of estado.turnos.rechazos) {
-      if (rechazosYaPenalizados.has(turnId)) {
+      const clave = `penalidad-rechazo:${turnId}`;
+      if (yaSeHizo(clave)) {
         continue;
       }
-      rechazosYaPenalizados.add(turnId);
+      const publicar = comenzarAccion(clave);
 
       publicar(EVENTOS.PUNTAJE_ACTUALIZADO, {
         participantId,
@@ -273,7 +346,7 @@ export function crearMotorDeSesion({ programa }) {
   // argumento: no depende de que haya co-moderadores (ver el bug de las salas de 2). La
   // calificación posterior del co-moderador ajusta hacia arriba o hacia abajo.
   function procesarIntervencionesVerbales() {
-    const { estado, publicar } = contexto;
+    const { estado } = contexto;
     if (!estado) {
       return;
     }
@@ -281,10 +354,11 @@ export function crearMotorDeSesion({ programa }) {
     const parametros = parametrosDePuntajeVigentes();
 
     for (const intervencion of Object.values(estado.intervencionesVerbales)) {
-      if (intervencionesVerbalesYaPuntuadas.has(intervencion.intervencionId)) {
+      const clave = `puntaje-intervencion:${intervencion.intervencionId}`;
+      if (yaSeHizo(clave)) {
         continue;
       }
-      intervencionesVerbalesYaPuntuadas.add(intervencion.intervencionId);
+      const publicar = comenzarAccion(clave);
 
       const puntaje = calcularPuntajeDeTurnoVerbal(parametros);
       publicar(EVENTOS.PUNTAJE_ACTUALIZADO, {
@@ -297,10 +371,11 @@ export function crearMotorDeSesion({ programa }) {
     }
 
     for (const intervencion of Object.values(estado.intervencionesVerbales)) {
-      if (!intervencion.calificacion || calificacionesVerbalesYaProcesadas.has(intervencion.intervencionId)) {
+      const clave = `calificacion-intervencion:${intervencion.intervencionId}`;
+      if (!intervencion.calificacion || yaSeHizo(clave)) {
         continue;
       }
-      calificacionesVerbalesYaProcesadas.add(intervencion.intervencionId);
+      const publicar = comenzarAccion(clave);
 
       const ajuste = ajustePorCalidadDeIntervencion(intervencion.calificacion.calidad, parametros);
       if (ajuste === 0) {
@@ -322,17 +397,18 @@ export function crearMotorDeSesion({ programa }) {
   // sorteo correctamente asigna 0) nadie podía validar nada y el marcador quedaba en 0 para
   // todos, para siempre. Bug real reportado en prueba en vivo.
   function procesarArgumentosNuevos() {
-    const { estado, publicar } = contexto;
+    const { estado } = contexto;
     if (!estado || !sesionIniciada()) {
       return;
     }
     const aplicarDelta = crearAcumuladorDePuntaje(estado);
 
     for (const argumento of Object.values(estado.argumentos)) {
-      if (argumentosYaPuntuados.has(argumento.argumentId)) {
+      const clave = `puntaje-argumento:${argumento.argumentId}`;
+      if (yaSeHizo(clave)) {
         continue;
       }
-      argumentosYaPuntuados.add(argumento.argumentId);
+      const publicar = comenzarAccion(clave);
 
       const puntajeBase = calcularPuntajeDeArgumento(
         {
@@ -356,7 +432,7 @@ export function crearMotorDeSesion({ programa }) {
   // Si quien validó fue el moderador desde su consola (respaldo cuando no hay co-moderadores),
   // la revisión vale para el registro pero no reparte bonos — el host no es participante.
   function procesarValidacionesDeCoModerador() {
-    const { estado, publicar } = contexto;
+    const { estado } = contexto;
     if (!estado) {
       return;
     }
@@ -364,10 +440,11 @@ export function crearMotorDeSesion({ programa }) {
     const PUNTAJE_DE_COMODERADOR = calcularBonosDeCoModerador(parametrosDePuntajeVigentes());
 
     for (const argumento of Object.values(estado.argumentos)) {
-      if (!argumento.validacion || validacionesYaProcesadas.has(argumento.argumentId)) {
+      const clave = `validacion-comoderador:${argumento.argumentId}`;
+      if (!argumento.validacion || yaSeHizo(clave)) {
         continue;
       }
-      validacionesYaProcesadas.add(argumento.argumentId);
+      const publicar = comenzarAccion(clave);
 
       const { coModeradorId, tipoFinal, faltaMarcada, nota } = argumento.validacion;
       if (estado.participantes[coModeradorId]?.rol !== 'co_moderador') {
@@ -407,7 +484,7 @@ export function crearMotorDeSesion({ programa }) {
   }
 
   function procesarBidsResueltos() {
-    const { estado, publicar } = contexto;
+    const { estado } = contexto;
     if (!estado) {
       return;
     }
@@ -415,10 +492,11 @@ export function crearMotorDeSesion({ programa }) {
     const PUNTAJE_DE_COMODERADOR = calcularBonosDeCoModerador(parametrosDePuntajeVigentes());
 
     for (const bid of Object.values(estado.bids)) {
-      if (!bid.decisionFinal || bidsYaProcesados.has(bid.bidId)) {
+      const clave = `bid-resuelto:${bid.bidId}`;
+      if (!bid.decisionFinal || yaSeHizo(clave)) {
         continue;
       }
-      bidsYaProcesados.add(bid.bidId);
+      const publicar = comenzarAccion(clave);
 
       if (bid.decisionFinal === 'aprobado') {
         const tipoDeclarado = bid.tipoDeBid === TIPOS_DE_BID.DESMONTAR ? 'contraargumento' : 'refuerzo';
@@ -440,7 +518,7 @@ export function crearMotorDeSesion({ programa }) {
         });
         // El puntaje base de este argumento lo acredita procesarArgumentosNuevos, igual que a
         // cualquier otro (misma fórmula de posición/ronda/vía) — publicarlo también acá lo
-        // puntuaba dos veces, porque ese argumentId no estaba en `argumentosYaPuntuados`.
+        // puntuaba dos veces, porque ese argumentId no tenía todavía su clave de idempotencia.
         // Bug real reportado en prueba en vivo.
 
         // El bid ya conoce el objetivo exacto (no hace falta esperar una sugerencia de Groq
@@ -514,15 +592,15 @@ export function crearMotorDeSesion({ programa }) {
     }
 
     for (const [turnoPrincipalId, bidsDelTurno] of bidsPendientesPorTurno) {
-      if (turnosConTopicoDeBidsYaCerrado.has(turnoPrincipalId)) {
+      const clave = `topico-bids:${turnoPrincipalId}`;
+      if (yaSeHizo(clave)) {
         continue;
       }
       const yaNoQuedanPendientes = bidsDelTurno.every(
         (bid) => bid.estado === 'expirado' || Object.keys(bid.votos).length >= numeroDeCoModeradores
       );
       if (yaNoQuedanPendientes) {
-        turnosConTopicoDeBidsYaCerrado.add(turnoPrincipalId);
-        cerrarTopicoDeBids(turnoPrincipalId);
+        cerrarTopicoDeBids(turnoPrincipalId, comenzarAccion(clave));
       }
     }
   }
@@ -553,7 +631,7 @@ export function crearMotorDeSesion({ programa }) {
   // argumento aprobado en ninguna ronda = sin puntaje y fuera de la ruleta de turnos
   // (ver elegirCandidatoParaTurno).
   function gestionarFaseDeAperturaSiHaceFalta() {
-    const { estado, publicar } = contexto;
+    const { estado } = contexto;
     const faseActual = estado.fase.actual;
     if (!faseActual || faseActual.tipo !== TIPOS_DE_FASE.APERTURA_SIMULTANEA) {
       return;
@@ -564,8 +642,9 @@ export function crearMotorDeSesion({ programa }) {
       return;
     }
 
-    if (!instanciasDeAperturaYaIniciadas.has(faseActual.iniciadaEn)) {
-      instanciasDeAperturaYaIniciadas.add(faseActual.iniciadaEn);
+    const claveDeInicio = `apertura-iniciada:${faseActual.iniciadaEn}`;
+    if (!yaSeHizo(claveDeInicio)) {
+      const publicar = comenzarAccion(claveDeInicio);
       const entradaDeFase = programa.fases.find((fase) => fase.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA);
       const duracionMs = (entradaDeFase?.duracionMin ?? 5) * 60 * 1000;
       const iniciadaEn = Date.now();
@@ -577,18 +656,17 @@ export function crearMotorDeSesion({ programa }) {
       return;
     }
 
-    const claveDeRonda = `${faseActual.iniciadaEn}:${estado.apertura.ronda}`;
-    if (rondasDeAperturaAutoCerradas.has(claveDeRonda)) {
+    const claveDeRonda = `apertura-ronda-cerrada:${faseActual.iniciadaEn}:${estado.apertura.ronda}`;
+    if (yaSeHizo(claveDeRonda)) {
       return;
     }
     const todosListos = elegibles.every((participantId) => tieneArgumentoDeApertura(estado, participantId));
     if (todosListos) {
       // Nadie quedó pendiente — se cierra sola, sin molestar al host con una pregunta vacía.
-      // Guardado en el Set ANTES de publicar: publicar es async (viaja por Ably), así que sin
+      // La acción se marca ANTES de publicar: publicar es async (viaja por Ably), así que sin
       // esto varios ticks de sincronizar() de por medio publicarían el mismo cierre repetidas
       // veces hasta que estado.apertura.cerrada refleje la vuelta del evento.
-      rondasDeAperturaAutoCerradas.add(claveDeRonda);
-      cerrarRondaDeApertura();
+      cerrarRondaDeApertura({ publicarDeLaAccion: comenzarAccion(claveDeRonda) });
     }
   }
 
@@ -596,8 +674,9 @@ export function crearMotorDeSesion({ programa }) {
   // definitivo — solo pausa a esperar la decisión de dar o no la segunda oportunidad (ver
   // `esperandoSegundaOportunidad` en el reducer). En ronda 2, o si no quedan pendientes, o si
   // `forzarFinal` viene true (el host declinó la segunda oportunidad), es el corte definitivo.
-  function cerrarRondaDeApertura({ forzarFinal = false } = {}) {
-    const { estado, publicar } = contexto;
+  function cerrarRondaDeApertura({ forzarFinal = false, publicarDeLaAccion = null } = {}) {
+    const { estado } = contexto;
+    const publicar = publicarDeLaAccion ?? contexto.publicar;
     if (!estado.apertura) {
       return;
     }
@@ -640,6 +719,7 @@ export function crearMotorDeSesion({ programa }) {
     if (!estado || estaCerrada()) {
       return;
     }
+    vigilarOfertaHuerfana();
     ofrecerSiguienteTurnoSiHaceFalta();
     procesarArgumentosNuevos();
     procesarValidacionesDeCoModerador();
@@ -686,16 +766,16 @@ export function crearMotorDeSesion({ programa }) {
     // participante con otro distinto, y el ranking/informe los mostraban en columnas
     // contradictorias. Bug real reportado en prueba en vivo.
 
-    indiceDeFase = 0;
-    const primeraFase = programa.fases[indiceDeFase];
+    const primeraFase = programa.fases[0];
     publicar(EVENTOS.FASE_INICIADA, { phaseType: primeraFase.tipo, ronda: primeraFase.ronda ?? null });
   }
 
   // Manda TODO el pool de argumentos acumulado hasta ahora (no solo los de la fase que se
   // cierra) — así Groq también puede encontrar conexiones entre una reacción nueva y un
   // argumento de la fase de apertura, no solo entre argumentos de la misma fase.
-  async function dispararSugerenciasDeConexion() {
-    const { estado, publicar } = contexto;
+  async function dispararSugerenciasDeConexion(publicarDeLaAccion = null) {
+    const { estado } = contexto;
+    const publicar = publicarDeLaAccion ?? contexto.publicar;
     const todosLosArgumentos = Object.values(estado.argumentos);
     if (todosLosArgumentos.length < 2) {
       return;
@@ -736,34 +816,38 @@ export function crearMotorDeSesion({ programa }) {
     if (!faseActual) {
       return;
     }
+    // Se resuelve ANTES del await: mientras Groq responde, el phase.closed de abajo puede
+    // volver por el canal y dejar `fase.actual` en null, y entonces el índice deducido del log
+    // ya no sería el de la fase que se está cerrando.
+    let indiceSiguiente = indiceDeLaFaseMasReciente() + 1;
+
     publicar(EVENTOS.FASE_CERRADA, { phaseType: faseActual.tipo, ronda: faseActual.ronda });
 
-    const claveDeAnalisis = `${faseActual.tipo}:${faseActual.iniciadaEn}`;
+    const claveDeAnalisis = `sugerencias-groq:${faseActual.tipo}:${faseActual.iniciadaEn}`;
     const esFaseQueDisparaGroq =
       faseActual.tipo === TIPOS_DE_FASE.ESCRITURA_ARGUMENTOS || faseActual.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA;
-    if (esFaseQueDisparaGroq && !fasesYaAnalizadasPorGroq.has(claveDeAnalisis)) {
-      fasesYaAnalizadasPorGroq.add(claveDeAnalisis);
-      await dispararSugerenciasDeConexion();
+    if (esFaseQueDisparaGroq && !yaSeHizo(claveDeAnalisis)) {
+      await dispararSugerenciasDeConexion(comenzarAccion(claveDeAnalisis));
     }
 
-    indiceDeFase += 1;
     while (
-      indiceDeFase < programa.fases.length &&
-      programa.fases[indiceDeFase].tipo === TIPOS_DE_FASE.CONEXION_SUGERIDA
+      indiceSiguiente < programa.fases.length &&
+      programa.fases[indiceSiguiente].tipo === TIPOS_DE_FASE.CONEXION_SUGERIDA
     ) {
       // El disparo de Groq ya ocurrió automáticamente arriba (ver decisión de diseño #4
       // del plan) — esta entrada de `fases` no necesita su propio phase.started.
-      indiceDeFase += 1;
+      indiceSiguiente += 1;
     }
 
-    if (indiceDeFase < programa.fases.length) {
-      const siguienteFase = programa.fases[indiceDeFase];
+    if (indiceSiguiente < programa.fases.length) {
+      const siguienteFase = programa.fases[indiceSiguiente];
       publicar(EVENTOS.FASE_INICIADA, { phaseType: siguienteFase.tipo, ronda: siguienteFase.ronda ?? null });
     }
   }
 
-  function cerrarTopicoDeBids(turnoPrincipalId) {
-    const { estado, publicar } = contexto;
+  function cerrarTopicoDeBids(turnoPrincipalId, publicarDeLaAccion = null) {
+    const { estado } = contexto;
+    const publicar = publicarDeLaAccion ?? contexto.publicar;
     const listaDeBidIds = Object.values(estado.bids)
       .filter((bid) => bid.turnoPrincipalId === turnoPrincipalId && bid.estado !== 'resuelto')
       .map((bid) => bid.bidId);

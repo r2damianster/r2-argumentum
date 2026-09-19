@@ -13,6 +13,7 @@ import { FormularioDeArgumento } from './componentes/FormularioDeArgumento.jsx';
 import { GrafoDeArgumentos } from '../shared/componentes/GrafoDeArgumentos.jsx';
 import { FeedDeActividad } from '../shared/componentes/FeedDeActividad.jsx';
 import { CapaInstruccional } from '../shared/componentes/CapaInstruccional.jsx';
+import { AvisoDeConexion } from '../shared/componentes/AvisoDeConexion.jsx';
 import { PanelDeConexionLibre } from './componentes/PanelDeConexionLibre.jsx';
 import { PanelDeSugerencias } from './componentes/PanelDeSugerencias.jsx';
 import { PanelDeBid } from './componentes/PanelDeBid.jsx';
@@ -157,7 +158,7 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
   // marca `ingresoConfirmado` en el reducer, no la presencia de Ably. Entrar antes de confirmar
   // es lo que le permite al host ver, en la sala de configuración previa, quién está conectado
   // pero todavía escribiendo (ver ListaDeParticipantes.jsx y PanelDeAvisos.jsx).
-  const { estado, presencia, publicar, cargando } = useEstadoDeSesion({
+  const { estado, presencia, publicar, cargando, conexion } = useEstadoDeSesion({
     clientId: participantId,
     sessionId: codigoDeSala,
     datosDePresencia: { nombre, emoji },
@@ -217,6 +218,7 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
         <p className="texto-de-ayuda">
           {emoji} {nombre} · {programa.temaCentral}
         </p>
+        <AvisoDeConexion conexion={conexion} />
         <IngresoConArgumento
           estado={estado}
           programa={programa}
@@ -244,6 +246,8 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
         )}
         · {miPuntaje} pts
       </p>
+
+      <AvisoDeConexion conexion={conexion} />
 
       <div className="layout-de-participante">
         <CapaInstruccional estado={estado} presencia={presencia} participantId={participantId} />

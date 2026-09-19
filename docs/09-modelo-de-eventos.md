@@ -256,3 +256,48 @@ Al recibirlo, cada cliente vuelca su estado derivado (reconstruido desde el log 
 ## Principio de reconstrucción de estado
 
 Ningún cliente confía en "memoria propia" no verificable: el grafo argumental, los puntajes y el estado de cada turno son siempre una función pura del log de eventos recibido hasta el momento (`estado = reduce(eventos, estadoInicial)`). Esto permite que un participante que se reconecta a mitad de sesión reconstruya el estado completo simplemente pidiendo el historial del canal a Ably (dentro de la ventana de retención), sin necesitar una base de datos.
+
+## Resistencia a refrescos y cortes de conexión
+
+El motor del host es la autoridad única y vive en la memoria de su pestaña. Si el docente
+refresca o se le cierra el navegador, se crea un motor nuevo contra el estado reconstruido del
+canal — y sin defensa, ese motor repetía todo lo que el anterior ya había hecho: volvía a
+puntuar cada argumento, a repartir cada bono de co-moderación, a republicar el argumento de
+cada bid aprobado (nodos duplicados en el grafo) y a mandar el debate de vuelta a la primera
+fase del Programa.
+
+Por eso **cada acción irrepetible del motor viaja con una `claveDeIdempotencia`** en el primer
+evento que publica, y el reducer la registra en `estado.accionesDelMotor`:
+
+```
+puntaje-argumento:<argumentId>
+validacion-comoderador:<argumentId>
+penalidad-rechazo:<turnId>
+puntaje-intervencion:<intervencionId>
+calificacion-intervencion:<intervencionId>
+bid-resuelto:<bidId>
+topico-bids:<turnoPrincipalId>
+sugerencias-groq:<tipoDeFase>:<iniciadaEn>
+apertura-iniciada:<iniciadaEn>
+apertura-ronda-cerrada:<iniciadaEn>:<ronda>
+```
+
+Un motor nuevo consulta esas marcas antes de actuar. En la misma línea:
+
+- **El índice de fase se deduce del log** (`fase.historial` + `fase.actual` contra
+  `programa.fases`), no de un contador en memoria que al refrescar arrancaba en −1.
+- **El motor adopta la oferta de turno que encuentre huérfana**: el temporizador que la hace
+  expirar vivía en la pestaña anterior, así que sin esto la oferta quedaba colgada para siempre
+  y la ruleta no volvía a girar.
+- **El host no republica el Programa al reconectar** si el canal ya trae el de esta sesión: lo
+  que tiene guardado es el archivo original, sin las posturas filtradas ni el perfil de puntaje
+  que eligió, y republicarlo le pisaba al debate su propia configuración.
+
+Del lado del cliente (cualquiera: participante, co-moderador o host):
+
+- **Copia local del log en `localStorage`** por sala (`instantaneaLocal.js`), que se usa como
+  punto de partida al abrir. Un F5 ya no depende de que el historial de Ably siga vivo.
+- **Recuperación al reconectar**: se vuelve a leer el historial y se aplica lo que falte; los
+  mensajes ya vistos se descartan por id, así que nunca se pisa lo que el cliente ya tenía.
+- **Aviso en pantalla** cuando la conexión se cae, mientras se pone al día, y —de forma
+  permanente— si quedó un hueco que ya nadie puede recuperar.
