@@ -14,7 +14,7 @@
   "posturas": [
     { "id": "libertario", "etiqueta": "Libre albedrío existe", "color": "#2a9d8f" },
     { "id": "determinista", "etiqueta": "Todo está determinado", "color": "#e76f51" },
-    { "id": "compatibilista", "etiqueta": "Matizada / compatibilista", "color": "#8a8a8a" }
+    { "id": "compatibilista", "etiqueta": "Matizada / compatibilista", "color": "#8a8a8a", "esMatizada": true }
   ],
   "asignacionPostura": "aleatoria",
   "permiteCambioPostura": false,

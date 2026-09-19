@@ -13,6 +13,10 @@ export function combinarParticipantesConPresencia(estado, presencia) {
       stanceId: participanteDelReducer?.stanceId ?? null,
       turnosPrincipalesAceptados: participanteDelReducer?.turnosPrincipalesAceptados ?? 0,
       rechazosAcumulados: participanteDelReducer?.rechazosAcumulados ?? 0,
+      // rechazosAcumulados es la RACHA (vuelve a 0 al aceptar un turno); el total sale del log.
+      turnosRechazadosEnTotal: (estado.turnos.rechazos ?? []).filter(
+        (rechazo) => rechazo.participantId === presente.participantId
+      ).length,
       posicionesCompletadas: participanteDelReducer?.posicionesCompletadas ?? 0,
       puntajeTotal: participanteDelReducer?.puntajeTotal ?? 0,
       ingresoConfirmado: participanteDelReducer?.ingresoConfirmado ?? false,

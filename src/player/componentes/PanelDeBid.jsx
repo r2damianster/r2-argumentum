@@ -10,6 +10,7 @@ export function PanelDeBid({ estado, participantId, turnoEnCurso, publicar }) {
   const [tipoDeBid, setTipoDeBid] = useState(TIPOS_DE_BID.DESMONTAR);
   const [argumentoObjetivoId, setArgumentoObjetivoId] = useState('');
   const [texto, setTexto] = useState('');
+  const [avisoDeCampoFaltante, setAvisoDeCampoFaltante] = useState('');
 
   const argumentosDelTurno = obtenerArgumentosDelTurnoEnCurso(estado);
   const bidsDeEsteTurno = Object.values(estado.bids).filter(
@@ -18,9 +19,15 @@ export function PanelDeBid({ estado, participantId, turnoEnCurso, publicar }) {
 
   function manejarEnvio(evento) {
     evento.preventDefault();
-    if (!texto.trim() || !argumentoObjetivoId) {
+    if (!argumentoObjetivoId) {
+      setAvisoDeCampoFaltante('Elige el argumento objetivo antes de lanzar el bid.');
       return;
     }
+    if (!texto.trim()) {
+      setAvisoDeCampoFaltante('Escribe tu intervención antes de lanzar el bid.');
+      return;
+    }
+    setAvisoDeCampoFaltante('');
     publicar(EVENTOS.BID_ENVIADO, {
       bidId: generarId('bid'),
       participantId,
@@ -80,6 +87,7 @@ export function PanelDeBid({ estado, participantId, turnoEnCurso, publicar }) {
             Tu intervención (es el texto final si se aprueba)
             <textarea value={texto} onChange={(evento) => setTexto(evento.target.value)} rows={3} />
           </label>
+          {avisoDeCampoFaltante && <p className="mensaje-de-error">{avisoDeCampoFaltante}</p>}
           <button type="submit">Lanzar bid</button>
         </form>
       )}

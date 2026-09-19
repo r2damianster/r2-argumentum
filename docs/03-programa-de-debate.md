@@ -29,7 +29,8 @@ instruccionesParaEstudiantes
 posturas: [
   { id, etiqueta: "A favor", color },
   { id, etiqueta: "En contra", color }
-  // opcional: postura "Matizada / condicional"
+  // opcional: postura "Matizada / condicional", marcada con esMatizada: true — el validador
+  // no le contradice la postura aunque el argumento suene a uno de los polos
 ]
 asignacionPostura: "libre" | "aleatoria" | "por_grupo"
 permiteCambioPostura: boolean   // habilita mecánica "defiende lo contrario" (fase futura)

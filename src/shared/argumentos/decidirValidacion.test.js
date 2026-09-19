@@ -136,3 +136,31 @@ describe('casos límite: ante la duda, aprueba', () => {
     expect(resultado.posturaDetectada).toBe('derecha');
   });
 });
+
+describe('postura matizada', () => {
+  const POSTURAS_CON_MATIZADA = [
+    ...POSTURAS,
+    { id: 'matizada', etiqueta: 'Matizada / condicional', esMatizada: true },
+  ];
+
+  it('no se contradice a quien eligió la postura matizada, aunque Groq detecte otra con seguridad', () => {
+    const resultado = decidirValidacion({
+      resultadoDeGroq: respuestaDeGroq({ posturaDetectada: 'derecha', confianza: 0.9 }),
+      stanceElegido: 'matizada',
+      posturas: POSTURAS_CON_MATIZADA,
+    });
+
+    expect(resultado.decision).toBe(DECISIONES.APROBADO);
+    expect(resultado.posturaDetectada).toBe('derecha');
+  });
+
+  it('a las posturas que no son matizadas se les sigue contradiciendo', () => {
+    const resultado = decidirValidacion({
+      resultadoDeGroq: respuestaDeGroq({ posturaDetectada: 'derecha', confianza: 0.9 }),
+      stanceElegido: 'izquierda',
+      posturas: POSTURAS_CON_MATIZADA,
+    });
+
+    expect(resultado.decision).toBe(DECISIONES.POSTURA_DISTINTA);
+  });
+});

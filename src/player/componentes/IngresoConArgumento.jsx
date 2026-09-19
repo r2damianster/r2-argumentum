@@ -31,6 +31,9 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
   const [confirmando, setConfirmando] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [ultimaRespuestaDeGroq, setUltimaRespuestaDeGroq] = useState(null);
+  // La propuesta de postura nueva que este participante le mandó al moderador, con el texto que
+  // la motivó, para poder reaccionar cuando el moderador responde.
+  const [propuestaEnviada, setPropuestaEnviada] = useState(null);
 
   // Mientras no hayas escrito nada, la postura asignada se recalcula con la sala al día: los
   // primeros en abrir la pantalla la veían vacía y todos sorteaban contra el mismo conteo en
@@ -48,6 +51,30 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [asignacionEsLibre, texto, estado.participantes, posturas, participantesEnLaSala.join(',')]);
+
+  // Respuesta del moderador a la postura propuesta. Sin esto la pantalla se quedaba en "espera
+  // su respuesta" para siempre y, aunque la postura se sumaba a la lista, nunca se le asignaba a
+  // quien la propuso (reporte de prueba en vivo).
+  const propuestaDelEstado = propuestaEnviada ? estado.posturasPropuestas?.[propuestaEnviada.propuestaId] : null;
+  const decisionDelModerador = propuestaDelEstado?.decision ?? null;
+
+  useEffect(() => {
+    if (decisionDelModerador === 'aceptada' && propuestaDelEstado?.stanceId) {
+      setStanceElegido(propuestaDelEstado.stanceId);
+      // Su argumento ya había pasado la revisión de forma: solo faltaba la postura. Si lo
+      // editó mientras esperaba, tiene que volver a revisarlo.
+      setResultado(
+        texto === propuestaEnviada.texto ? { decision: DECISIONES.APROBADO, mensaje: '', sugerencia: '' } : null
+      );
+    } else if (decisionDelModerador === 'rechazada') {
+      setResultado({
+        decision: 'propuesta_rechazada',
+        mensaje: 'El moderador no aceptó la postura que propusiste.',
+        sugerencia: 'Reescribe tu argumento defendiendo una de las posturas que ya existen.',
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [decisionDelModerador]);
 
   const posturaElegida = posturas.find((postura) => postura.id === stanceElegido);
   const estaAprobado = resultado?.decision === DECISIONES.APROBADO;
@@ -135,8 +162,10 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
   }
 
   function proponerPosturaNueva() {
+    const propuestaId = generarId('propuesta');
+    setPropuestaEnviada({ propuestaId, texto });
     publicar(EVENTOS.POSTURA_PROPUESTA, {
-      propuestaId: generarId('propuesta'),
+      propuestaId,
       participantId,
       nombre,
       emoji,
@@ -221,6 +250,12 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
               </button>
             )}
           </div>
+        )}
+
+        {decisionDelModerador === 'aceptada' && posturaElegida && (
+          <p className="mensaje-de-exito">
+            El moderador aceptó tu postura «{posturaElegida.etiqueta}» y ya quedó asignada.
+          </p>
         )}
 
         {estaAprobado && (

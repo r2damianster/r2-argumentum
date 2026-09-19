@@ -35,17 +35,27 @@ export function PrepararArgumento({ estado, programa, participantId, publicar })
   const [texto, setTexto] = useState('');
   const [revisando, setRevisando] = useState(false);
   const [resultado, setResultado] = useState(null);
+  const [avisoDeCampoFaltante, setAvisoDeCampoFaltante] = useState('');
 
   const requiereObjetivo = TIPOS_QUE_REQUIEREN_OBJETIVO.includes(tipoDeclarado);
-  const argumentosExistentes = Object.values(estado.argumentos);
+  // Se responde a argumentos ajenos: apuntar a uno propio no tiene sentido como réplica.
+  const argumentosExistentes = Object.values(estado.argumentos).filter(
+    (argumento) => argumento.participantId !== participantId
+  );
   const posicionEnRonda = siguientePosicionParaParticipante(estado, participantId);
   const yaTengoUnoListo = Boolean(estado.participantes[participantId]?.argumentoListo);
   const stanceId = estado.participantes[participantId]?.stanceId ?? null;
 
   async function revisarYPreparar() {
-    if (!texto.trim() || (requiereObjetivo && !argumentoObjetivoId)) {
+    if (requiereObjetivo && !argumentoObjetivoId) {
+      setAvisoDeCampoFaltante('Elige el argumento al que apunta antes de revisar.');
       return;
     }
+    if (!texto.trim()) {
+      setAvisoDeCampoFaltante('Escribe tu argumento antes de revisar.');
+      return;
+    }
+    setAvisoDeCampoFaltante('');
     setRevisando(true);
 
     let respuesta;
@@ -80,19 +90,34 @@ export function PrepararArgumento({ estado, programa, participantId, publicar })
 
   // Al llegar el turno, el texto ya revisado se publica tal cual: no se vuelve a validar.
   function exponerArgumento(turnId) {
+    const argumentId = generarId('argumento');
+    const objetivoElegido = requiereObjetivo ? argumentoObjetivoId : null;
     publicar(EVENTOS.ARGUMENTO_PUBLICADO, {
-      argumentId: generarId('argumento'),
+      argumentId,
       participantId,
       turnId,
       ronda: estado.fase.actual?.ronda ?? 1,
       posicionEnRonda,
       tipoDeclarado,
-      argumentoObjetivoId: requiereObjetivo ? argumentoObjetivoId : null,
+      argumentoObjetivoId: objetivoElegido,
       texto,
       stanceId,
       viaCoModerador: false,
     });
+    // El objetivo ya se eligió al preparar el argumento: se publica la arista de una vez, sin
+    // esperar una sugerencia de Groq ni que el participante conecte a mano (igual que en un bid
+    // aprobado). Sin esto el nodo quedaba suelto en la fila raíz del grafo.
+    if (objetivoElegido) {
+      publicar(EVENTOS.CONEXION_CREADA, {
+        linkId: generarId('conexion'),
+        sourceArgumentId: argumentId,
+        targetArgumentId: objetivoElegido,
+        tipoDeRelacion: tipoDeclarado,
+        porParticipanteId: participantId,
+      });
+    }
     setTexto('');
+    setArgumentoObjetivoId('');
     setResultado(null);
   }
 
@@ -148,7 +173,13 @@ export function PrepararArgumento({ estado, programa, participantId, publicar })
       {requiereObjetivo && (
         <label>
           Argumento al que apunta
-          <select value={argumentoObjetivoId} onChange={(evento) => setArgumentoObjetivoId(evento.target.value)}>
+          <select
+            value={argumentoObjetivoId}
+            onChange={(evento) => {
+              setArgumentoObjetivoId(evento.target.value);
+              setAvisoDeCampoFaltante('');
+            }}
+          >
             <option value="">Elige uno…</option>
             {argumentosExistentes.map((argumento) => (
               <option key={argumento.argumentId} value={argumento.argumentId}>
@@ -167,6 +198,7 @@ export function PrepararArgumento({ estado, programa, participantId, publicar })
           onChange={(evento) => {
             setTexto(evento.target.value);
             setResultado(null);
+            setAvisoDeCampoFaltante('');
           }}
         />
       </label>
@@ -178,7 +210,9 @@ export function PrepararArgumento({ estado, programa, participantId, publicar })
         </div>
       )}
 
-      <button type="button" disabled={revisando || !texto.trim()} onClick={revisarYPreparar}>
+      {avisoDeCampoFaltante && <p className="mensaje-de-error">{avisoDeCampoFaltante}</p>}
+
+      <button type="button" disabled={revisando} onClick={revisarYPreparar}>
         {revisando ? 'Revisando…' : 'Revisar y ponerme en la ruleta'}
       </button>
     </section>

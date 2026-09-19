@@ -14,7 +14,7 @@
   "posturas": [
     { "id": "izquierda", "etiqueta": "Más estado / redistribución", "color": "#d1495b" },
     { "id": "derecha", "etiqueta": "Más mercado / libertad individual", "color": "#1f77b4" },
-    { "id": "matizada", "etiqueta": "Matizada / condicional", "color": "#8a8a8a" }
+    { "id": "matizada", "etiqueta": "Matizada / condicional", "color": "#8a8a8a", "esMatizada": true }
   ],
   "asignacionPostura": "aleatoria",
   "permiteCambioPostura": false,

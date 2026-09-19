@@ -464,6 +464,36 @@ describe('host que refresca la pestaña a mitad del debate', () => {
     expect(iniciadas[0]).toMatchObject({ phaseType: 'conexion_libre' });
   });
 
+  it('hace expirar una oferta sin respuesta y la reofrece con un turno nuevo', () => {
+    // Reporte de prueba en vivo: una oferta sin responder "no expiraba" en varios minutos. La
+    // oferta sí expira a los 20 s; al ser el único candidato, se le reofrece con otro turnId.
+    let estado = estadoEnDebate([
+      evento(EVENTOS.ARGUMENTO_PUBLICADO, { argumentId: 'a1', participantId: 'ana', posicionEnRonda: 1, ronda: 1 }),
+      evento(EVENTOS.ARGUMENTO_LISTO, { participantId: 'ana' }),
+    ]);
+    const publicar = vi.fn((name, data) => {
+      estado = reducirEventos(estado, { name, data: { timestamp: Date.now(), ...data } });
+    });
+    const motor = crearMotorDeSesion({ programa: PROGRAMA });
+    const presencia = [{ participantId: 'ana', nombre: 'Ana', conectado: true }];
+
+    motor.sincronizar({ estado, presencia, publicar });
+    motor.sincronizar({ estado, presencia, publicar });
+    const primeraOferta = eventosPublicados(publicar, EVENTOS.TURNO_OFRECIDO)[0];
+    expect(primeraOferta.candidateId).toBe('ana');
+
+    vi.advanceTimersByTime(21 * 1000);
+    motor.sincronizar({ estado, presencia, publicar });
+
+    const expirados = eventosPublicados(publicar, EVENTOS.TURNO_EXPIRADO);
+    expect(expirados).toHaveLength(1);
+    expect(expirados[0].turnId).toBe(primeraOferta.turnId);
+
+    const ofertas = eventosPublicados(publicar, EVENTOS.TURNO_OFRECIDO);
+    expect(ofertas).toHaveLength(2);
+    expect(ofertas[1].turnId).not.toBe(primeraOferta.turnId);
+  });
+
   it('adopta la oferta de turno que quedó huérfana y la hace expirar', () => {
     // El temporizador de la oferta vivía en la pestaña que se cerró: sin adopción, la oferta
     // queda colgada para siempre y la ruleta no vuelve a girar.

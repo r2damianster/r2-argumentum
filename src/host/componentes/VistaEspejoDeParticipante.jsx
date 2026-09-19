@@ -63,7 +63,10 @@ export function VistaEspejoDeParticipante({ estado, presencia, programa }) {
               Argumento preparado esperando turno: {observado.argumentoListo ? 'sí' : 'no'}
             </li>
             <li>Posiciones completadas: {observado.posicionesCompletadas}</li>
-            <li>Turnos rechazados: {observado.rechazosAcumulados}</li>
+            <li>
+              Turnos rechazados: {observado.turnosRechazadosEnTotal}
+              {observado.rechazosAcumulados > 0 && ` (${observado.rechazosAcumulados} seguidos)`}
+            </li>
           </ul>
         </div>
       )}

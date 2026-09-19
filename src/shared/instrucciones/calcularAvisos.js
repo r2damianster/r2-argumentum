@@ -5,6 +5,7 @@
 // canal, y mandar mensajes periódicos no lo evitaría, solo gastaría cuota. Estos avisos existen
 // por una razón pedagógica: que nadie quede fuera del debate sin que el docente se entere.
 
+import { TIPOS_DE_FASE } from '../eventos/nombresDeEventos.js';
 import { ingresoEstaCerrado } from '../ingreso/reglasDeIngreso.js';
 import {
   obtenerArgumentosSinValidar,
@@ -22,6 +23,12 @@ const MINUTOS_SIN_INTERVENIR_PARA_AVISAR = 6;
 
 export function calcularAvisosParaElModerador(estado, presencia, ahora = Date.now()) {
   if (estado.sesion.cerrada) {
+    return [];
+  }
+  // En el cierre ya no hay ruleta que alimentar ni turnos que pedir: avisar de participantes sin
+  // argumento preparado o de casos por revisar solo confunde mientras se muestra el ranking
+  // (reporte de prueba en vivo: seguían visibles hasta pulsar "Cerrar debate").
+  if (estado.fase.actual?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING) {
     return [];
   }
 

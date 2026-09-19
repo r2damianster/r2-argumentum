@@ -21,6 +21,69 @@ function etiquetaLegibleDePostura(posturaSugerida, posturas) {
   return texto.includes('_') && !texto.includes(' ') ? texto.replace(/_/g, ' ') : texto;
 }
 
+const MAXIMO_DE_INTENTOS_CON_GROQ = 3;
+const ESPERA_BASE_ENTRE_INTENTOS_MS = 400;
+const ESPERA_MAXIMA_ENTRE_INTENTOS_MS = 2000;
+
+function esperar(milisegundos) {
+  return new Promise((resolver) => setTimeout(resolver, milisegundos));
+}
+
+// Con varios estudiantes revisando a la vez, Groq responde 429 (límite de ráfaga) o 5xx de vez
+// en cuando, y el modelo a veces devuelve JSON cortado. Son fallos transitorios: un reintento
+// corto casi siempre alcanza, y al estudiante le ahorra ver "el validador no respondió". Los
+// errores 4xx distintos de 429 (petición mal formada, clave inválida) no se reintentan.
+async function consultarGroqConReintentos(cuerpoDeLaPeticion) {
+  let ultimoFallo = { error: 'No se pudo contactar a Groq', detalle: null };
+
+  for (let intento = 1; intento <= MAXIMO_DE_INTENTOS_CON_GROQ; intento += 1) {
+    let respuestaGroq;
+    try {
+      respuestaGroq = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: cuerpoDeLaPeticion,
+      });
+    } catch (error) {
+      ultimoFallo = { error: 'No se pudo contactar a Groq', detalle: String(error) };
+      respuestaGroq = null;
+    }
+
+    let esperaSugeridaMs = ESPERA_BASE_ENTRE_INTENTOS_MS * intento;
+
+    if (respuestaGroq) {
+      const datos = await respuestaGroq.json().catch(() => null);
+
+      if (respuestaGroq.ok) {
+        try {
+          return { resultado: JSON.parse(datos.choices[0].message.content) };
+        } catch {
+          ultimoFallo = { error: 'Groq no devolvió JSON válido', detalle: datos };
+        }
+      } else {
+        ultimoFallo = { error: 'Groq devolvió un error', detalle: datos };
+        const esTransitorio = respuestaGroq.status === 429 || respuestaGroq.status >= 500;
+        if (!esTransitorio) {
+          return ultimoFallo;
+        }
+        const segundosPedidos = Number(respuestaGroq.headers?.get?.('retry-after'));
+        if (Number.isFinite(segundosPedidos) && segundosPedidos > 0) {
+          esperaSugeridaMs = segundosPedidos * 1000;
+        }
+      }
+    }
+
+    if (intento < MAXIMO_DE_INTENTOS_CON_GROQ) {
+      await esperar(Math.min(esperaSugeridaMs, ESPERA_MAXIMA_ENTRE_INTENTOS_MS));
+    }
+  }
+
+  return ultimoFallo;
+}
+
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     response.status(405).json({ error: 'Método no permitido' });
@@ -79,59 +142,44 @@ ${ejemplosFormateados}
 Devuelve SOLO JSON válido con esta forma exacta:
 {"aprobado": boolean, "motivo": "máximo 20 palabras", "sugerenciaDeCorreccion": "vacío si aprobado es true", "posturaDetectada": "id o null", "esPosturaNueva": boolean, "posturaSugerida": "etiqueta corta o vacío", "confianza": number entre 0 y 1}`;
 
-  let respuestaGroq;
-  let datos;
-  try {
-    respuestaGroq = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-20b',
-        messages: [
-          { role: 'system', content: promptSistema },
-          { role: 'user', content: texto },
-        ],
-        // Temperatura 0: el mismo argumento tiene que dar el mismo veredicto. Con 0.2 el
-        // mismo texto pasaba de "postura nueva" a aprobado al reenviarlo, y eso el estudiante
-        // lo lee como arbitrariedad. Bug real reportado en prueba en vivo.
-        temperature: 0,
-        top_p: 1,
-        seed: 7,
-        max_tokens: 800,
-        response_format: { type: 'json_object' },
-      }),
-    });
-    datos = await respuestaGroq.json();
-  } catch (error) {
-    response.status(502).json({ error: 'No se pudo contactar a Groq', detalle: String(error) });
+  const cuerpoDeLaPeticion = JSON.stringify({
+    model: 'openai/gpt-oss-20b',
+    messages: [
+      { role: 'system', content: promptSistema },
+      { role: 'user', content: texto },
+    ],
+    // Temperatura 0: el mismo argumento tiene que dar el mismo veredicto. Con 0.2 el
+    // mismo texto pasaba de "postura nueva" a aprobado al reenviarlo, y eso el estudiante
+    // lo lee como arbitrariedad. Bug real reportado en prueba en vivo.
+    temperature: 0,
+    top_p: 1,
+    seed: 7,
+    // El modelo razona antes de responder y esos tokens cuentan contra el tope: con 800, un
+    // argumento largo podía cortar el JSON a la mitad y el estudiante veía "el validador no
+    // respondió". Reporte de prueba en vivo con 8 participantes.
+    max_tokens: 1500,
+    response_format: { type: 'json_object' },
+  });
+
+  const consulta = await consultarGroqConReintentos(cuerpoDeLaPeticion);
+  if (consulta.error) {
+    response.status(502).json({ error: consulta.error, detalle: consulta.detalle });
     return;
   }
 
-  if (!respuestaGroq.ok) {
-    response.status(502).json({ error: 'Groq devolvió un error', detalle: datos });
-    return;
-  }
+  const { resultado } = consulta;
+  // Groq a veces devuelve el id de una postura que no existe. Se normaliza acá para que el
+  // cliente nunca reciba un stanceId inventado.
+  const idsValidos = new Set(posturas.map((postura) => postura.id));
+  const posturaDetectada = idsValidos.has(resultado.posturaDetectada) ? resultado.posturaDetectada : null;
 
-  try {
-    const resultado = JSON.parse(datos.choices[0].message.content);
-    // Groq a veces devuelve el id de una postura que no existe. Se normaliza acá para que el
-    // cliente nunca reciba un stanceId inventado.
-    const idsValidos = new Set(posturas.map((postura) => postura.id));
-    const posturaDetectada = idsValidos.has(resultado.posturaDetectada) ? resultado.posturaDetectada : null;
-
-    response.status(200).json({
-      aprobado: Boolean(resultado.aprobado),
-      motivo: resultado.motivo ?? '',
-      sugerenciaDeCorreccion: resultado.sugerenciaDeCorreccion ?? '',
-      posturaDetectada,
-      esPosturaNueva: posturaDetectada === null && Boolean(resultado.esPosturaNueva),
-      posturaSugerida: etiquetaLegibleDePostura(resultado.posturaSugerida, posturas),
-      confianza: typeof resultado.confianza === 'number' ? resultado.confianza : null,
-    });
-  } catch (error) {
-    response.status(502).json({ error: 'Groq no devolvió JSON válido', detalle: datos });
-  }
+  response.status(200).json({
+    aprobado: Boolean(resultado.aprobado),
+    motivo: resultado.motivo ?? '',
+    sugerenciaDeCorreccion: resultado.sugerenciaDeCorreccion ?? '',
+    posturaDetectada,
+    esPosturaNueva: posturaDetectada === null && Boolean(resultado.esPosturaNueva),
+    posturaSugerida: etiquetaLegibleDePostura(resultado.posturaSugerida, posturas),
+    confianza: typeof resultado.confianza === 'number' ? resultado.confianza : null,
+  });
 }

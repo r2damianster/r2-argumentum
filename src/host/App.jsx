@@ -299,6 +299,16 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
       return;
     }
     programaYaPublicadoRef.current = true;
+    // Una sesión que ya estaba iniciada y cuyo historial ya no trae su Programa (expiró en
+    // Ably) no se puede reconstruir: republicarlo la dejaba como una sala de configuración
+    // nueva con el MISMO código, y cualquier pestaña vieja de participantes se mezclaba con
+    // ella. Se vuelve a la lista de Programas, que emite un código nuevo.
+    const sesionGuardadaEstabaIniciada = Boolean(leerSesionActivaGuardada()?.iniciada);
+    const historialSinEstaSesion = !estado.programa || estado.sesion.identificador !== identificadorDeSesion;
+    if (sesionGuardadaEstabaIniciada && historialSinEstaSesion) {
+      onCambiarPrograma();
+      return;
+    }
     // Si el canal ya trae el Programa de ESTA sesión, no se republica. El host guarda el
     // Programa tal como lo cargó, sin las posturas filtradas ni el perfil de puntaje que
     // eligió después: republicarlo al refrescar la pestaña le pisaba al debate en curso su

@@ -52,11 +52,24 @@ export function decidirValidacion({
     };
   }
 
+  // Una postura marcada como matizada ("depende", "condicional") por definición critica o
+  // concede algo a los dos polos, así que un argumento suyo puede parecer de cualquiera de las
+  // otras posturas. Contradecirla ahí rechazaba argumentos legítimos (reporte de prueba en vivo:
+  // un contraargumento crítico del libre mercado, escrito desde la postura matizada, se
+  // rechazaba por "defender más mercado").
+  const posturaElegida = posturas.find((postura) => postura.id === stanceElegido);
+  const eligioPosturaMatizada = Boolean(posturaElegida?.esMatizada);
+
   const clasificoConSeguridad =
     resultadoDeGroq.posturaDetectada !== null &&
     (resultadoDeGroq.confianza === null || resultadoDeGroq.confianza >= CONFIANZA_MINIMA_PARA_CONTRADECIR);
 
-  if (clasificoConSeguridad && stanceElegido && resultadoDeGroq.posturaDetectada !== stanceElegido) {
+  if (
+    clasificoConSeguridad &&
+    !eligioPosturaMatizada &&
+    stanceElegido &&
+    resultadoDeGroq.posturaDetectada !== stanceElegido
+  ) {
     const etiquetaDetectada =
       posturas.find((postura) => postura.id === resultadoDeGroq.posturaDetectada)?.etiqueta ??
       resultadoDeGroq.posturaDetectada;
