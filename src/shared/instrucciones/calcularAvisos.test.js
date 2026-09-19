@@ -37,6 +37,20 @@ describe('avisos operativos del moderador', () => {
     expect(avisos.map((aviso) => aviso.id)).toContain('sin-argumento-preparado');
   });
 
+  it('avisa cuando quien tiene la palabra se quedó sin conexión', () => {
+    const conTurno = [
+      evento(EVENTOS.TURNO_OFRECIDO, { turnId: 't1', candidateId: 'ana', expiraEn: Date.now() + 1000 }),
+      evento(EVENTOS.TURNO_ACEPTADO, { turnId: 't1', participantId: 'ana' }),
+    ].reduce((estado, siguiente) => reducirEventos(estado, siguiente), construirEstado('escritura_argumentos'));
+    const presenciaConAnaCaida = [{ ...PRESENCIA[0], conectado: false }, PRESENCIA[1]];
+
+    const avisos = calcularAvisosParaElModerador(conTurno, presenciaConAnaCaida);
+    expect(avisos.map((aviso) => aviso.id)).toContain('turno-sin-conexion');
+
+    const sinCaida = calcularAvisosParaElModerador(conTurno, PRESENCIA);
+    expect(sinCaida.map((aviso) => aviso.id)).not.toContain('turno-sin-conexion');
+  });
+
   it('en el cierre y ranking no muestra avisos de la ruleta ni de co-moderación', () => {
     const avisos = calcularAvisosParaElModerador(construirEstado('cierre_y_ranking'), PRESENCIA);
 

@@ -72,8 +72,10 @@ Nota de costo de Ably: el chequeo de Groq contra un borrador (`/api/groq-validar
 ## Ingreso con argumento obligatorio
 
 ```
-ingreso.confirmado  { participantId, stanceId, argumentId }
+ingreso.confirmado  { participantId, stanceId, argumentId, nombre, emoji }
 ```
+
+`nombre` y `emoji` viajan en el log además de en presencia de Ably: presencia solo sabe quién está conectado **ahora**, así que quien cierra la pestaña desaparece de ella y, si el host refresca, su nombre se perdía (marcador sin esa persona, mapa e informe con el ID técnico). El reducer los guarda en `participantes[id]` y `useEstadoDeSesion` completa el roster de presencia con ellos (`completarPresenciaConParticipantes`), marcando `conectado: false` a quien ya no está.
 
 El participante NO aparece en la sala por conectarse. Se suscribe al canal sin entrar a presencia, lee el Programa, elige postura y redacta su argumento revisándolo con Groq por HTTP (sin publicar nada). Al confirmar se publica todo junto — `argument.submit_attempt`, `argument.validation_result`, `stance.assigned`, `argument.submitted` e `ingreso.confirmado` — y recién ahí hace `presence.enter()`.
 
@@ -116,6 +118,14 @@ argument.ready  { participantId, listoEn }
 
 Solo quien publicó esto entra a la ruleta. Al exponer el argumento, el "listo" se consume: para volver a la ruleta hay que preparar otro.
 
+Cuando esa persona recibe la palabra, anuncia el texto que va a defender:
+
+```
+argument.presenting  { turnId, participantId, texto, tipoDeclarado, stanceId, argumentoObjetivoId }
+```
+
+El reducer lo adjunta al turno en curso (`turnos.turnoEnCurso.presentacion`) solo si `turnId` y `participantId` coinciden con ese turno. Con eso la sala (proyección incluida) muestra el argumento **en grande unos 12 segundos** (`DestacadoDelTurno`) y después en tamaño normal dentro del banner "X está hablando". El argumento como tal se sigue publicando al terminar con `argument.submitted`. Es un solo mensaje de Ably por turno.
+
 Cuando **no queda ningún argumento preparado por exponer** y todavía hay alguien que no tomó la palabra ni una vez, se le ofrece un turno hablado (`modo: "verbal"`).
 
 Dos precisiones que el código respeta y conviene no perder de vista:
@@ -140,7 +150,10 @@ turn.accepted  { turnId, participantId }
 turn.rejected  { turnId, participantId, totalRechazosDelParticipante }
 turn.timeout   { turnId, candidateId }
 turn.forced    { turnId, participantId }   // ya superó maxRechazosAntesDeForzar, no puede rechazar
+turn.ended_by_host { turnId, participantId }   // el moderador da por terminado un turno que quedó abierto
 ```
+
+`turn.ended_by_host` existe porque el motor no ofrece otro turno mientras haya uno en curso: si quien hablaba cerró la pestaña o se olvidó de publicar, la ruleta quedaba bloqueada para siempre. Libera `turnoEnCurso` sin contarlo como intervención ni como rechazo, y conserva el `argumentoListo` de esa persona (si vuelve, puede recibir la palabra otra vez).
 
 Flujo: `turn.offered` → dentro de `timeoutAceptacion` segundos llega `turn.accepted`, `turn.rejected` o (si no responde) `turn.timeout`. `rechazosAcumulados` de cada participante es la **racha** (vuelve a 0 al aceptar); el total de turnos rechazados sale del log `estado.turnos.rechazos`. Cualquier resultado distinto de `accepted` dispara un nuevo `turn.offered` a otro candidato (ruleta ponderada, excluye temporalmente a quien rechazó/no respondió).
 
@@ -254,6 +267,8 @@ Se publica cada vez que la fórmula de `05-reglas-de-puntaje.md` produce un camb
 ```
 session.closed { timestamp }
 ```
+
+El moderador puede publicarlo **en cualquier momento**, no solo al llegar a `cierre_y_ranking` (botón «Cerrar el debate ahora», con confirmación): el motor deja de sincronizar apenas la sesión está cerrada, así que se congelan turnos, bids y puntaje y el ranking queda como estaba. Sin cerrar, el ranking parcial se puede ver y exportar (JSON con `estadoDeLaSesion: "parcial"` y PDF con encabezado «Informe parcial»).
 
 Al recibirlo, cada cliente vuelca su estado derivado (reconstruido desde el log completo de eventos que ya recibió) a un archivo JSON exportable — no requiere una llamada adicional a ningún servidor, el propio cliente ya tiene todo el historial por haber estado suscrito al canal.
 

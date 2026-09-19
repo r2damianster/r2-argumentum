@@ -13,9 +13,13 @@ import { VistaEspejoDeParticipante } from './componentes/VistaEspejoDeParticipan
 import { PanelDeAvisos } from './componentes/PanelDeAvisos.jsx';
 import { InformeDelDebate } from './componentes/InformeDelDebate.jsx';
 import { PantallaDeRanking } from './componentes/PantallaDeRanking.jsx';
+import { AccionesDeCierre } from './componentes/AccionesDeCierre.jsx';
+import { VistaDeProyeccion } from './componentes/VistaDeProyeccion.jsx';
+import { abrirVentanaDeProyeccion, useEmisorDeProyeccion } from './proyeccion/canalDeProyeccion.js';
 import { GrafoDeArgumentos } from '../shared/componentes/GrafoDeArgumentos.jsx';
 import { AvisoDeConexion } from '../shared/componentes/AvisoDeConexion.jsx';
 import { FeedDeActividad } from '../shared/componentes/FeedDeActividad.jsx';
+import { DestacadoDelTurno } from '../shared/componentes/DestacadoDelTurno.jsx';
 
 // Credencial hardcodeada a propósito, mismo criterio que R2 Quiz (ver docs/07-acceso-y-paginas.md):
 // esta consola no maneja información sensible, así que no requiere autenticación real.
@@ -293,6 +297,8 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
   const motor = useMotorDeSesion({ estado, presencia, publicar, programa });
 
   const [modoProyeccion, setModoProyeccion] = useState(false);
+  const [rankingParcialVisible, setRankingParcialVisible] = useState(false);
+  const [avisoDeVentanaBloqueada, setAvisoDeVentanaBloqueada] = useState(false);
   const programaYaPublicadoRef = useRef(false);
   useEffect(() => {
     if (cargando || programaYaPublicadoRef.current) {
@@ -338,29 +344,47 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sesionIniciada, estado.programa]);
-  const mostrarRanking = estado.fase.actual?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING || estado.sesion.cerrada;
+  const mostrarRanking =
+    estado.fase.actual?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING || estado.sesion.cerrada || rankingParcialVisible;
   // Una vez que el Programa se publicó al canal (ver efecto arriba), estado.programa es la
   // fuente de verdad — puede diferir del prop `programa` original si el moderador filtró
   // posturas al iniciar sesión (ver ControlDeFases). Antes de eso, cae al prop cargado.
   const programaVisible = estado.programa ?? programa;
+
+  // La ventana de proyección aparte (ver proyeccion/canalDeProyeccion.js) es solo una pantalla:
+  // recibe de aquí el estado ya calculado, así el motor de turnos corre únicamente en esta pestaña.
+  useEmisorDeProyeccion({ codigoDeSala, estado, presencia, programa: programaVisible, conexion });
+
+  // El ranking se dibuja al final de una consola larga: al abrirlo se baja hasta él, si no el
+  // botón parecía no hacer nada.
+  function alternarRankingParcial() {
+    const seVaAMostrar = !rankingParcialVisible;
+    setRankingParcialVisible(seVaAMostrar);
+    if (seVaAMostrar) {
+      setTimeout(() => document.getElementById('ranking-del-debate')?.scrollIntoView({ behavior: 'smooth' }), 80);
+    }
+  }
+
+  function proyectarEnOtraVentana() {
+    setAvisoDeVentanaBloqueada(abrirVentanaDeProyeccion(codigoDeSala) === null);
+  }
 
   // Modo proyección: la consola se usa casi siempre desde una laptop conectada al proyector,
   // y los controles del moderador no tienen por qué leerse desde el fondo del aula. Este modo
   // agranda todo y deja solo lo que la clase necesita ver.
   if (modoProyeccion) {
     return (
-      <main className="consola-de-sesion modo-proyeccion">
-        <div className="barra-superior">
-          <h1>{programaVisible.titulo}</h1>
+      <VistaDeProyeccion
+        estado={estado}
+        programa={programaVisible}
+        presencia={presencia}
+        conexion={conexion}
+        botonDeSalida={
           <button type="button" className="boton-cerrar-sesion" onClick={() => setModoProyeccion(false)}>
             Salir de proyección
           </button>
-        </div>
-        <AvisoDeConexion conexion={conexion} />
-        <FeedDeActividad estado={estado} presencia={presencia} />
-        <GrafoDeArgumentos estado={estado} programa={programaVisible} presencia={presencia} />
-        <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
-      </main>
+        }
+      />
     );
   }
 
@@ -370,17 +394,29 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
         <h1>Consola del host</h1>
         <div className="acciones-de-barra">
           {sesionIniciada && (
-            <button type="button" className="boton-cerrar-sesion" onClick={() => setModoProyeccion(true)}>
-              📽️ Proyectar
-            </button>
+            <>
+              <button type="button" className="boton-cerrar-sesion" onClick={() => setModoProyeccion(true)}>
+                📽️ Proyectar aquí
+              </button>
+              <button type="button" className="boton-cerrar-sesion" onClick={proyectarEnOtraVentana}>
+                🪟 Proyectar en otra ventana
+              </button>
+            </>
           )}
-          <button type="button" className="boton-cerrar-sesion" onClick={() => cerrarSesionConAviso(sesionIniciada, onCerrarSesion)}>
+          <button type="button" className="boton-cerrar-sesion" onClick={() => cerrarSesionConAviso(sesionIniciada && !estado.sesion.cerrada, onCerrarSesion)}>
             Cerrar sesión
           </button>
         </div>
       </div>
 
       <AvisoDeConexion conexion={conexion} />
+      {avisoDeVentanaBloqueada && (
+        <p className="mensaje-de-error">
+          El navegador bloqueó la ventana emergente. Permite las ventanas emergentes para este sitio y vuelve a
+          pulsar «Proyectar en otra ventana».
+        </p>
+      )}
+      <DestacadoDelTurno estado={estado} presencia={presencia} programa={programaVisible} />
 
       <section className="tarjeta-de-programa">
         <p className="texto-de-ayuda">Programa activo</p>
@@ -448,6 +484,13 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
             identificadorDeSesion={identificadorDeSesion}
             publicar={publicar}
           />
+          <AccionesDeCierre
+            estado={estado}
+            presencia={presencia}
+            motor={motor}
+            rankingParcialVisible={rankingParcialVisible}
+            onAlternarRankingParcial={alternarRankingParcial}
+          />
           <FeedDeActividad estado={estado} presencia={presencia} />
           <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
           <PanelDePosturasPropuestas
@@ -469,6 +512,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
               programa={programaVisible}
               presencia={presencia}
               motor={motor}
+              onNuevoDebate={onCambiarPrograma}
             />
           )}
         </>

@@ -9,6 +9,7 @@ export function combinarParticipantesConPresencia(estado, presencia) {
       participantId: presente.participantId,
       nombre: presente.nombre,
       emoji: presente.emoji,
+      conectado: presente.conectado !== false,
       rol: participanteDelReducer?.rol ?? 'participante',
       stanceId: participanteDelReducer?.stanceId ?? null,
       turnosPrincipalesAceptados: participanteDelReducer?.turnosPrincipalesAceptados ?? 0,
@@ -95,9 +96,27 @@ export function obtenerIntervencionesSinCalificar(estado, { excluirParticipantId
   );
 }
 
-// El reducer no guarda nombre/emoji (viven en presence, ver reducirEventos.js) — esto
-// resuelve el nombre visible a partir de la lista de presencia en vivo. Si alguien ya se
-// desconectó, cae de vuelta al participantId para no perder la fila del ranking/grafo.
+// Presence solo conoce a quienes están (o estuvieron, en esta pestaña) conectados. Un host que
+// refresca la pestaña pierde a todos los que ya se habían ido, y con ellos sus nombres: el
+// marcador los borraba y el mapa y el informe mostraban el ID técnico. El log sí los conserva
+// (`ingreso.confirmado` trae nombre y emoji), así que se suman al roster como desconectados.
+// Devuelve la MISMA referencia si no hay nada que sumar, para no invalidar memoizaciones.
+export function completarPresenciaConParticipantes(presencia, participantes) {
+  const idsEnPresencia = new Set(presencia.map((presente) => presente.participantId));
+  const faltantes = Object.values(participantes ?? {})
+    .filter((participante) => participante.nombre && !idsEnPresencia.has(participante.participantId))
+    .map((participante) => ({
+      participantId: participante.participantId,
+      nombre: participante.nombre,
+      emoji: participante.emoji,
+      conectado: false,
+    }));
+  return faltantes.length === 0 ? presencia : [...presencia, ...faltantes];
+}
+
+// El reducer guarda nombre/emoji solo como respaldo (ver arriba); la fuente principal es la
+// lista de presencia, completada con `completarPresenciaConParticipantes`. Si aun así no hay
+// nombre, cae de vuelta al participantId para no perder la fila del ranking/grafo.
 export function nombreDeParticipante(presencia, participantId) {
   const presente = presencia.find((p) => p.participantId === participantId);
   return presente ? `${presente.emoji ?? ''} ${presente.nombre ?? participantId}`.trim() : participantId;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useEstadoDeSesion } from '../shared/estado/useEstadoDeSesion.js';
 import { TIPOS_DE_FASE } from '../shared/eventos/nombresDeEventos.js';
 import {
@@ -12,6 +12,7 @@ import { PantallaDeTurnoOfrecido } from './componentes/PantallaDeTurnoOfrecido.j
 import { FormularioDeArgumento } from './componentes/FormularioDeArgumento.jsx';
 import { GrafoDeArgumentos } from '../shared/componentes/GrafoDeArgumentos.jsx';
 import { FeedDeActividad } from '../shared/componentes/FeedDeActividad.jsx';
+import { DestacadoDelTurno } from '../shared/componentes/DestacadoDelTurno.jsx';
 import { CapaInstruccional } from '../shared/componentes/CapaInstruccional.jsx';
 import { AvisoDeConexion } from '../shared/componentes/AvisoDeConexion.jsx';
 import { PanelDeConexionLibre } from './componentes/PanelDeConexionLibre.jsx';
@@ -48,17 +49,40 @@ function leerParticipanteGuardado(codigoDeSala) {
   }
 }
 
+// sessionStorage vuelve solo tras un F5 (misma pestaña), pero se pierde al cerrar la pestaña —
+// justo el accidente típico en el aula. Por eso la identidad también se guarda en localStorage y,
+// al volver a la sala, se ofrece recuperarla con un clic. No se aplica sola: en un dispositivo
+// compartido podría ponerle a otra persona la identidad de quien lo usó antes.
+const CLAVE_DE_IDENTIDAD_RECORDADA = 'r2-argumentum-identidad-recordada';
+const VIDA_MAXIMA_DE_LA_IDENTIDAD_MS = 12 * 60 * 60 * 1000;
+
+function leerIdentidadRecordada(codigoDeSala) {
+  try {
+    const guardada = JSON.parse(localStorage.getItem(CLAVE_DE_IDENTIDAD_RECORDADA) || 'null');
+    const vigente = guardada && Date.now() - (guardada.guardadaEn ?? 0) < VIDA_MAXIMA_DE_LA_IDENTIDAD_MS;
+    return vigente && guardada.codigoDeSala === codigoDeSala ? guardada : null;
+  } catch {
+    return null;
+  }
+}
+
 function guardarParticipanteActivo(datos) {
   try {
     sessionStorage.setItem(CLAVE_DE_PARTICIPANTE_ACTIVO, JSON.stringify(datos));
   } catch {
     // Sin sessionStorage disponible, simplemente no sobrevive a un refresh.
   }
+  try {
+    localStorage.setItem(CLAVE_DE_IDENTIDAD_RECORDADA, JSON.stringify({ ...datos, guardadaEn: Date.now() }));
+  } catch {
+    // Sin localStorage no se puede recuperar la identidad tras cerrar la pestaña.
+  }
 }
 
 function borrarParticipanteActivo() {
   try {
     sessionStorage.removeItem(CLAVE_DE_PARTICIPANTE_ACTIVO);
+    localStorage.removeItem(CLAVE_DE_IDENTIDAD_RECORDADA);
   } catch {
     // no-op
   }
@@ -87,6 +111,18 @@ export default function App() {
     setEmojiElegido(EMOJIS_DISPONIBLES[indiceAleatorio]);
   }
 
+  // Identidad de una visita anterior a esta misma sala (pestaña cerrada por error, por ejemplo).
+  const identidadRecordada = useMemo(
+    () => (codigoDeSala.length === 4 ? leerIdentidadRecordada(codigoDeSala) : null),
+    [codigoDeSala]
+  );
+
+  function continuarConIdentidadRecordada() {
+    const { guardadaEn, ...datos } = identidadRecordada;
+    guardarParticipanteActivo(datos);
+    setParticipanteActivo(datos);
+  }
+
   function manejarIngreso(evento) {
     evento.preventDefault();
     const datos = { codigoDeSala, participantId: generarParticipantId(), nombre, emoji: emojiElegido };
@@ -110,6 +146,23 @@ export default function App() {
     <main>
       <h1>R2 Argumentum</h1>
       <h2>Unirme a la sala</h2>
+      {identidadRecordada && (
+        <section className="tarjeta-de-identidad-recordada">
+          <p>
+            Ya habías entrado a la sala {identidadRecordada.codigoDeSala} como{' '}
+            <strong>
+              {identidadRecordada.emoji} {identidadRecordada.nombre}
+            </strong>
+            . ¿Se cerró la pestaña sin querer?
+          </p>
+          <button type="button" onClick={continuarConIdentidadRecordada}>
+            Continuar como {identidadRecordada.nombre} (conservo mis puntos y argumentos)
+          </button>
+          <p className="texto-de-ayuda">
+            Si eres otra persona que usa este mismo dispositivo, completa el formulario de abajo.
+          </p>
+        </section>
+      )}
       <form onSubmit={manejarIngreso}>
         <label>
           Código de sala
@@ -248,6 +301,12 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
       </p>
 
       <AvisoDeConexion conexion={conexion} />
+      <DestacadoDelTurno
+        estado={estado}
+        presencia={presencia}
+        programa={programa}
+        omitirParaParticipanteId={participantId}
+      />
 
       <div className="layout-de-participante">
         <CapaInstruccional estado={estado} presencia={presencia} participantId={participantId} />
@@ -324,7 +383,13 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
         ingresoConfirmado &&
         !enFaseDeApertura &&
         estado.turnos.turnoEnCurso?.modo !== 'verbal' && (
-          <PrepararArgumento estado={estado} programa={programa} participantId={participantId} publicar={publicar} />
+          <PrepararArgumento
+            estado={estado}
+            programa={programa}
+            presencia={presencia}
+            participantId={participantId}
+            publicar={publicar}
+          />
         )}
 
       {!sesionCerrada &&

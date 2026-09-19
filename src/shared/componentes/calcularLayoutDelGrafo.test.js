@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcularLayoutDelGrafo, ALTO_DE_NODO } from './calcularLayoutDelGrafo.js';
+import { calcularLayoutDelGrafo, calcularAltoDelGrafo, ALTO_DE_NODO } from './calcularLayoutDelGrafo.js';
 
 function nodo(id) {
   return { id, position: { x: 0, y: 0 } };
@@ -76,5 +76,34 @@ describe('layout del mapa argumental', () => {
     const coordenadas = ubicados.map((unNodo) => `${unNodo.position.x},${unNodo.position.y}`);
 
     expect(new Set(coordenadas).size).toBe(3);
+  });
+});
+
+describe('calcularAltoDelGrafo', () => {
+  const nodoEn = (x, y) => ({ id: `${x}-${y}`, position: { x, y } });
+  const limites = { altoMinimo: 240, altoMaximo: 560 };
+
+  it('sin nodos usa el alto mínimo', () => {
+    expect(calcularAltoDelGrafo([], 900, limites)).toBe(240);
+  });
+
+  it('con pocos argumentos se queda en el mínimo', () => {
+    expect(calcularAltoDelGrafo([nodoEn(0, 0), nodoEn(260, 0)], 900, limites)).toBe(240);
+  });
+
+  it('crece con los niveles del mapa y se detiene en el máximo', () => {
+    const dosNiveles = [0, 1].map((nivel) => nodoEn(0, nivel * 166));
+    const doceNiveles = Array.from({ length: 12 }, (_, nivel) => nodoEn(0, nivel * 166));
+    const alto = calcularAltoDelGrafo(dosNiveles, 900, limites);
+    expect(alto).toBeGreaterThan(240);
+    expect(alto).toBeLessThan(560);
+    expect(calcularAltoDelGrafo(doceNiveles, 900, limites)).toBe(560);
+  });
+
+  it('un mapa muy ancho necesita menos alto porque se verá más chico', () => {
+    const anchoYAlto = [nodoEn(0, 0), nodoEn(0, 166), nodoEn(0, 332), nodoEn(0, 498)];
+    const altoAngosto = calcularAltoDelGrafo(anchoYAlto, 900, limites);
+    const muyAncho = [...anchoYAlto, ...Array.from({ length: 10 }, (_, columna) => nodoEn(260 * (columna + 1), 0))];
+    expect(calcularAltoDelGrafo(muyAncho, 900, limites)).toBeLessThan(altoAngosto);
   });
 });

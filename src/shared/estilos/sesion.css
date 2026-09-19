@@ -730,3 +730,117 @@ textarea {
 .columna-de-ranking ol {
   padding-left: 20px;
 }
+
+/* Argumento destacado al recibir la palabra: aparece en grande unos segundos y se retira */
+
+.destacado-del-turno {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  z-index: 50;
+  width: min(92vw, 56rem);
+  max-height: 70vh;
+  overflow-y: auto;
+  transform: translateX(-50%);
+  background: white;
+  border: 3px solid var(--color-marca);
+  border-radius: 18px;
+  padding: 16px 22px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.35);
+  cursor: pointer;
+  animation-name: destacado-del-turno-ciclo;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+.destacado-del-turno-autor {
+  margin: 0 0 8px;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--color-marca-oscuro);
+}
+
+.destacado-del-turno-texto {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.6vw, 2.1rem);
+  line-height: 1.35;
+}
+
+.destacado-en-proyeccion {
+  width: min(94vw, 84rem);
+  padding: 26px 34px;
+}
+
+.destacado-en-proyeccion .destacado-del-turno-autor {
+  font-size: 1.6rem;
+}
+
+.destacado-en-proyeccion .destacado-del-turno-texto {
+  font-size: clamp(1.8rem, 4vw, 3.4rem);
+}
+
+/* Entra con un pequeño zoom, se sostiene, y en el último tramo se encoge y se desvanece. */
+@keyframes destacado-del-turno-ciclo {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.92);
+  }
+  4% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+  88% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.9) translateY(-12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .destacado-del-turno {
+    animation-name: none;
+  }
+}
+
+/* Ventana de proyección independiente */
+
+.ventana-de-proyeccion-esperando {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.acciones-de-proyeccion {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media print {
+  .destacado-del-turno {
+    display: none !important;
+  }
+}
+
+.acciones-del-ranking {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 6px;
+}
+
+@media print {
+  .acciones-del-ranking {
+    display: none !important;
+  }
+}
+
+.tarjeta-de-identidad-recordada {
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  border-radius: 16px;
+  padding: 14px 18px;
+  margin: 0 0 16px;
+}

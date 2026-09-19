@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
 import { decidirValidacion, DECISIONES } from '../../shared/argumentos/decidirValidacion.js';
-import { siguientePosicionParaParticipante } from '../../shared/estado/seleccionesDerivadas.js';
+import { buscarArgumentoParecido } from '../../shared/argumentos/buscarArgumentoParecido.js';
+import { nombreDeParticipante, siguientePosicionParaParticipante } from '../../shared/estado/seleccionesDerivadas.js';
 
 const TIPOS_QUE_REQUIEREN_OBJETIVO = [
   TIPOS_DE_RELACION.CONTRAARGUMENTO,
@@ -23,19 +24,49 @@ function generarId(prefijo) {
   return `${prefijo}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// El borrador se guarda en el navegador: quien cierra la pestaña por error (o refresca) en medio
+// del debate recupera lo que había escrito. Sin esto, si el cierre ocurría con el argumento ya
+// aprobado y esperando turno, al volver el sistema seguía diciendo "tu argumento está listo"
+// pero el texto ya no existía, y al llegarle la palabra no había nada que defender ni publicar.
+function claveDelBorrador(participantId) {
+  return `r2-argumentum-borrador:${participantId}`;
+}
+
+function leerBorrador(participantId) {
+  try {
+    return JSON.parse(localStorage.getItem(claveDelBorrador(participantId)) || 'null');
+  } catch {
+    return null;
+  }
+}
+
+function guardarBorrador(participantId, borrador) {
+  try {
+    if (!borrador.texto) {
+      localStorage.removeItem(claveDelBorrador(participantId));
+    } else {
+      localStorage.setItem(claveDelBorrador(participantId), JSON.stringify(borrador));
+    }
+  } catch {
+    // Sin localStorage el borrador simplemente no sobrevive a cerrar la pestaña.
+  }
+}
+
 // Se escribe DURANTE el debate, mientras otros hablan, y queda esperando turno. Solo quien
 // tiene un argumento preparado entra a la ruleta (docs/04) — el turno sirve para defenderlo,
 // no para empezar a escribirlo contra reloj.
 //
 // El borrador vive en el cliente y se revisa con Groq por HTTP: no se publica nada al canal
 // hasta que el argumento queda aprobado, así corregirlo no cuesta cuota de Ably.
-export function PrepararArgumento({ estado, programa, participantId, publicar }) {
-  const [tipoDeclarado, setTipoDeclarado] = useState(TIPOS_DE_RELACION.NUEVO);
-  const [argumentoObjetivoId, setArgumentoObjetivoId] = useState('');
-  const [texto, setTexto] = useState('');
+export function PrepararArgumento({ estado, programa, presencia = [], participantId, publicar }) {
+  const [borradorGuardado] = useState(() => leerBorrador(participantId));
+  const [tipoDeclarado, setTipoDeclarado] = useState(borradorGuardado?.tipoDeclarado ?? TIPOS_DE_RELACION.NUEVO);
+  const [argumentoObjetivoId, setArgumentoObjetivoId] = useState(borradorGuardado?.argumentoObjetivoId ?? '');
+  const [texto, setTexto] = useState(borradorGuardado?.texto ?? '');
   const [revisando, setRevisando] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [avisoDeCampoFaltante, setAvisoDeCampoFaltante] = useState('');
+  const [argumentoRepetido, setArgumentoRepetido] = useState(null);
 
   const requiereObjetivo = TIPOS_QUE_REQUIEREN_OBJETIVO.includes(tipoDeclarado);
   // Se responde a argumentos ajenos: apuntar a uno propio no tiene sentido como réplica.
@@ -56,6 +87,22 @@ export function PrepararArgumento({ estado, programa, participantId, publicar })
       return;
     }
     setAvisoDeCampoFaltante('');
+
+    // Filtro local, sin gastar una llamada a Groq. Si lo que escribes ya está en el mapa, lo
+    // honesto es apoyarlo como refuerzo (o decir algo nuevo), no repetirlo como aporte propio.
+    // Un refuerzo apunta a su objetivo y es natural que comparta vocabulario con él, así que ese
+    // argumento no cuenta como repetido (si no, el aviso se repetiría después de aceptarlo).
+    const argumentosParaComparar = Object.values(estado.argumentos).filter(
+      (argumento) =>
+        !(tipoDeclarado === TIPOS_DE_RELACION.REFUERZO && argumento.argumentId === argumentoObjetivoId)
+    );
+    const argumentoParecido = buscarArgumentoParecido(texto, argumentosParaComparar);
+    if (argumentoParecido) {
+      setArgumentoRepetido(argumentoParecido.argumento);
+      setResultado(null);
+      return;
+    }
+    setArgumentoRepetido(null);
     setRevisando(true);
 
     let respuesta;
@@ -123,6 +170,41 @@ export function PrepararArgumento({ estado, programa, participantId, publicar })
 
   const turnoEnCurso = estado.turnos.turnoEnCurso;
   const tengoLaPalabra = turnoEnCurso?.participantId === participantId && turnoEnCurso?.modo !== 'verbal';
+
+  // Al recibir la palabra se anuncia el texto que se va a defender: el resto de la sala (y la
+  // proyección) lo ve destacado un momento mientras empiezas a hablar, y así todos saben de qué
+  // argumento se trata. Una sola vez por turno; el argumento se publica al terminar, como antes.
+  useEffect(() => {
+    guardarBorrador(participantId, { texto, tipoDeclarado, argumentoObjetivoId });
+  }, [participantId, texto, tipoDeclarado, argumentoObjetivoId]);
+
+  const turnoYaAnunciadoRef = useRef(null);
+  useEffect(() => {
+    if (!tengoLaPalabra || !yaTengoUnoListo || !texto.trim() || turnoYaAnunciadoRef.current === turnoEnCurso.turnId) {
+      return;
+    }
+    turnoYaAnunciadoRef.current = turnoEnCurso.turnId;
+    publicar(EVENTOS.ARGUMENTO_EN_EXPOSICION, {
+      turnId: turnoEnCurso.turnId,
+      participantId,
+      texto,
+      tipoDeclarado,
+      stanceId,
+      argumentoObjetivoId: requiereObjetivo ? argumentoObjetivoId : null,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tengoLaPalabra, yaTengoUnoListo, turnoEnCurso?.turnId]);
+
+  if (tengoLaPalabra && yaTengoUnoListo && !texto.trim()) {
+    return (
+      <section className="tarjeta-de-formulario-de-argumento">
+        <p className="mensaje-de-error">
+          Tienes la palabra, pero el texto de tu argumento ya no está en este dispositivo (¿abriste la sala desde
+          otro navegador o se borró el almacenamiento?). Avísale al moderador para que termine tu turno.
+        </p>
+      </section>
+    );
+  }
 
   if (tengoLaPalabra && yaTengoUnoListo) {
     return (
@@ -195,13 +277,41 @@ export function PrepararArgumento({ estado, programa, participantId, publicar })
         <textarea
           value={texto}
           rows={4}
+          lang="es"
+          spellCheck
+          autoCapitalize="sentences"
           onChange={(evento) => {
             setTexto(evento.target.value);
             setResultado(null);
+            setArgumentoRepetido(null);
             setAvisoDeCampoFaltante('');
           }}
         />
       </label>
+
+      {argumentoRepetido && (
+        <div className="aviso-de-validacion">
+          <p className="mensaje-de-error">
+            Tu argumento se parece mucho al de {nombreDeParticipante(presencia, argumentoRepetido.participantId)}: «
+            {argumentoRepetido.texto.slice(0, 90)}…»
+          </p>
+          <p className="texto-de-ayuda">
+            Si quieres apoyarlo, márcalo como refuerzo de ese argumento. Si piensas algo distinto, reescríbelo con
+            tus propias palabras.
+          </p>
+          <button
+            type="button"
+            className="boton-cambiar-programa"
+            onClick={() => {
+              setTipoDeclarado(TIPOS_DE_RELACION.REFUERZO);
+              setArgumentoObjetivoId(argumentoRepetido.argumentId);
+              setArgumentoRepetido(null);
+            }}
+          >
+            Usarlo como refuerzo de ese argumento
+          </button>
+        </div>
+      )}
 
       {resultado && resultado.decision !== DECISIONES.APROBADO && (
         <div className="aviso-de-validacion">

@@ -9,7 +9,8 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 - Usar **producción**: `https://r2-argumentum.vercel.app/`.
   - Host: `/host.html` (o la raíz `/` sin parámetros, redirige ahí) — Usuario `arturo.rodriguez@uleam.edu.ec` · Clave `R2ironmaiden`.
   - Participante: `/player.html`, o el link corto `/?sala=XXXX` — es el que generan el QR y el botón "Copiar link".
-- **Antes de empezar, revisa el zoom del navegador y déjalo al 100 % (`Ctrl+0`).** El zoom de Chrome se guarda **por sitio**: host y participantes comparten origen (`r2-argumentum.vercel.app`), así que si una pestaña quedó en 33 % (`window.devicePixelRatio` ≈ 0,31–0,33) todas las demás abren igual de diminutas. En la ronda anterior pasó justo eso: los clics y el scroll por coordenadas no funcionaban y hubo que manejar la interfaz por el DOM, lo que limitó lo que se pudo comprobar visualmente. La app **detecta** el zoom por debajo de ~80 % y muestra arriba una barra ámbar ("El zoom del navegador está en X %… Pulsa Ctrl + 0"), escalada para que se lea aunque todo lo demás esté diminuto. Si la barra aparece, corrige el zoom antes de seguir; si no aparece y aun así todo se ve chico, anótalo como fallo. Si el host ya tenía la sesión iniciada, no hace falta usar la clave.
+- **Antes de empezar, revisa el zoom del navegador y déjalo al 100 % (`Ctrl+0`).** El zoom de Chrome se guarda **por sitio**: host y participantes comparten origen (`r2-argumentum.vercel.app`), así que si una pestaña quedó en 33 % (`window.devicePixelRatio` ≈ 0,31–0,33) todas las demás abren igual de diminutas. En la ronda anterior pasó justo eso: los clics y el scroll por coordenadas no funcionaban y hubo que manejar la interfaz por el DOM, lo que limitó lo que se pudo comprobar visualmente. La app **detecta** el zoom por debajo de ~80 % y muestra arriba una barra ámbar ("El zoom del navegador está en X %… Pulsa Ctrl + 0"), escalada para que se lea aunque todo lo demás esté diminuto. Si la barra aparece, corrige el zoom antes de seguir; si no aparece y aun así todo se ve chico, anótalo como fallo.
+- **No cierres la sesión del host ni escribas su clave.** Si la pestaña del host ya tiene la sesión iniciada, no hace falta la clave; y para empezar otro debate ya no hay que cerrar sesión: el ranking final tiene «➕ Iniciar un debate nuevo». Si por algún motivo el host te pide la clave, **no la teclees tú**: pídele al usuario que la escriba y espera. (En la ronda anterior se tecleó la clave para volver a entrar tras un «Cerrar sesión»; ese desvío ya no debería hacer falta.)
 - **No probar contra local** (`npm run dev`): `ABLY_API_KEY` y `GROQ_API_KEY` son variables "Sensitive" en Vercel, no se pueden recuperar vía CLI. Local no puede ejercitar Groq ni Ably.
 
 ## 1. Restricciones operativas — leer antes de empezar
@@ -27,7 +28,7 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 ### Configuración (host)
 
 - **Login persistente** (`localStorage`) + catálogo de Programas por categoría o carga de `.json` propio.
-- **Solo se restaura automáticamente una sesión ya iniciada.** Si quedó a medio configurar sin iniciar, al recargar vuelve a la lista de Programas. Si estaba iniciada pero el historial del canal ya expiró (por ejemplo, con el debate cerrado hace rato), **también** vuelve a la lista de Programas, con código nuevo al elegir uno; nunca debe reabrir una sala de configuración con el código viejo.
+- **Solo se restaura automáticamente una sesión ya iniciada.** Si quedó a medio configurar sin iniciar, al recargar vuelve a la lista de Programas. Si estaba iniciada y la pestaña conserva su copia local, un F5 **reconstruye el debate** (también con el debate ya cerrado: el informe no se pierde por un refresco, es intencional). Solo si no hay copia local **y** el historial de Ably ya expiró vuelve a la lista de Programas, con código nuevo al elegir uno; nunca debe reabrir una sala de configuración con el código viejo. Para empezar otro debate está «➕ Iniciar un debate nuevo» en el ranking final.
 - **Sala de configuración previa**: código + QR + link corto, participantes conectados, y la configuración de la sesión.
 - **Selector de posturas** (si el Programa tiene más de 2): checklist, todas tildadas por defecto, mínimo 2.
 - **Modo de calificación** (nuevo): Liviano (10/8/3), Estándar (100/80/30) o Estricto (1000/800/300). Cambia la escala y qué tan caro sale demorarse o rechazar un turno, pero **la proporción entre posiciones se mantiene**.
@@ -55,17 +56,19 @@ El argumento es **requisito para entrar**. El flujo es: nombre + avatar → cone
 - **Bids, conexión libre, sugerencias de Groq y panel de co-moderador**: igual que antes.
 - **Vista espejo** (nueva, host): ver qué tiene en pantalla cualquier participante. Solo lectura. Muestra el **total** de turnos rechazados y, entre paréntesis, la racha si la hay.
 - **Avisos automáticos** (nuevo, host): quién no confirmó ingreso, quién no preparó argumento, quién no ha hablado. **En Cierre y ranking no hay avisos.**
-- **Modo proyección** (nuevo, host): botón "📽️ Proyectar" — agranda todo y esconde los controles.
+- **Modo proyección** (host): dos botones. «📽️ Proyectar aquí» agranda todo y esconde los controles en la misma pestaña. «🪟 Proyectar en otra ventana» abre una ventana pensada para el proyector que se actualiza sola mientras la consola conserva los controles (la ventana no se conecta a Ably: recibe el estado de la pestaña del host por `BroadcastChannel`, así que **solo funciona en el mismo navegador** y la pestaña del host debe seguir abierta).
+- **Argumento destacado** (nuevo): cuando alguien recibe la palabra, el texto que va a defender aparece **en grande unos 12 s** en el host, la proyección y los celulares (no en el de quien habla), se cierra con un toque, y después queda en tamaño normal bajo «X está hablando ahora».
+- **Terminar el turno** (nuevo, host): botón «⏭️ Terminar el turno de X» para liberar la ruleta si quien tenía la palabra cerró la pestaña o no puede seguir; el panel de avisos lo advierte solo cuando esa persona queda sin conexión.
 
 ### Grafo
 
 - **Layout automático** (dagre): cada argumento se ubica debajo de aquel al que responde.
-- Leyenda de colores, minimapa y botones de zoom. **El scroll ya no zoomea el grafo sin querer.**
+- Leyenda de colores, minimapa (solo con 6+ nodos) y botones de zoom. **El mapa arranca compacto (~240 px con 1–3 argumentos) y crece con el debate** hasta 560 px en la consola (62 % del alto de la ventana en proyección). **El scroll ya no zoomea el grafo sin querer.**
 - **En celular vertical el grafo se reemplaza por una lista** agrupada por postura.
 
 ### Cierre
 
-- Ranking por postura con tiers (**los co-moderadores no aparecen a propósito**: no defienden postura), export `.json`, y **informe imprimible** (nuevo): botón "🖨️ Generar PDF del debate" que abre el diálogo de impresión.
+- Ranking por postura con tiers (**los co-moderadores no aparecen a propósito**: no defienden postura), y **informe imprimible**. **El cierre ya no hay que esperarlo**: durante todo el debate el host tiene «📊 Ver ranking parcial» (solo lectura, no detiene nada) y «⏹️ Cerrar el debate ahora» (con confirmación). Desde el ranking, parcial o final, se baja el **PDF** (diálogo de impresión → «Guardar como PDF», con nombre de archivo descriptivo y encabezado «Informe parcial» si el debate sigue) y el **JSON** (`estadoDeLaSesion: "parcial"` o `"cerrada"`).
 
 ## 3. Bugs ya arreglados — verificar que NO reaparezcan
 
@@ -81,7 +84,14 @@ A5. **Postura nueva aceptada sin aviso**: al aceptarla el host, la pantalla del 
 A6. **Vista espejo con "Turnos rechazados: 0"** tras haber rechazado. **Cómo verificar**: que alguien rechace un turno y luego acepte otro; la vista espejo debe decir "Turnos rechazados: 1".
 A7. **Avisos operativos en Cierre y ranking** ("6 sin argumento preparado", "5 casos esperando revisión"). **Cómo verificar**: avanzar a `cierre_y_ranking` con casos pendientes; el panel de avisos no debe mostrar nada.
 A8. **El objetivo de un contraargumento incluía el argumento propio.** **Cómo verificar**: abrir "Argumento al que apunta" con argumentos propios ya publicados; no deben aparecer.
-A9. **F5 del host con el debate cerrado** volvía a la sala de configuración con el mismo código. **Cómo verificar**: cerrar el debate, esperar a que pase la retención del historial (unos minutos) y refrescar el host; debe mostrar la lista de Programas.
+A9. **F5 del host con el debate cerrado** volvía a la sala de configuración con el mismo código. **Cómo verificar**: cerrar el debate y refrescar el host: debe reconstruir el informe cerrado desde la copia local (**ya no** vuelve a la lista de Programas: cambió a propósito) y nunca reabrir una sala de configuración con el código viejo. Para salir, «➕ Iniciar un debate nuevo».
+
+**Arreglados en la ronda del reporte de 7 actores (verificar que la corrección aguanta):**
+
+B1. **Nombre reemplazado por ID tras cerrar una pestaña y refrescar el host** (alta). Un participante con puntaje cerraba su pestaña, entraba otro con el mismo nombre, el host refrescaba, y el original desaparecía del marcador y salía como `participante-…` en el mapa y el informe. **Cómo verificar**: ver la variante «Mateo» del elenco de actores (sección 4B). El original debe seguir con nombre, emoji, puntos y marca «Sin conexión».
+B2. **«Este texto no debería presentarse porque ....» pasaba como argumento.** Ahora un filtro previo a Groq lo rechaza al instante («Después de «porque» no explicas la razón»), igual que los textos de menos de 5 palabras. **Cómo verificar**: mandarlo en el ingreso y en «Prepara tu próximo argumento»; no debe aparecer nunca en el mapa ni en el feed.
+B3. **Turno bloqueado si quien hablaba cerraba la pestaña.** La ruleta no avanzaba nunca. **Cómo verificar**: variante «cierra teniendo la palabra» del elenco.
+B4. **Argumento «listo» sin texto tras cerrar la pestaña.** El borrador ahora se recupera. **Cómo verificar**: variante «cierra con el argumento ya aprobado» del elenco.
 
 **Arreglados en la ronda anterior (los 10 del reporte de 8 participantes previo):**
 
@@ -129,8 +139,38 @@ Los cuatro más valiosos de re-verificar: **turno hablado de respaldo**, **arist
 12. **Bid**: mientras alguien tiene el turno, otro lanza un bid. El co-moderador vota, el host da veredicto.
 13. **Vista espejo**: en el host, elegir a Ana en "Ver la pantalla de un participante". Confirmar que muestra lo mismo que ella tiene (misma capa instruccional), que **no** muestra lo que está escribiendo y que "Turnos rechazados" cuenta los rechazos que hizo aunque después haya aceptado otro turno.
 14. **Grafo**: con 3+ argumentos conectados, confirmar que las respuestas quedan **debajo** de aquello a lo que responden, que hay leyenda y minimapa, y que **rodar la rueda del mouse sobre el grafo scrollea la página en vez de zoomear**.
-15. **Modo proyección**: botón "📽️ Proyectar" → todo más grande, sin controles. Salir.
-16. **Cierre**: avanzar fases hasta `cierre_y_ranking`. Confirmar que el panel de avisos del host quedó vacío, ranking por postura con **nombres** (no IDs), "Descargar sesión (.json)", y el **informe imprimible**: pulsar "🖨️ Generar PDF del debate", confirmar que se abre el diálogo de impresión y que la vista previa muestra **solo el informe** (sin botones ni paneles). Cancelar el diálogo.
+15. **Proyección**: (a) «📽️ Proyectar aquí» → todo más grande, sin controles; salir. (b) «🪟 Proyectar en otra ventana» → se abre una ventana que muestra el debate en vivo; publica un argumento y compruébalo en las dos (consola y ventana). Si el navegador bloquea la ventana emergente debe aparecer un aviso rojo en la consola. **Mapa**: con 1–3 argumentos la caja es baja (~240 px) y crece al agregar más, hasta su tope.
+16. **Argumento destacado**: cuando alguien recibe la palabra, su texto aparece en grande ~12 s en el host, en la ventana de proyección y en los demás celulares (**no** en el de quien habla). Se cierra con un toque. Recargar la página a mitad de turno no lo hace reaparecer. Después queda en tamaño normal bajo «X está hablando ahora».
+17. **Ranking parcial y cierre anticipado** (sin esperar a `cierre_y_ranking`): «📊 Ver ranking parcial» baja hasta «Ranking parcial (el debate sigue en curso)» y **no** detiene nada. Descarga el **PDF** (diálogo de impresión, vista previa solo con el informe, encabezado «Informe parcial», nombre de archivo «Informe R2 Argumentum - …») y el **JSON** (`estadoDeLaSesion: "parcial"`). Luego «⏹️ Cerrar el debate ahora»: la confirmación debe decir cuántos no han hablado; al aceptar, ranking final en el host, pantalla de resultado en los celulares y la ruleta detenida.
+18. **Cierre normal** (en una sesión aparte, avanzando fases hasta `cierre_y_ranking`): panel de avisos vacío, ranking con **nombres** (no IDs), PDF y JSON. Cancelar el diálogo de impresión.
+19. **Debate nuevo**: en el ranking final, «➕ Iniciar un debate nuevo» → confirmación → lista de Programas, **sin pedir login**.
+
+## 4B. Elenco de actores — la prueba que de verdad importa
+
+Una prueba con participantes idénticos no encuentra los fallos del aula. Corre el escenario con **al menos 8 pestañas** y reparte estos comportamientos; cada actor hace siempre lo mismo. Anota qué pasó con cada uno.
+
+| Actor | Qué hace | Qué debe pasar |
+|---|---|---|
+| **Hablador** (Ana) | Apenas termina un turno prepara otro argumento, lanza bids, conecta todo lo que puede. | No debe monopolizar la ruleta: cuenta cuántos turnos tuvo cada quien; si Ana tiene más del doble del promedio, anótalo. Su puntaje debe frenarse al pasar el límite de posiciones del perfil (no crece sin techo). |
+| **Callada** (Silvia) | Entra con su argumento de ingreso y no vuelve a escribir nada. | El panel de avisos la señala («no tienen ningún argumento preparado»; pasados ~6 min, aviso rojo «no han tomado la palabra»). Debe recibir el turno hablado de respaldo. El debate no debe cerrarse solo sin que hable. |
+| **Participación mínima** (Luis, Diego) | Ingreso + una sola intervención. | Marcador coherente; los avisos dejan de nombrarlos apenas intervienen. |
+| **Co-moderador experto** | Valida rápido, vota los bids, califica las intervenciones habladas ajustando arriba o abajo. | Bonos repartidos; su cola nunca incluye lo propio. |
+| **Co-moderador perdido** (Carla) | Valida la mitad de su cola, no vota bids, ignora las intervenciones habladas. | Aviso «casos esperando revisión de los co-moderadores» con su nombre. Los bids sin votos expiran o el host los resuelve a mano. El puntaje base no depende de ella y **el debate nunca queda bloqueado**. Su pantalla debe explicarle qué puede hacer (capa instruccional): anota si se pierde. |
+| **El de los rechazos** (Pedro) | En el ingreso manda, en este orden: una afirmación sin razón; «Este texto no debería presentarse porque ....»; tres palabras sueltas; un argumento de otra postura; y por fin uno bueno. | Los tres primeros se rechazan con motivo claro (los dos últimos de forma inmediata, sin llamar a Groq); el cuarto avisa de postura distinta; el quinto entra. **Ninguno de los rechazados aparece en el mapa ni en el feed.** |
+| **El copión** | Escribe algo casi igual a un argumento ya publicado, cambiando dos o tres palabras. | Aviso «se parece mucho al de X». En «Prepara tu próximo argumento» aparece «Usarlo como refuerzo de ese argumento»; al aplicarlo ya no vuelve a saltar el aviso. |
+| **El apurado** | Escribe todo en minúsculas y sin tildes («la educacion publica reduce la desigualdad porque…»). | **No debe rechazarse** (la ortografía no bloquea). Con el corrector en español del navegador activo, las palabras con falta salen subrayadas. Anota cómo se ve ese argumento en el mapa: es el caso que motiva la decisión abierta sobre ayuda de redacción con IA. |
+| **El de la pestaña cerrada** (Mateo) | Ver las variantes de abajo. | Ver abajo. |
+
+**Variantes de «se le cierra la pestaña»** (usa una persona distinta para cada una, o repítelas en orden). En todas, vuelve a entrar por el mismo link `/?sala=XXXX`:
+
+- **a) En pleno ingreso**, sin confirmar: al volver debe aparecer «Ya habías entrado a la sala… Continuar como X».
+- **b) Con el argumento ya aprobado y esperando turno**: al continuar debe ver «Tu argumento está listo» **con su texto** y los mismos puntos.
+- **c) Teniendo la palabra**: el host ve el aviso rojo «X tiene la palabra pero está sin conexión»; pulsa «⏭️ Terminar el turno de X» y la ruleta sigue con otra persona. Si X vuelve antes, puede continuar y publicar.
+- **d) Siendo co-moderador**: al volver conserva su rol y su cola.
+- **e) Entra como otra persona con el mismo nombre** (elige no continuar): queda como participante nuevo (oyente si el debate ya empezó). **Refresca el host (F5) y comprueba lo más importante**: el Mateo original sigue en el marcador con nombre, emoji, puntos y la marca «Sin conexión»; sus argumentos y su fila del informe muestran su nombre y **nunca** un ID `participante-…`. El Mateo nuevo aparece aparte, sin confirmar.
+- **f) Otro navegador o dispositivo**: no hay forma de recuperar la identidad (no hay login de estudiantes) — es lo esperado, anótalo como informativo, no como fallo.
+
+**Host, durante ese debate:** proyecta en otra ventana mientras pasa todo esto; en algún momento pide el ranking parcial, baja el PDF y el JSON, y cierra el debate con gente que aún no ha hablado.
 
 ## 5. Casos borde
 
@@ -144,7 +184,7 @@ Los cuatro más valiosos de re-verificar: **turno hablado de respaldo**, **arist
 - **Aristas del grafo**: publicar al menos 3 conexiones y contar `.react-flow__edge` en el DOM del host y de un participante. Debe coincidir con la cantidad de conexiones. Repetir dejando la pestaña del grafo en segundo plano mientras se publican los nodos y volviendo a ella después.
 - **Host que refresca** (importante): con el debate andando, varios argumentos publicados y al menos un bid aprobado, anotar el marcador de cada participante y la cantidad de nodos del grafo. Refrescar la pestaña del host (F5) y esperar a que reconstruya. Verificar que **los puntajes son los mismos** (no el doble), que **no aparecieron nodos duplicados**, que la fase sigue siendo la misma (no volvió a la ronda 1) y que las posturas destildadas siguen fuera. Después cerrar una fase y confirmar que avanza a la que sigue, no a la primera.
 - **Host que refresca con un turno ofrecido**: refrescar justo mientras hay una oferta de turno en pantalla. La oferta debe expirar sola y la ruleta volver a girar, en vez de quedar colgada.
-- **Host que refresca con el debate cerrado**: cerrar el debate, esperar unos minutos (que expire el historial de Ably) y refrescar el host. Debe volver a la **lista de Programas**, no a la sala de configuración con el mismo código. Si el refresco es dentro del minuto, debe reconstruir el ranking desde la copia local. Cerrar las pestañas de participantes viejas antes de abrir otra sesión.
+- **Host que refresca con el debate cerrado**: cerrar el debate y refrescar el host, tanto dentro del minuto como pasados varios minutos. En los dos casos debe reconstruir el informe y el ranking desde la copia local (nunca reabrir una sala de configuración con el código viejo). Salir con «➕ Iniciar un debate nuevo». Cerrar las pestañas de participantes viejas antes de abrir otra sesión.
 - **Co-moderador que refresca**: con el debate avanzado, F5 en la pestaña del co-moderador. Debe reaparecer con el debate completo (no vacío), con su rol y su cola de validación.
 - **Desconexión larga de un participante**: en Chrome DevTools, poner la pestaña de un participante en modo offline (Network → Offline) tres o cuatro minutos mientras el debate sigue, y volver a ponerla online. Debe aparecer primero el aviso rojo de conexión caída, después el de "poniéndote al día", y —si se perdió algo— el aviso ámbar permanente de estado incompleto. Lo que pase después de reconectar debe verse normalmente.
 - **Postura distinta a la elegida**: elegir "Más mercado" y escribir un argumento claramente estatista. Confirmar el aviso y la opción de cambiarse de postura. *(Si Groq viene con poca confianza, el sistema aprueba igual — eso es deliberado, no un fallo.)*
@@ -165,7 +205,7 @@ Los cuatro más valiosos de re-verificar: **turno hablado de respaldo**, **arist
 - Si algo falla por historial de Ably expirado tras varios minutos, anótalo aparte como "esperado por retención de Ably", no en la tabla.
 - Si reaparece un bug de la sección 3, márcalo como **REGRESIÓN**, primero en la tabla, severidad alta.
 - Si no hay fallos reales, dilo explícitamente. No inventes hallazgos.
-- **No son fallos**: la retención de ~2 minutos del historial de Ably para quien estuvo desconectado (debe verse el aviso, no un debate vacío tras un F5), la renovación de una oferta al único candidato elegible, y la ausencia de co-moderadores en el ranking.
+- **No son fallos**: la retención de ~2 minutos del historial de Ably para quien estuvo desconectado (debe verse el aviso, no un debate vacío tras un F5), la renovación de una oferta al único candidato elegible, la ausencia de co-moderadores en el ranking, y que una identidad de participante no se pueda recuperar desde otro navegador o dispositivo (no hay login de estudiantes).
 - Indica siempre **qué no pudiste verificar y por qué** (por ejemplo, el zoom del navegador impidió la rueda del mouse o el viewport de celular), en lugar de darlo por bueno.
 
 ## 7. Pendiente de verificar de la ronda anterior

@@ -26,6 +26,7 @@ export function ListaDeParticipantes({ estado, presencia, programa }) {
               <span className="medalla-de-posicion">{MEDALLA_POR_POSICION[indice] ?? `${indice + 1}º`}</span>
               <span className="emoji-de-participante">{participante.emoji}</span>
               <span className="nombre-de-participante">{participante.nombre}</span>
+              {!participante.conectado && <span className="chip-de-rol">Sin conexión</span>}
               {participante.rol === 'co_moderador' && <span className="chip-de-rol">Co-moderador</span>}
               {postura && (
                 <span className="chip-de-postura" style={{ color: postura.color }}>

@@ -2,9 +2,10 @@
 // estado = reduce(eventos, estadoInicial). Ningún cliente confía en memoria propia
 // no verificable: esto es lo único que determina el estado derivado de la sesión.
 //
-// Nota: nombre/emoji de cada participante NO viven aquí — vienen de Ably presence
-// (nativo, no es un evento del log) y se combinan con este estado en las selecciones
-// derivadas (ver seleccionesDerivadas.js).
+// Nota: nombre/emoji de cada participante vienen de Ably presence (nativo, no es un evento del
+// log) y se combinan con este estado en las selecciones derivadas (ver seleccionesDerivadas.js).
+// Como presence solo sabe quién está conectado ahora, `ingreso.confirmado` también los trae y el
+// reducer los guarda como respaldo para quien ya se desconectó.
 
 import { EVENTOS } from '../eventos/nombresDeEventos.js';
 
@@ -126,7 +127,38 @@ function aplicarEvento(estado, evento) {
         ...participante,
         ingresoConfirmado: true,
         stanceId: data.stanceId ?? participante.stanceId,
+        // Nombre y emoji viajan en el log además de en presence: presence solo sabe quién está
+        // conectado AHORA, así que quien cierra la pestaña desaparece de ella y, si el host
+        // refresca, su nombre se perdía y el marcador/informe mostraban el ID técnico. El log
+        // sí sobrevive (ver instantaneaLocal.js). Bug real reportado en prueba en vivo.
+        nombre: data.nombre ?? participante.nombre,
+        emoji: data.emoji ?? participante.emoji,
       }));
+
+    case EVENTOS.ARGUMENTO_EN_EXPOSICION: {
+      // Solo tiene sentido mientras ese turno siga en curso: un evento tardío de un turno ya
+      // cerrado no debe pegarse al turno siguiente.
+      const turnoEnCurso = estado.turnos.turnoEnCurso;
+      if (!turnoEnCurso || turnoEnCurso.turnId !== data.turnId || turnoEnCurso.participantId !== data.participantId) {
+        return estado;
+      }
+      return {
+        ...estado,
+        turnos: {
+          ...estado.turnos,
+          turnoEnCurso: {
+            ...turnoEnCurso,
+            presentacion: {
+              texto: data.texto,
+              tipoDeclarado: data.tipoDeclarado ?? null,
+              stanceId: data.stanceId ?? null,
+              argumentoObjetivoId: data.argumentoObjetivoId ?? null,
+              anunciadoEn: data.timestamp ?? null,
+            },
+          },
+        },
+      };
+    }
 
     case EVENTOS.POSTURA_PROPUESTA:
       return {
@@ -304,6 +336,22 @@ function aplicarEvento(estado, evento) {
           turnoEnCurso: { turnId: data.turnId, participantId: data.participantId },
           excluidosTemporalmente: [],
           ultimoResultadoPorTurnId: { ...siguiente.turnos.ultimoResultadoPorTurnId, [data.turnId]: 'forced' },
+        },
+      };
+    }
+
+    case EVENTOS.TURNO_TERMINADO_POR_HOST: {
+      if (estado.turnos.turnoEnCurso?.turnId !== data.turnId) {
+        return estado;
+      }
+      // El "argumento listo" de quien hablaba se conserva: si vuelve, puede recibir la palabra
+      // otra vez para defenderlo. No se cuenta como intervención ni como rechazo.
+      return {
+        ...estado,
+        turnos: {
+          ...estado.turnos,
+          turnoEnCurso: null,
+          ultimoResultadoPorTurnId: { ...estado.turnos.ultimoResultadoPorTurnId, [data.turnId]: 'ended_by_host' },
         },
       };
     }

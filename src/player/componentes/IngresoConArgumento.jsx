@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
 import { decidirValidacion, DECISIONES } from '../../shared/argumentos/decidirValidacion.js';
 import { elegirPosturaMenosRepresentada } from '../../shared/ingreso/reglasDeIngreso.js';
+import { buscarArgumentoParecido } from '../../shared/argumentos/buscarArgumentoParecido.js';
+import { nombreDeParticipante } from '../../shared/estado/seleccionesDerivadas.js';
 
 function generarId(prefijo) {
   return `${prefijo}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -84,6 +86,20 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
     if (!texto.trim() || !stanceElegido) {
       return;
     }
+    // Filtro local, sin gastar una llamada a Groq: repetir casi lo mismo que otro estudiante ya
+    // dejó en el mapa no aporta al debate ni debería puntuar como un aporte propio.
+    const argumentoParecido = buscarArgumentoParecido(texto, Object.values(estado.argumentos));
+    if (argumentoParecido) {
+      setResultado({
+        decision: 'argumento_repetido',
+        mensaje: `Tu argumento se parece mucho al de ${nombreDeParticipante(
+          presencia ?? [],
+          argumentoParecido.argumento.participantId
+        )}: «${argumentoParecido.argumento.texto.slice(0, 90)}…»`,
+        sugerencia: 'Escríbelo con tus propias palabras: qué piensas tú y qué razón o ejemplo lo sostiene.',
+      });
+      return;
+    }
     setRevisando(true);
     let respuesta;
     try {
@@ -155,7 +171,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
       // nadie (ver reducirEventos.js y participantesSinIntervenir en reglasDeIngreso.js).
       esArgumentoDeIngreso: true,
     });
-    publicar(EVENTOS.INGRESO_CONFIRMADO, { participantId, stanceId: stanceElegido, argumentId });
+    publicar(EVENTOS.INGRESO_CONFIRMADO, { participantId, stanceId: stanceElegido, argumentId, nombre, emoji });
     // No hace falta esperar nada más: el participante ya está en presencia desde que se
     // conectó (ver useEstadoDeSesion.js). En cuanto este evento vuelva por el canal, App.jsx
     // deja de mostrar esta pantalla porque `ingresoConfirmado` pasa a true.
@@ -221,6 +237,9 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
         <textarea
           value={texto}
           rows={5}
+          lang="es"
+          spellCheck
+          autoCapitalize="sentences"
           onChange={(evento) => {
             setTexto(evento.target.value);
             setResultado(null);

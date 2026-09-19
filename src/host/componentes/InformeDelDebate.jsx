@@ -1,4 +1,5 @@
 import { calcularRankingPorPostura, nombreDeParticipante } from '../../shared/estado/seleccionesDerivadas.js';
+import { imprimirInformeComoPDF } from '../imprimirInforme.js';
 
 // Informe imprimible para evaluar el debate.
 //
@@ -25,7 +26,7 @@ export function InformeDelDebate({ estado, programa, presencia, eventos }) {
   return (
     <section className="informe-del-debate">
       <div className="acciones-del-informe">
-        <button type="button" onClick={() => window.print()}>
+        <button type="button" onClick={() => imprimirInformeComoPDF(programa.titulo)}>
           🖨️ Generar PDF del debate
         </button>
         <p className="texto-de-ayuda">
@@ -36,6 +37,11 @@ export function InformeDelDebate({ estado, programa, presencia, eventos }) {
       <article className="hoja-del-informe">
         <header>
           <h1>{programa.titulo}</h1>
+          {!estado.sesion.cerrada && (
+            <p>
+              <strong>Informe parcial:</strong> el debate seguía en curso al generarlo.
+            </p>
+          )}
           <p>{programa.temaCentral}</p>
           <p className="texto-de-ayuda">
             Informe generado el {new Date().toLocaleString('es-EC')} · {argumentos.length} argumentos ·{' '}

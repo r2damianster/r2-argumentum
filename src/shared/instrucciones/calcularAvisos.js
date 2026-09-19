@@ -52,6 +52,23 @@ export function calcularAvisosParaElModerador(estado, presencia, ahora = Date.no
     return avisos;
   }
 
+  // Quien tiene la palabra se quedó sin conexión (cerró la pestaña por error, se le apagó el
+  // celular). El motor no ofrece otro turno mientras haya uno abierto, así que sin este aviso el
+  // debate parece colgado sin explicación.
+  const turnoEnCurso = estado.turnos.turnoEnCurso;
+  const hablanteSinConexion = turnoEnCurso
+    ? presencia.find((presente) => presente.participantId === turnoEnCurso.participantId)
+    : null;
+  if (hablanteSinConexion && hablanteSinConexion.conectado === false) {
+    avisos.push({
+      id: 'turno-sin-conexion',
+      gravedad: GRAVEDAD.ALTA,
+      texto: `${hablanteSinConexion.nombre ?? turnoEnCurso.participantId} tiene la palabra pero está sin conexión.`,
+      detalle:
+        'La ruleta no avanza mientras haya un turno abierto. Espera a que vuelva a entrar o usa «Terminar el turno» en la tarjeta de ranking y cierre.',
+    });
+  }
+
   const argumentadores = conectados.filter(
     (presente) =>
       estado.participantes[presente.participantId]?.ingresoConfirmado &&

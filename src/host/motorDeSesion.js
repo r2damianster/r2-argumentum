@@ -865,6 +865,19 @@ export function crearMotorDeSesion({ programa }) {
     contexto.publicar(EVENTOS.SESION_CERRADA, {});
   }
 
+  // Libera la ruleta cuando quien tiene la palabra ya no la va a terminar (pestaña cerrada,
+  // sin conexión, o se olvidó de publicar). El motor no ofrece turnos mientras haya uno abierto.
+  function terminarTurnoEnCurso() {
+    const turnoEnCurso = contexto.estado?.turnos.turnoEnCurso;
+    if (!turnoEnCurso) {
+      return;
+    }
+    contexto.publicar(EVENTOS.TURNO_TERMINADO_POR_HOST, {
+      turnId: turnoEnCurso.turnId,
+      participantId: turnoEnCurso.participantId,
+    });
+  }
+
   function destruir() {
     for (const timeoutId of temporizadoresDeOferta.values()) clearTimeout(timeoutId);
     for (const timeoutId of temporizadoresDeBid.values()) clearTimeout(timeoutId);
@@ -882,6 +895,7 @@ export function crearMotorDeSesion({ programa }) {
     cerrarTopicoDeBids,
     decidirBid,
     cerrarSesion,
+    terminarTurnoEnCurso,
     destruir,
   };
 }

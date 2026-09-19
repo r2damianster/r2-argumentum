@@ -5,6 +5,8 @@
 // Quién puede proponer una postura nueva lo decide el cliente según `permitirPosturasNuevas`
 // del Programa — acá solo se informa el hallazgo.
 
+import { revisarFormaMinima } from './_revisarFormaMinima.js';
+
 // Groq a veces devuelve en "posturaSugerida" el id técnico de una postura inventada
 // ("homo_scientificus") en vez de una etiqueta legible, y ese texto va derecho a la pantalla
 // del estudiante. Si coincide con una postura real se usa su etiqueta; si no, al menos se
@@ -95,6 +97,22 @@ export default async function handler(request, response) {
   }
 
   const { texto, ejemplos = [], posturas = [] } = request.body;
+
+  // Antes de gastar una llamada: un texto sin razón real ("... porque ....") no se manda a
+  // Groq, que podía aprobarlo solo por ver el conector.
+  const revisionMinima = revisarFormaMinima(texto);
+  if (!revisionMinima.valido) {
+    response.status(200).json({
+      aprobado: false,
+      motivo: revisionMinima.motivo,
+      sugerenciaDeCorreccion: revisionMinima.sugerencia,
+      posturaDetectada: null,
+      esPosturaNueva: false,
+      posturaSugerida: '',
+      confianza: null,
+    });
+    return;
+  }
 
   const ejemplosFormateados = ejemplos
     .map(

@@ -4,7 +4,12 @@ import '@xyflow/react/dist/style.css';
 import { COLORES_SEMANTICOS_DEL_GRAFO } from '../estilos/colores.js';
 import { TIPOS_DE_RELACION } from '../eventos/nombresDeEventos.js';
 import { nombreDeParticipante } from '../estado/seleccionesDerivadas.js';
-import { calcularLayoutDelGrafo, ANCHO_DE_NODO, ALTO_DE_NODO } from './calcularLayoutDelGrafo.js';
+import {
+  calcularLayoutDelGrafo,
+  calcularAltoDelGrafo,
+  ANCHO_DE_NODO,
+  ALTO_DE_NODO,
+} from './calcularLayoutDelGrafo.js';
 
 // TIPOS_DE_RELACION.NUEVO ('nuevo') no tiene clave propia en la paleta semántica
 // (docs/08-identidad-visual.md la llama "argumentoOriginal") — se traduce aquí.
@@ -58,9 +63,37 @@ function usarVistaCompacta() {
   return compacta;
 }
 
+// Ancho real de la caja del mapa (para saber a qué escala se vería el layout).
+function usarAnchoDe(referencia) {
+  const [ancho, setAncho] = useState(900);
+
+  useEffect(() => {
+    const elemento = referencia.current;
+    if (!elemento || typeof ResizeObserver === 'undefined') {
+      return undefined;
+    }
+    const observador = new ResizeObserver(([entrada]) => setAncho(Math.round(entrada.contentRect.width)));
+    observador.observe(elemento);
+    return () => observador.disconnect();
+  }, [referencia]);
+
+  return ancho;
+}
+
+// Límites del alto del mapa. En pantalla normal el mapa sale compacto y crece con el debate; en
+// proyección se le deja hasta el 62 % del alto de la ventana para que se lea desde el fondo.
+function limitesDeAlto(modoProyeccion) {
+  if (modoProyeccion) {
+    return { altoMinimo: 300, altoMaximo: Math.max(360, Math.round(window.innerHeight * 0.62)) };
+  }
+  return { altoMinimo: 240, altoMaximo: window.innerWidth >= 900 ? 560 : 420 };
+}
+
 // Compartido entre host (proyección en vivo) y player (vista propia).
-export function GrafoDeArgumentos({ estado, programa, presencia }) {
+export function GrafoDeArgumentos({ estado, programa, presencia, modoProyeccion = false }) {
   const vistaCompacta = usarVistaCompacta();
+  const contenedorRef = useRef(null);
+  const anchoDelContenedor = usarAnchoDe(contenedorRef);
 
   const { nodos, aristas } = useMemo(() => {
     const argumentos = Object.values(estado.argumentos).sort((a, b) => a.timestamp - b.timestamp);
@@ -127,11 +160,15 @@ export function GrafoDeArgumentos({ estado, programa, presencia }) {
     return <ListaDeArgumentosPorPostura estado={estado} programa={programa} presencia={presencia} />;
   }
 
+  const altoDelGrafo = calcularAltoDelGrafo(nodos, anchoDelContenedor, limitesDeAlto(modoProyeccion));
+
   return (
     <section className="tarjeta-de-grafo">
       <p className="texto-de-ayuda">Mapa argumental</p>
       <LeyendaDeTipos />
-      <div className="contenedor-de-grafo">
+      {/* El alto va inline porque depende de cuántos argumentos hay: compacto al empezar y más
+          alto a medida que el mapa deja de caber (ver calcularAltoDelGrafo). */}
+      <div className="contenedor-de-grafo" ref={contenedorRef} style={{ height: altoDelGrafo }}>
         {/* zoomOnScroll/panOnScroll en false: sin esto, pasar el mouse por el grafo para bajar
             la página lo zoomeaba sin querer. El zoom deliberado es con los botones o pellizco. */}
         <ReactFlow
@@ -146,8 +183,9 @@ export function GrafoDeArgumentos({ estado, programa, presencia }) {
         >
           <Background />
           <Controls showInteractive={false} />
-          <MiniMap pannable zoomable />
-          <ReencuadrarAlCrecerElMapa cantidadDeNodos={nodos.length} />
+          {/* El minimapa solo aporta cuando hay bastante mapa; en una caja chica estorba. */}
+          {nodos.length >= 6 && <MiniMap pannable zoomable />}
+          <ReencuadrarAlCrecerElMapa cantidadDeNodos={nodos.length} altoDelContenedor={altoDelGrafo} />
         </ReactFlow>
       </div>
     </section>
@@ -157,16 +195,24 @@ export function GrafoDeArgumentos({ estado, programa, presencia }) {
 // `fitView` del prop solo encuadra al montar. Cuando se publica un argumento nuevo con el
 // mapa ya abierto, el nodo aparecía cortado contra el borde (reportado en prueba en vivo).
 // Este ayudante vuelve a encuadrar cada vez que el mapa crece.
-function ReencuadrarAlCrecerElMapa({ cantidadDeNodos }) {
+function ReencuadrarAlCrecerElMapa({ cantidadDeNodos, altoDelContenedor }) {
   const { fitView } = useReactFlow();
   const cantidadPrevia = useRef(cantidadDeNodos);
+  const altoPrevio = useRef(altoDelContenedor);
 
   useEffect(() => {
-    if (cantidadDeNodos > cantidadPrevia.current) {
-      fitView({ duration: 300, padding: 0.15 });
-    }
+    const crecioElMapa = cantidadDeNodos > cantidadPrevia.current;
+    const cambioElAlto = altoDelContenedor !== altoPrevio.current;
     cantidadPrevia.current = cantidadDeNodos;
-  }, [cantidadDeNodos, fitView]);
+    altoPrevio.current = altoDelContenedor;
+    if (!crecioElMapa && !cambioElAlto) {
+      return undefined;
+    }
+    // Si cambió el alto de la caja, se espera al siguiente cuadro: React Flow tiene que medir
+    // el contenedor nuevo antes de poder encuadrar contra él.
+    const cuadro = requestAnimationFrame(() => fitView({ duration: 300, padding: 0.15 }));
+    return () => cancelAnimationFrame(cuadro);
+  }, [cantidadDeNodos, altoDelContenedor, fitView]);
 
   return null;
 }

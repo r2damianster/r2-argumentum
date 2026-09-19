@@ -29,10 +29,19 @@ export const EVENTOS = {
   TURNO_RECHAZADO: 'turn.rejected',
   TURNO_EXPIRADO: 'turn.timeout',
   TURNO_FORZADO: 'turn.forced',
+  // El moderador da por terminado el turno en curso (quien hablaba cerró la pestaña, se
+  // desconectó o simplemente no publicó su argumento). Sin esto el turno en curso bloquea la
+  // ruleta para siempre: el motor no ofrece otra palabra mientras haya un turno abierto.
+  TURNO_TERMINADO_POR_HOST: 'turn.ended_by_host',
 
   // "Tengo un argumento escrito y aprobado, esperando mi turno para defenderlo". El turno se
   // ofrece SOLO a quien publicó esto: no es una invitación a escribir (ver docs/04).
   ARGUMENTO_LISTO: 'argument.ready',
+
+  // Quien tiene la palabra anuncia el texto del argumento que va a defender, para que el resto
+  // (proyección incluida) lo vea destacado mientras empieza a hablar. El argumento como tal
+  // se sigue publicando al terminar (`argument.submitted`).
+  ARGUMENTO_EN_EXPOSICION: 'argument.presenting',
 
   // Intervención hablada sin argumento escrito, para quienes no alcanzaron a preparar uno y
   // todavía no tomaron la palabra. La califica un co-moderador después.

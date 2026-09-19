@@ -2,10 +2,11 @@
 // reconstruye el estado completo desde el historial (event sourcing puro,
 // ver docs/09-modelo-de-eventos.md) y expone una función para publicar eventos nuevos.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { obtenerClienteAbly, obtenerCanalDeDebate } from '../ably/clienteAbly.js';
 import { EVENTOS } from '../eventos/nombresDeEventos.js';
 import { estadoInicial, reducirEventos } from './reducirEventos.js';
+import { completarPresenciaConParticipantes } from './seleccionesDerivadas.js';
 import { borrarInstantanea, guardarInstantanea, leerInstantanea } from './instantaneaLocal.js';
 
 // El canal de Ably se llama solo con el código de sala de 4 dígitos, que se puede repetir
@@ -359,5 +360,11 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
     return canalRef.current.publish(nombreDeEvento, { timestamp: Date.now(), ...payload });
   }
 
-  return { estado, eventos, presencia, publicar, cargando, conexion };
+  // Quien ya se desconectó (cerró la pestaña) sigue en el roster con su nombre, sacado del log.
+  const presenciaCompleta = useMemo(
+    () => completarPresenciaConParticipantes(presencia, estado.participantes),
+    [presencia, estado.participantes]
+  );
+
+  return { estado, eventos, presencia: presenciaCompleta, publicar, cargando, conexion };
 }

@@ -31,6 +31,8 @@ export function exportarSesion({ eventos, estado, programa, presencia = [] }) {
 
   return {
     exportadoEn: new Date().toISOString(),
+    // "parcial" si el moderador exporta con el debate todavía en curso (ranking hasta ese momento).
+    estadoDeLaSesion: estado.sesion.cerrada ? 'cerrada' : 'parcial',
     programa: { programId: programa.programId, titulo: programa.titulo, version: programa.version },
     eventLogCompleto: eventos,
     mapaArgumental,

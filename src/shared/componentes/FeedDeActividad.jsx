@@ -36,6 +36,9 @@ export function FeedDeActividad({ estado, presencia }) {
   const quienHabla = estado.turnos.turnoEnCurso
     ? nombreDeParticipante(presencia, estado.turnos.turnoEnCurso.participantId)
     : null;
+  // El texto que anunció quien tiene la palabra (ver DestacadoDelTurno): tras el énfasis inicial
+  // sigue a la vista, en tamaño normal, mientras dure su turno.
+  const argumentoQueDefiende = estado.turnos.turnoEnCurso?.presentacion?.texto ?? null;
   const quienFueOfrecido =
     !quienHabla && estado.turnos.ofertaActiva
       ? nombreDeParticipante(presencia, estado.turnos.ofertaActiva.candidateId)
@@ -72,6 +75,9 @@ export function FeedDeActividad({ estado, presencia }) {
       {!enFaseDeApertura && hayRuletaDeTurnos && (
         <>
           {quienHabla && <p className="banner-de-turno">🗣️ {quienHabla} está hablando ahora</p>}
+          {quienHabla && argumentoQueDefiende && (
+            <blockquote className="cita-de-argumento">{argumentoQueDefiende}</blockquote>
+          )}
           {quienFueOfrecido && (
             <p className="banner-de-turno banner-de-espera">⏳ Se le ofreció el turno a {quienFueOfrecido}…</p>
           )}
