@@ -12,8 +12,9 @@ export function PanelDeConexionLibre({ estado, participantId, publicar }) {
   const [tipoDeRelacion, setTipoDeRelacion] = useState(TIPOS_DE_RELACION.REFUERZO);
 
   const misArgumentosDisponibles = misArgumentosSinConexionSaliente(estado, participantId);
+  // Se conecta con argumentos de otras personas: el propio nunca es un destino válido.
   const argumentosDestinoPosibles = Object.values(estado.argumentos).filter(
-    (argumento) => argumento.argumentId !== argumentoOrigenId
+    (argumento) => argumento.participantId !== participantId
   );
 
   if (misArgumentosDisponibles.length === 0) {

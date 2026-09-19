@@ -88,7 +88,10 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
     }
     // Filtro local, sin gastar una llamada a Groq: repetir casi lo mismo que otro estudiante ya
     // dejó en el mapa no aporta al debate ni debería puntuar como un aporte propio.
-    const argumentoParecido = buscarArgumentoParecido(texto, Object.values(estado.argumentos));
+    const argumentosAjenos = Object.values(estado.argumentos).filter(
+      (argumento) => argumento.participantId !== participantId
+    );
+    const argumentoParecido = buscarArgumentoParecido(texto, argumentosAjenos);
     if (argumentoParecido) {
       setResultado({
         decision: 'argumento_repetido',

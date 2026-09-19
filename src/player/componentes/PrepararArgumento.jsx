@@ -92,7 +92,9 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
     // honesto es apoyarlo como refuerzo (o decir algo nuevo), no repetirlo como aporte propio.
     // Un refuerzo apunta a su objetivo y es natural que comparta vocabulario con él, así que ese
     // argumento no cuenta como repetido (si no, el aviso se repetiría después de aceptarlo).
-    const argumentosParaComparar = Object.values(estado.argumentos).filter(
+    // Tampoco se compara contra los argumentos propios: solo importa no repetir lo de otras
+    // personas, y el botón de refuerzo solo puede apuntar a argumentos ajenos.
+    const argumentosParaComparar = argumentosExistentes.filter(
       (argumento) =>
         !(tipoDeclarado === TIPOS_DE_RELACION.REFUERZO && argumento.argumentId === argumentoObjetivoId)
     );

@@ -93,6 +93,25 @@ Decisiones abiertas o trabajo técnico que todavía no se ha hecho, y registro d
 - **Co-moderadores fuera del ranking.** El ranking y el informe los excluyen a propósito (no defienden postura), así que sus puntos de co-moderación no se ven en ninguna parte. Falta decidir si merecen una lista aparte.
 - **Rechazo de turno con un solo elegible.** Con un único candidato posible, rechazar vuelve a ofrecerle el mismo turno a esa misma persona hasta que se agota el tope y se fuerza. Es coherente con la regla, pero conviene verlo en una prueba real con grupo chico para confirmar que el ritmo del aula lo tolera.
 
+### Reporte de prueba manual en producción (19 de septiembre de 2026, 3 sesiones: Liviano, Estándar, Estricto)
+
+Sin regresiones. Corregido en código, con prueba automatizada donde aplica:
+
+- **#1** El sorteo de co-moderadores incluía a quien estaba conectado pero no había confirmado su ingreso (oyente). Ahora solo entran los que confirmaron (`iniciarSesion` en `motorDeSesion.js`).
+- **#2** El aviso de similitud comparaba el argumento contra los propios del participante, y «Usarlo como refuerzo» apuntaba a un destino que el selector no ofrece (solo lista argumentos ajenos). Ahora la comparación excluye los argumentos propios (`PrepararArgumento.jsx`, `IngresoConArgumento.jsx`).
+- **#8** El selector de destino de la conexión libre ofrecía los argumentos propios. Ahora solo lista los de otras personas (`PanelDeConexionLibre.jsx`).
+
+Abiertos, sin tocar (por decidir o por reproducir):
+
+- **#2 (umbral)** Con 3 palabras con contenido ya puede saltar el aviso de similitud, porque un texto corto contenido en uno largo puntúa 0,9. Decidir un mínimo mayor de palabras.
+- **#3** Mapa en Conexión libre: encuadre corta el último nodo ~54 px con 3 nodos apilados y ⛶ no lo corrige; además hay aristas «(sugerido)» repetidas entre las mismas parejas tras dos tandas de sugerencias.
+- **#4** El turno hablado en Estándar vs Estricto da 30 vs 180 puntos, más que la razón 10× de las escalas. Revisar contra la fórmula única de `05-reglas-de-puntaje.md`.
+- **#5 / #6** Tras «Cerrar el debate ahora» siguen visibles los controles de fase y el marcador en vivo; el ranking final queda al pie sin desplazamiento; hay dos botones de PDF y el encabezado dice «Informe parcial» hasta cerrar.
+- **#7** Avisos del host de la ruleta y de casos por revisar aparecen en Conexión libre, donde no aplican.
+- **#9** Celular: áreas táctiles de ~22 px, capa de instrucciones más alta que un viewport horizontal de 400 px y una vez tapó el textarea.
+- **#10** El corrector ortográfico parecía estar en inglés (el `textarea` ya declara `lang="es"`; depende del navegador y del idioma de diccionario instalado).
+- **Sin verificar en la prueba:** refuerzo (A1), ráfaga simultánea a Groq, F5 del host con turno ofrecido, variantes c y d de B1, desconexión larga, auto-ampliación por zoom bajo, celular físico y QR.
+
 ## Mecánicas de fases futuras (explícitamente fuera de v1)
 
 - **Bid de tipo "agregar argumento nuevo"** (no solo desmontar/fortalecer) — posible v2.

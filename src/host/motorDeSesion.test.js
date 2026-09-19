@@ -516,3 +516,49 @@ describe('host que refresca la pestaña a mitad del debate', () => {
     expect(expirados[0].turnId).toBe('t-huerfano');
   });
 });
+
+describe('sorteo de co-moderadores al iniciar la sesión', () => {
+  const PRESENCIA_CON_OYENTE = [
+    ...PRESENCIA,
+    { participantId: 'marta', nombre: 'Marta', conectado: true },
+  ];
+
+  function iniciarConPresencia(presencia, eventosDeIngreso) {
+    const estado = construirEstado(eventosDeIngreso);
+    const publicar = vi.fn();
+    const motor = crearMotorDeSesion({ programa: PROGRAMA });
+    motor.sincronizar({ estado, presencia, publicar });
+    motor.iniciarSesion();
+    return eventosPublicados(publicar, EVENTOS.COMODERADORES_SELECCIONADOS)[0];
+  }
+
+  it('no sortea a quien está conectado pero aún no confirmó su ingreso (oyente)', () => {
+    // Marta está en la sala como oyente: sin excluirla, 3 conectados dejaban 1 co-moderador y
+    // el sorteo podía elegirla, quedando co-moderadora y oyente a la vez.
+    const seleccion = iniciarConPresencia(PRESENCIA_CON_OYENTE, [
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'ana', stanceId: 'izquierda' }),
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'luis', stanceId: 'derecha' }),
+    ]);
+
+    expect(seleccion.totalParticipantes).toBe(2);
+    expect(seleccion.participantIds).toEqual([]);
+  });
+
+  it('con suficientes confirmados, el oyente nunca queda entre los sorteados', () => {
+    const presencia = [
+      ...PRESENCIA_CON_OYENTE,
+      { participantId: 'pedro', nombre: 'Pedro', conectado: true },
+      { participantId: 'sofia', nombre: 'Sofía', conectado: true },
+    ];
+    const seleccion = iniciarConPresencia(presencia, [
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'ana', stanceId: 'izquierda' }),
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'luis', stanceId: 'derecha' }),
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'pedro', stanceId: 'izquierda' }),
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'sofia', stanceId: 'derecha' }),
+    ]);
+
+    expect(seleccion.totalParticipantes).toBe(4);
+    expect(seleccion.participantIds).toHaveLength(1);
+    expect(seleccion.participantIds).not.toContain('marta');
+  });
+});

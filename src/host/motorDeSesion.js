@@ -732,10 +732,13 @@ export function crearMotorDeSesion({ programa }) {
   }
 
   function iniciarSesion() {
-    const { presencia, publicar } = contexto;
+    const { estado, presencia, publicar } = contexto;
+    // Quien está conectado pero aún no confirmó su ingreso sigue como oyente: no participa del
+    // debate, así que tampoco entra al sorteo (si no, quedaba como co-moderador y oyente a la vez).
     const participantesElegibles = presencia
       .filter((presente) => presente.conectado !== false)
-      .map((presente) => presente.participantId);
+      .map((presente) => presente.participantId)
+      .filter((participantId) => estado?.participantes[participantId]?.ingresoConfirmado);
     const numeroDeCoModeradoresCalculado = calcularNumeroDeCoModeradores(
       participantesElegibles.length,
       programa.topeMaximoCoModeradores
