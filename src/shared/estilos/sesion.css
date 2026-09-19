@@ -11,14 +11,14 @@ textarea {
 }
 
 .consola-de-sesion {
-  max-width: 640px;
+  max-width: 40rem;
 }
 
 /* La consola en vivo se proyecta en clase (docs/07) — a 640px en una laptop/proyector queda
    diminuta y obliga a zoomear a mano. Desde ~900px de ancho de ventana se estira. */
 @media (min-width: 900px) {
   .consola-de-sesion {
-    max-width: 1100px;
+    max-width: 68.75rem;
   }
 
   .contenedor-de-grafo {
@@ -129,6 +129,37 @@ textarea {
   border-color: #fcd34d;
   background: #fffbeb;
   color: #92400e;
+}
+
+/* Aviso de zoom del navegador reducido — ver AvisoDeZoom.jsx. Fijo arriba y por encima de todo:
+   es lo único que se lee cuando la interfaz está al 33 %. */
+
+.aviso-de-zoom {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1em;
+  padding: 0.6em 1em;
+  background: #fffbeb;
+  border-bottom: 2px solid #fcd34d;
+  color: #92400e;
+  font-weight: 600;
+}
+
+.aviso-de-zoom button {
+  flex-shrink: 0;
+  padding: 0.3em 0.8em;
+  border-radius: 8px;
+  border: 1px solid #92400e;
+  background: white;
+  color: #92400e;
+  font-size: inherit;
+  cursor: pointer;
 }
 
 /* Capa instruccional — "qué pasa y qué tengo que hacer", siempre visible (docs/07) */
@@ -296,6 +327,7 @@ textarea {
     background: white;
   }
 
+  .aviso-de-zoom,
   .barra-superior,
   .tarjeta-de-fase,
   .tarjeta-de-avisos,
@@ -365,7 +397,7 @@ textarea {
 /* Modo proyección: la consola se ve desde el fondo del aula */
 
 .modo-proyeccion {
-  max-width: 1400px;
+  max-width: 87.5rem;
   font-size: 1.15rem;
 }
 

@@ -44,6 +44,7 @@ Diferencias respecto al copy de R2 Quiz: "docente anfitrión" → "docente moder
   - Botón **Entrar**.
 - **Entrar no alcanza para aparecer en la sala.** Después de conectarse el estudiante elige postura (o se le asigna), escribe su argumento, lo revisa con Groq y **confirma su ingreso**; recién ahí lo ve el resto. Quien no confirma antes de que el moderador inicie la sesión queda como oyente (mira, no recibe turnos ni puntúa).
 - **Link corto**: `https://r2-argumentum.vercel.app/?sala=XXXX` redirige a `/player.html?sala=XXXX` (lo usan el QR y el botón "Copiar link").
+- **Zoom del navegador**: si está muy por debajo del 100 % (el zoom de Chrome se recuerda por sitio y lo comparten host y participantes), aparece una barra fija que indica pulsar `Ctrl + 0`. En pantallas de 1280 px o más la interfaz escala sola (raíz en 112,5 % / 125 %).
 - Quien refresca la pestaña reconstruye el debate desde una copia local del log (ver `02-arquitectura.md`).
 - La URL/código de sala se comparte con los estudiantes al iniciar la sesión (generado a partir del Programa activo).
 - Desde aquí el participante: recibe/acepta turnos, escribe argumentos, conecta argumentos libremente. Si fue sorteado co-moderador, ve además el panel de moderación (valorar, anotar, marcar falta).

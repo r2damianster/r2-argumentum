@@ -10,6 +10,25 @@
   box-sizing: border-box;
 }
 
+/* En un monitor grande la columna de 480px con texto de 16px se ve como una tira diminuta en
+   medio de la pantalla. Como los tamaños de texto y los anchos máximos van en rem, subir la
+   raíz agranda toda la interfaz de forma proporcional sin tocar el celular. */
+html {
+  font-size: 100%;
+}
+
+@media (min-width: 1280px) {
+  html {
+    font-size: 112.5%;
+  }
+}
+
+@media (min-width: 1680px) {
+  html {
+    font-size: 125%;
+  }
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -18,7 +37,7 @@ body {
 }
 
 main {
-  max-width: 480px;
+  max-width: 30rem;
   margin: 0 auto;
   padding: 24px 16px 48px;
   min-height: 100vh;

@@ -9,7 +9,7 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 - Usar **producción**: `https://r2-argumentum.vercel.app/`.
   - Host: `/host.html` (o la raíz `/` sin parámetros, redirige ahí) — Usuario `arturo.rodriguez@uleam.edu.ec` · Clave `R2ironmaiden`.
   - Participante: `/player.html`, o el link corto `/?sala=XXXX` — es el que generan el QR y el botón "Copiar link".
-- **Antes de empezar**, revisa el zoom del navegador de cada pestaña (host y participantes) y déjalo al 100 % (`Ctrl+0`). En la ronda anterior las pestañas estaban con el zoom muy reducido (DPR 0,31): los clics y el scroll por coordenadas no funcionaban y hubo que manejar la interfaz por el DOM, lo que limita lo que se puede comprobar visualmente (rueda del mouse, celular, reencuadre del grafo). Si el host ya tenía la sesión iniciada, no hace falta usar la clave.
+- **Antes de empezar, revisa el zoom del navegador y déjalo al 100 % (`Ctrl+0`).** El zoom de Chrome se guarda **por sitio**: host y participantes comparten origen (`r2-argumentum.vercel.app`), así que si una pestaña quedó en 33 % (`window.devicePixelRatio` ≈ 0,31–0,33) todas las demás abren igual de diminutas. En la ronda anterior pasó justo eso: los clics y el scroll por coordenadas no funcionaban y hubo que manejar la interfaz por el DOM, lo que limitó lo que se pudo comprobar visualmente. La app **detecta** el zoom por debajo de ~80 % y muestra arriba una barra ámbar ("El zoom del navegador está en X %… Pulsa Ctrl + 0"), escalada para que se lea aunque todo lo demás esté diminuto. Si la barra aparece, corrige el zoom antes de seguir; si no aparece y aun así todo se ve chico, anótalo como fallo. Si el host ya tenía la sesión iniciada, no hace falta usar la clave.
 - **No probar contra local** (`npm run dev`): `ABLY_API_KEY` y `GROQ_API_KEY` son variables "Sensitive" en Vercel, no se pueden recuperar vía CLI. Local no puede ejercitar Groq ni Ably.
 
 ## 1. Restricciones operativas — leer antes de empezar
@@ -173,10 +173,11 @@ Los cuatro más valiosos de re-verificar: **turno hablado de respaldo**, **arist
 Quedaron sin comprobar porque el zoom del navegador impedía manejar la interfaz por coordenadas. Si puedes usar ratón real y viewports normales, prioriza estos:
 
 - **Rueda del mouse sobre el grafo**: debe scrollear la página, no zoomear (un evento sintético llegó con `preventDefault` aplicado, pero conviene ver el comportamiento real).
-- **Celular vertical (~375 px) y horizontal (~700×400)**, y el **reencuadre del grafo** al publicar nodos nuevos con el mapa abierto.
+- **Celular vertical (~375 px) y horizontal (~700×400)** (con el viewport fijado en `minimum-scale=1`, la página ya no debe alejarse sola para caber si algún elemento desborda), y el **reencuadre del grafo** al publicar nodos nuevos con el mapa abierto.
 - **Re-expansión de la capa instruccional** al volver arriba tras colapsarse.
 - **JSON de Programa inválido** en la carga.
 - **Casilla "permitir posturas nuevas" desactivada**: con textos de posturas claramente ajenas a la lista, debe pedir reescribir sin ofrecer proponerla (en la prueba anterior Groq siempre devolvió alguna postura de la lista, así que no se pudo ejercitar).
+- **Aviso de zoom**: con Ctrl+− llevar una pestaña a 50 % o menos; debe aparecer la barra ámbar arriba, legible, con "Ocultar". Con Ctrl+0 desaparece sola. En una pantalla de 1920 px de ancho al 100 %, host y participante deben verse con letra y columna proporcionalmente más grandes que en una laptop de 1366 px.
 - **Repetir un veredicto aprobado** (la ronda anterior solo comprobó que un rechazo se repite igual).
 - **Vista previa real del informe** al imprimir y el contenido del `.json` descargado.
 
