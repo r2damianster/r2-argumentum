@@ -31,8 +31,28 @@ export function CapaInstruccional({ estado, presencia, participantId, soloLectur
         setExpandidaAMano(false);
       }
     }
+    // Mientras se escribe, la capa se pliega a una línea: desplegada más el teclado del celular
+    // dejaba casi sin espacio al campo (una vez tapó el textarea). Al salir del campo vuelve a
+    // depender solo del scroll.
+    function alEnfocarUnCampo(evento) {
+      if (evento.target.matches?.('textarea, input, select')) {
+        setColapsada(true);
+        setExpandidaAMano(false);
+      }
+    }
+    function alSalirDeUnCampo(evento) {
+      if (evento.target.matches?.('textarea, input, select')) {
+        setColapsada(window.scrollY > 120);
+      }
+    }
     document.addEventListener('scroll', alScrollear, { passive: true, capture: true });
-    return () => document.removeEventListener('scroll', alScrollear, { capture: true });
+    document.addEventListener('focusin', alEnfocarUnCampo);
+    document.addEventListener('focusout', alSalirDeUnCampo);
+    return () => {
+      document.removeEventListener('scroll', alScrollear, { capture: true });
+      document.removeEventListener('focusin', alEnfocarUnCampo);
+      document.removeEventListener('focusout', alSalirDeUnCampo);
+    };
   }, [soloLectura]);
 
   const instrucciones = calcularInstruccionesDelParticipante(estado, participantId, presencia);

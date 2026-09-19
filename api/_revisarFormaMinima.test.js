@@ -29,6 +29,15 @@ describe('revisarFormaMinima', () => {
     expect(revisarFormaMinima('Debido a la inflación, los salarios pierden poder de compra.').valido).toBe(true);
   });
 
+  it('en un debate en inglés reconoce sus conectores y no los de español', () => {
+    const conectorSinRazon = 'This rule is unfair because ....';
+    expect(revisarFormaMinima(conectorSinRazon, 'en').valido).toBe(false);
+    expect(revisarFormaMinima(conectorSinRazon, 'en').motivo).toContain('because');
+    // Sin idioma se asume español: "because" no es un conector para ese filtro.
+    expect(revisarFormaMinima(conectorSinRazon).valido).toBe(true);
+    expect(revisarFormaMinima('Free markets lower prices because firms must compete.', 'en').valido).toBe(true);
+  });
+
   it('no confunde palabras que contienen el conector', () => {
     expect(revisarFormaMinima('El pórtico antiguo protege del viento en la costa.').valido).toBe(true);
   });

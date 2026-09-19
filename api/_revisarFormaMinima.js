@@ -6,7 +6,12 @@
 // "afirmación + razón" le puede parecer bien formado, pero después del conector no hay ninguna
 // razón. El prefijo "_" en el nombre evita que Vercel lo exponga como endpoint.
 
-const CONECTORES_DE_RAZON = ['porque', 'ya que', 'dado que', 'debido a', 'puesto que'];
+// Los conectores dependen del idioma en que se escribe el debate (el Programa lo define). Los
+// mensajes al participante siguen en español: la interfaz no se traduce.
+const CONECTORES_DE_RAZON_POR_IDIOMA = {
+  es: ['porque', 'ya que', 'dado que', 'debido a', 'puesto que'],
+  en: ['because', 'since', 'given that', 'due to', 'as a result of'],
+};
 
 const MINIMO_DE_PALABRAS_EN_TOTAL = 5;
 const MINIMO_DE_PALABRAS_TRAS_EL_CONECTOR = 2;
@@ -15,7 +20,7 @@ function contarPalabras(fragmento) {
   return (fragmento.match(/[\p{L}\p{N}]+/gu) ?? []).length;
 }
 
-export function revisarFormaMinima(texto) {
+export function revisarFormaMinima(texto, idioma = 'es') {
   const textoLimpio = String(texto ?? '').trim();
 
   if (contarPalabras(textoLimpio) < MINIMO_DE_PALABRAS_EN_TOTAL) {
@@ -27,7 +32,8 @@ export function revisarFormaMinima(texto) {
   }
 
   const textoEnMinusculas = textoLimpio.toLowerCase();
-  for (const conector of CONECTORES_DE_RAZON) {
+  const conectores = CONECTORES_DE_RAZON_POR_IDIOMA[idioma] ?? CONECTORES_DE_RAZON_POR_IDIOMA.es;
+  for (const conector of conectores) {
     const expresion = new RegExp(`(?<![\\p{L}])${conector}(?![\\p{L}])`, 'gu');
     let coincidencia = expresion.exec(textoEnMinusculas);
     while (coincidencia) {

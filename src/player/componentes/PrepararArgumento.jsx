@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
+import { resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.js';
 import { decidirValidacion, DECISIONES } from '../../shared/argumentos/decidirValidacion.js';
 import { buscarArgumentoParecido } from '../../shared/argumentos/buscarArgumentoParecido.js';
 import { nombreDeParticipante, siguientePosicionParaParticipante } from '../../shared/estado/seleccionesDerivadas.js';
@@ -112,7 +113,12 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
       const peticion = await fetch('/api/groq-validar-argumento', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto, ejemplos: programa.ejemplosPorTema, posturas: programa.posturas }),
+        body: JSON.stringify({
+          texto,
+          ejemplos: programa.ejemplosPorTema,
+          posturas: programa.posturas,
+          idioma: resolverIdiomaDelDebate(programa),
+        }),
       });
       respuesta = peticion.ok
         ? await peticion.json()
@@ -279,7 +285,6 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
         <textarea
           value={texto}
           rows={4}
-          lang="es"
           spellCheck
           autoCapitalize="sentences"
           onChange={(evento) => {

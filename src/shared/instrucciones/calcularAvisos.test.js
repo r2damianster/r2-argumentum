@@ -51,6 +51,12 @@ describe('avisos operativos del moderador', () => {
     expect(sinCaida.map((aviso) => aviso.id)).not.toContain('turno-sin-conexion');
   });
 
+  it('en Conexión libre no avisa de la ruleta, porque no hay turnos en esa fase', () => {
+    const avisos = calcularAvisosParaElModerador(construirEstado('conexion_libre'), PRESENCIA);
+
+    expect(avisos.map((aviso) => aviso.id)).not.toContain('sin-argumento-preparado');
+  });
+
   it('en el cierre y ranking no muestra avisos de la ruleta ni de co-moderación', () => {
     const avisos = calcularAvisosParaElModerador(construirEstado('cierre_y_ranking'), PRESENCIA);
 

@@ -11,6 +11,7 @@ import {
   ANCHO_DE_NODO,
   ALTO_DE_NODO,
 } from './calcularLayoutDelGrafo.js';
+import { elegirSugerenciasParaDibujar } from './sugerenciasVisiblesDelGrafo.js';
 
 // TIPOS_DE_RELACION.NUEVO ('nuevo') no tiene clave propia en la paleta semántica
 // (docs/08-identidad-visual.md la llama "argumentoOriginal") — se traduce aquí.
@@ -90,6 +91,12 @@ function limitesDeAlto(modoProyeccion) {
   return { altoMinimo: 240, altoMaximo: window.innerWidth >= 900 ? 560 : 420 };
 }
 
+// La caja del mapa se dimensiona para ver los nodos a tamaño natural (ver calcularAltoDelGrafo),
+// así que al encuadrar no se debe ampliar por encima de 1: con pocos nodos el encuadre llegaba a
+// 1,27 y el último nodo quedaba cortado contra el borde, y el botón ⛶ repetía el mismo encuadre
+// (reporte de prueba en vivo). Un solo ajuste para el encuadre inicial, el botón y el reencuadre.
+const AJUSTE_DEL_ENCUADRE = { padding: 0.15, maxZoom: 1 };
+
 // Compartido entre host (proyección en vivo) y player (vista propia).
 export function GrafoDeArgumentos({ estado, programa, presencia, modoProyeccion = false }) {
   const vistaCompacta = usarVistaCompacta();
@@ -136,16 +143,17 @@ export function GrafoDeArgumentos({ estado, programa, presencia, modoProyeccion 
       markerEnd: { type: MarkerType.ArrowClosed },
     }));
 
-    const aristasDeSugerencias = Object.values(estado.sugerencias)
-      .filter((sugerencia) => !sugerencia.resolucion)
-      .map((sugerencia) => ({
-        id: sugerencia.suggestionId,
-        source: sugerencia.sourceArgumentId,
-        target: sugerencia.targetArgumentId,
-        label: `${sugerencia.tipoDeRelacion} (sugerido)`,
-        style: { stroke: '#94a3b8', strokeDasharray: '4 4' },
-        markerEnd: { type: MarkerType.ArrowClosed },
-      }));
+    const aristasDeSugerencias = elegirSugerenciasParaDibujar(
+      Object.values(estado.sugerencias),
+      Object.values(estado.conexiones)
+    ).map((sugerencia) => ({
+      id: sugerencia.suggestionId,
+      source: sugerencia.sourceArgumentId,
+      target: sugerencia.targetArgumentId,
+      label: `${sugerencia.tipoDeRelacion} (sugerido)`,
+      style: { stroke: '#94a3b8', strokeDasharray: '4 4' },
+      markerEnd: { type: MarkerType.ArrowClosed },
+    }));
 
     // Una sugerencia de Groq puede nombrar un argumento que no existe (inventa ids), y una
     // conexión puede apuntar a un argumento que todavía no llegó por el canal. Esas aristas
@@ -176,6 +184,7 @@ export function GrafoDeArgumentos({ estado, programa, presencia, modoProyeccion 
           nodes={nodos}
           edges={aristas}
           fitView
+          fitViewOptions={AJUSTE_DEL_ENCUADRE}
           minZoom={0.2}
           maxZoom={1.5}
           zoomOnScroll={false}
@@ -211,7 +220,7 @@ function ReencuadrarAlCrecerElMapa({ cantidadDeNodos, altoDelContenedor }) {
     }
     // Si cambió el alto de la caja, se espera al siguiente cuadro: React Flow tiene que medir
     // el contenedor nuevo antes de poder encuadrar contra él.
-    const cuadro = requestAnimationFrame(() => fitView({ duration: 300, padding: 0.15 }));
+    const cuadro = requestAnimationFrame(() => fitView({ duration: 300, ...AJUSTE_DEL_ENCUADRE }));
     return () => cancelAnimationFrame(cuadro);
   }, [cantidadDeNodos, altoDelContenedor, fitView]);
 

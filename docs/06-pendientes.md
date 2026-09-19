@@ -101,15 +101,16 @@ Sin regresiones. Corregido en código, con prueba automatizada donde aplica:
 - **#2** El aviso de similitud comparaba el argumento contra los propios del participante, y «Usarlo como refuerzo» apuntaba a un destino que el selector no ofrece (solo lista argumentos ajenos). Ahora la comparación excluye los argumentos propios (`PrepararArgumento.jsx`, `IngresoConArgumento.jsx`).
 - **#8** El selector de destino de la conexión libre ofrecía los argumentos propios. Ahora solo lista los de otras personas (`PanelDeConexionLibre.jsx`).
 
-Abiertos, sin tocar (por decidir o por reproducir):
+También corregido tras decidirlo con el docente (sin cambios de arquitectura):
 
-- **#2 (umbral)** Con 3 palabras con contenido ya puede saltar el aviso de similitud, porque un texto corto contenido en uno largo puntúa 0,9. Decidir un mínimo mayor de palabras.
-- **#3** Mapa en Conexión libre: encuadre corta el último nodo ~54 px con 3 nodos apilados y ⛶ no lo corrige; además hay aristas «(sugerido)» repetidas entre las mismas parejas tras dos tandas de sugerencias.
-- **#4** El turno hablado en Estándar vs Estricto da 30 vs 180 puntos, más que la razón 10× de las escalas. Revisar contra la fórmula única de `05-reglas-de-puntaje.md`.
-- **#5 / #6** Tras «Cerrar el debate ahora» siguen visibles los controles de fase y el marcador en vivo; el ranking final queda al pie sin desplazamiento; hay dos botones de PDF y el encabezado dice «Informe parcial» hasta cerrar.
-- **#7** Avisos del host de la ruleta y de casos por revisar aparecen en Conexión libre, donde no aplican.
-- **#9** Celular: áreas táctiles de ~22 px, capa de instrucciones más alta que un viewport horizontal de 400 px y una vez tapó el textarea.
-- **#10** El corrector ortográfico parecía estar en inglés (el `textarea` ya declara `lang="es"`; depende del navegador y del idioma de diccionario instalado).
+- **#2 (umbral)** El aviso de similitud exige al menos 5 palabras con contenido en el texto nuevo (antes 3), igual que el mínimo de la revisión de forma. Con prueba.
+- **#3** Mapa: el encuadre (inicial, botón ⛶ y reencuadre al crecer) usa margen 0,15 y no amplía por encima de 1×, que es la escala para la que se dimensiona la caja; y las aristas «(sugerido)» se dibujan una por par de argumentos y ninguna sobre un par ya conectado (`sugerenciasVisiblesDelGrafo.js`, con prueba). **No verificado en navegador:** conviene revisar con 3 nodos apilados.
+- **#4** Sin cambio: el turno hablado escala 6× (no 10×) por el descuento de vía más duro de Estricto. Documentado en `05-reglas-de-puntaje.md`.
+- **#5** Con el debate cerrado se ocultan «Fase activa / Cerrar fase actual» y el «Marcador en vivo», y la consola baja sola al ranking final (solo al cerrar, no al reabrir una consola ya cerrada).
+- **#6** Un solo botón de PDF, el del ranking (junto a Cerrar debate y JSON). El encabezado «Informe parcial» se mantiene hasta cerrar: es correcto.
+- **#7** En Conexión libre ya no aparece el aviso «la ruleta no puede ofrecerles la palabra» (no hay turnos). El aviso de casos por revisar se mantiene. Con prueba.
+- **#9** Celular: botones y selects de al menos 44 px en pantallas táctiles o estrechas; la capa instruccional tiene altura máxima con scroll interno, se pliega a una línea al enfocar un campo de texto, y los campos tienen `scroll-margin-top` para no quedar bajo la capa. **No verificado en un celular real.**
+- **#10** Idioma por debate: el docente elige Español (por defecto) o English al configurar la sala; cambia el corrector de todos los campos de texto del participante (`lang` heredado en la pantalla del participante) y el idioma con que Groq valida y comenta el argumento. La interfaz sigue en español. Si algún día se quiere interfaz en inglés, sigue siendo la decisión de capa `t('clave')` descrita en `CLAUDE.md`. Con pruebas. El corrector solo cambia de diccionario si el navegador tiene ese idioma habilitado (Chrome → Configuración → Idiomas).
 - **Sin verificar en la prueba:** refuerzo (A1), ráfaga simultánea a Groq, F5 del host con turno ofrecido, variantes c y d de B1, desconexión larga, auto-ampliación por zoom bajo, celular físico y QR.
 
 ## Mecánicas de fases futuras (explícitamente fuera de v1)

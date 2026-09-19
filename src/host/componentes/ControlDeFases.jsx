@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TIPOS_DE_FASE, EVENTOS } from '../../shared/eventos/nombresDeEventos.js';
 import { PERFILES_DE_PUNTAJE, PERFIL_POR_DEFECTO } from '../../shared/puntaje/formulaDePuntaje.js';
+import { IDIOMAS_DEL_DEBATE, resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.js';
 
 const ETIQUETA_DE_FASE = {
   [TIPOS_DE_FASE.APERTURA_SIMULTANEA]: 'Apertura simultánea (todos escriben)',
@@ -21,6 +22,7 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
     () => new Set(posturasDelPrograma.map((postura) => postura.id))
   );
   const [perfilDePuntaje, setPerfilDePuntaje] = useState(programa.perfilDePuntaje ?? PERFIL_POR_DEFECTO);
+  const [idiomaDelDebate, setIdiomaDelDebate] = useState(() => resolverIdiomaDelDebate(programa));
   // Por defecto en "No": el debate se juega con las posturas que el docente preparó.
   const [permitirPosturasNuevas, setPermitirPosturasNuevas] = useState(
     Boolean(programa.permitirPosturasNuevas)
@@ -60,6 +62,7 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
       posturas: posturasDelPrograma.filter((postura) => posturasSeleccionadas.has(postura.id)),
       perfilDePuntaje,
       permitirPosturasNuevas,
+      idioma: idiomaDelDebate,
     };
   }
 
@@ -77,6 +80,7 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
     const yaEstaPublicado =
       Boolean(publicado.permitirPosturasNuevas) === permitirPosturasNuevas &&
       (publicado.perfilDePuntaje ?? PERFIL_POR_DEFECTO) === perfilDePuntaje &&
+      resolverIdiomaDelDebate(publicado) === idiomaDelDebate &&
       publicado.posturas.length === posturasSeleccionadas.size &&
       publicado.posturas.every((postura) => posturasSeleccionadas.has(postura.id));
     if (yaEstaPublicado || posturasSeleccionadas.size < 2) {
@@ -88,7 +92,7 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
     }, 500);
     return () => clearTimeout(temporizador);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sesionIniciada, estado.programa, perfilDePuntaje, permitirPosturasNuevas, posturasSeleccionadas]);
+  }, [sesionIniciada, estado.programa, perfilDePuntaje, permitirPosturasNuevas, posturasSeleccionadas, idiomaDelDebate]);
 
   function confirmarEIniciarSesion() {
     const posturasElegidas = posturasDelPrograma.filter((postura) => posturasSeleccionadas.has(postura.id));
@@ -152,6 +156,29 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
               </li>
             ))}
           </ul>
+        </div>
+
+        <div className="bloque-de-configuracion">
+          <p className="texto-de-ayuda">Idioma de los argumentos</p>
+          <ul className="lista-de-perfiles">
+            {Object.entries(IDIOMAS_DEL_DEBATE).map(([clave, idioma]) => (
+              <li key={clave}>
+                <label>
+                  <input
+                    type="radio"
+                    name="idioma-del-debate"
+                    checked={idiomaDelDebate === clave}
+                    onChange={() => setIdiomaDelDebate(clave)}
+                  />
+                  <strong>{idioma.etiqueta}</strong>
+                </label>
+              </li>
+            ))}
+          </ul>
+          <p className="texto-de-ayuda">
+            Cambia el corrector ortográfico de los campos de texto y el idioma en que Groq revisa los argumentos.
+            Los botones y avisos siguen en español.
+          </p>
         </div>
 
         <div className="bloque-de-configuracion">

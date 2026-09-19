@@ -78,7 +78,10 @@ export function calcularAvisosParaElModerador(estado, presencia, ahora = Date.no
   const sinArgumentoListo = argumentadores.filter(
     (presente) => !estado.participantes[presente.participantId]?.argumentoListo
   );
-  if (sinArgumentoListo.length > 0) {
+  // En Conexión libre no hay ruleta ni turnos (solo se conectan argumentos ya publicados), así
+  // que "la ruleta no puede ofrecerles la palabra" no aplica. Reporte de prueba en vivo.
+  const faseConRuleta = estado.fase.actual?.tipo !== TIPOS_DE_FASE.CONEXION_LIBRE;
+  if (sinArgumentoListo.length > 0 && faseConRuleta) {
     avisos.push({
       id: 'sin-argumento-preparado',
       gravedad: GRAVEDAD.MEDIA,

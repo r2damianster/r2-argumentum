@@ -33,6 +33,17 @@ describe('buscarArgumentoParecido', () => {
     expect(buscarArgumentoParecido(copia, [otro, argumentoExistente])?.argumento.argumentId).toBe('a1');
   });
 
+  it('no avisa con textos de menos de 5 palabras con contenido, aunque estén dentro de uno largo', () => {
+    // Reporte de prueba en vivo: con 3 palabras el aviso saltaba contra un argumento largo.
+    expect(buscarArgumentoParecido('mercado libre precios', [argumentoExistente])).toBeNull();
+    expect(buscarArgumentoParecido('mercado libre reduce precios', [argumentoExistente])).toBeNull();
+  });
+
+  it('sí avisa cuando el texto tiene 5 palabras con contenido y está contenido en el existente', () => {
+    const resultado = buscarArgumentoParecido('mercado libre reduce precios competir', [argumentoExistente]);
+    expect(resultado?.argumento.argumentId).toBe('a1');
+  });
+
   it('no falla con listas vacías ni textos muy cortos', () => {
     expect(buscarArgumentoParecido('hola mundo', [])).toBeNull();
     expect(calcularSimilitud('sí', 'sí')).toBe(0);

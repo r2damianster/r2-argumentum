@@ -365,6 +365,16 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
     }
   }
 
+  // Al cerrar el debate (no al reabrir una consola ya cerrada) se baja solo hasta el ranking
+  // final: quedaba al pie de una consola larga y parecía que el cierre no había hecho nada.
+  const sesionYaEstabaCerrada = useRef(estado.sesion.cerrada);
+  useEffect(() => {
+    if (estado.sesion.cerrada && !sesionYaEstabaCerrada.current) {
+      setTimeout(() => document.getElementById('ranking-del-debate')?.scrollIntoView({ behavior: 'smooth' }), 120);
+    }
+    sesionYaEstabaCerrada.current = estado.sesion.cerrada;
+  }, [estado.sesion.cerrada]);
+
   function proyectarEnOtraVentana() {
     setAvisoDeVentanaBloqueada(abrirVentanaDeProyeccion(codigoDeSala) === null);
   }
@@ -477,13 +487,17 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
       ) : (
         <>
           <PanelDeAvisos estado={estado} presencia={presencia} />
-          <ControlDeFases
-            estado={estado}
-            motor={motor}
-            programa={programaVisible}
-            identificadorDeSesion={identificadorDeSesion}
-            publicar={publicar}
-          />
+          {/* Con el debate cerrado ya no hay fase que controlar ni marcador en vivo: solo queda el
+              informe y el ranking final (abajo). */}
+          {!estado.sesion.cerrada && (
+            <ControlDeFases
+              estado={estado}
+              motor={motor}
+              programa={programaVisible}
+              identificadorDeSesion={identificadorDeSesion}
+              publicar={publicar}
+            />
+          )}
           <AccionesDeCierre
             estado={estado}
             presencia={presencia}
@@ -492,7 +506,9 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
             onAlternarRankingParcial={alternarRankingParcial}
           />
           <FeedDeActividad estado={estado} presencia={presencia} />
-          <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
+          {!estado.sesion.cerrada && (
+            <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
+          )}
           <PanelDePosturasPropuestas
             estado={estado}
             programa={programaVisible}

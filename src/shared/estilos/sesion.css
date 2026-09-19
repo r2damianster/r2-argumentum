@@ -10,6 +10,38 @@ textarea {
   width: 100%;
 }
 
+/* Al enfocar un campo el navegador lo desplaza a la vista: este margen evita que quede justo
+   debajo de la capa instruccional pegada arriba (una vez tapó el campo mientras se escribía). */
+select,
+textarea,
+input {
+  scroll-margin-top: 96px;
+}
+
+/* Áreas táctiles: los botones sin estilo propio medían ~22 px y con el dedo se erraba. 44 px
+   es el mínimo táctil recomendado. Solo en pantallas táctiles o estrechas, para no engordar la
+   consola del docente en una laptop. Las casillas y radios quedan fuera: su tamaño lo define
+   el navegador y se tocan por su etiqueta. */
+@media (pointer: coarse), (max-width: 599px) {
+  button,
+  select,
+  input:not([type='checkbox']):not([type='radio']):not([type='file']) {
+    min-height: 44px;
+  }
+
+  button {
+    padding: 10px 16px;
+  }
+
+  label:has(> input[type='checkbox']),
+  label:has(> input[type='radio']) {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
 .consola-de-sesion {
   max-width: 40rem;
 }
@@ -168,6 +200,10 @@ textarea {
   position: sticky;
   top: 0;
   z-index: 20;
+  /* Desplegada puede ser más alta que una pantalla de celular en horizontal (unos 400 px):
+     con tope y scroll interno el botón de colapsar y lo urgente siempre quedan a la vista. */
+  max-height: 45vh;
+  overflow-y: auto;
   background: white;
   border: 1px solid var(--color-borde);
   border-radius: 14px;
@@ -255,6 +291,7 @@ textarea {
     position: sticky;
     top: 12px;
     margin-bottom: 0;
+    max-height: calc(100vh - 24px);
   }
 
   .columna-de-trabajo {

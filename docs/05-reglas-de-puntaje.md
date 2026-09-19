@@ -18,6 +18,8 @@ Los tres mantienen la proporción 10 : 8 : 3 entre posiciones (hay una prueba qu
 
 Una intervención de viva voz sin argumento escrito vale como **la posición de menor valor con el descuento de vía aplicado** — sale de la misma fórmula en vez de ser un número suelto, así escala sola con el perfil. Se acredita al registrarse; la calificación del co-moderador la ajusta: "buena" la duplica, "aceptable" la deja igual, "insuficiente" la anula.
 
+Ojo al comparar perfiles: el turno hablado **no** escala exactamente 10× de Estándar a Estricto. Con «buena» da 30 puntos en Estándar (30 × 0,5 = 15, más 15 de la calificación) y 180 en Estricto (300 × 0,3 = 90, más 90), o sea 6×. Es coherente con el diseño: Estricto tiene descuentos de vía más duros (0,3 frente a 0,5), y ese mismo descuento se aplica a los argumentos por vía co-moderador. Se decidió no igualarlo (19 de septiembre de 2026).
+
 ## El total nunca baja de cero
 
 Una penalidad (hoy solo la de rechazar un turno) puede consumir los puntos que la persona tenía, pero no dejarla en deuda: el acumulado se topa en 0. Proyectado en el aula, un número negativo se lee como un castigo desproporcionado, y no cambia el orden del ranking, que compara por percentiles dentro de cada postura.

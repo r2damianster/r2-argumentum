@@ -15,6 +15,13 @@ const PALABRAS_SIN_CONTENIDO = new Set([
 
 export const UMBRAL_DE_SIMILITUD_POR_DEFECTO = 0.6;
 
+// Con menos palabras con contenido no hay base para decir que dos textos "dicen lo mismo": tres
+// palabras sueltas contenidas en un argumento largo puntuaban 0,9 y el aviso saltaba con frases
+// que apenas empezaban. Se exige al texto nuevo lo mismo que pide la revisión de forma mínima
+// (5 palabras en total); el argumento ya publicado solo necesita tener algo que comparar.
+export const MINIMO_DE_PALABRAS_CON_CONTENIDO_DEL_TEXTO_NUEVO = 5;
+const MINIMO_DE_PALABRAS_CON_CONTENIDO_DEL_ARGUMENTO_EXISTENTE = 3;
+
 function quitarTildes(texto) {
   return texto.normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
@@ -36,10 +43,13 @@ export function extraerPalabrasConContenido(texto) {
 
 // Similitud de Jaccard, con una salvedad: si un texto es (casi) un subconjunto del otro, un
 // argumento corto copiado dentro de uno largo también cuenta como parecido.
-export function calcularSimilitud(textoA, textoB) {
-  const palabrasA = extraerPalabrasConContenido(textoA);
-  const palabrasB = extraerPalabrasConContenido(textoB);
-  if (palabrasA.size < 3 || palabrasB.size < 3) {
+export function calcularSimilitud(textoNuevo, textoExistente) {
+  const palabrasA = extraerPalabrasConContenido(textoNuevo);
+  const palabrasB = extraerPalabrasConContenido(textoExistente);
+  if (
+    palabrasA.size < MINIMO_DE_PALABRAS_CON_CONTENIDO_DEL_TEXTO_NUEVO ||
+    palabrasB.size < MINIMO_DE_PALABRAS_CON_CONTENIDO_DEL_ARGUMENTO_EXISTENTE
+  ) {
     return 0;
   }
   let enComun = 0;

@@ -7,6 +7,21 @@
 
 import { revisarFormaMinima } from './_revisarFormaMinima.js';
 
+// Idioma en que se escribe el debate (lo fija el docente en el Programa). Duplica los códigos de
+// src/shared/programa/idiomaDelDebate.js: la carpeta api/ no importa código del cliente.
+const INSTRUCCIONES_POR_IDIOMA = {
+  es: {
+    nombre: 'español',
+    conectores: '"porque", "ya que", "debido a", "esto se debe a", "dado que"',
+    consecutivos: '"por lo tanto", "esto implica", "lo que provoca/genera/retrasa/reduce..."',
+  },
+  en: {
+    nombre: 'inglés',
+    conectores: '"because", "since", "due to", "this is because", "given that"',
+    consecutivos: '"therefore", "this implies", "which causes/leads to/delays/reduces..."',
+  },
+};
+
 // Groq a veces devuelve en "posturaSugerida" el id técnico de una postura inventada
 // ("homo_scientificus") en vez de una etiqueta legible, y ese texto va derecho a la pantalla
 // del estudiante. Si coincide con una postura real se usa su etiqueta; si no, al menos se
@@ -96,11 +111,12 @@ export default async function handler(request, response) {
     return;
   }
 
-  const { texto, ejemplos = [], posturas = [] } = request.body;
+  const { texto, ejemplos = [], posturas = [], idioma } = request.body;
+  const instruccionesDelIdioma = INSTRUCCIONES_POR_IDIOMA[idioma] ?? INSTRUCCIONES_POR_IDIOMA.es;
 
   // Antes de gastar una llamada: un texto sin razón real ("... porque ....") no se manda a
   // Groq, que podía aprobarlo solo por ver el conector.
-  const revisionMinima = revisarFormaMinima(texto);
+  const revisionMinima = revisarFormaMinima(texto, INSTRUCCIONES_POR_IDIOMA[idioma] ? idioma : 'es');
   if (!revisionMinima.valido) {
     response.status(200).json({
       aprobado: false,
@@ -125,16 +141,16 @@ export default async function handler(request, response) {
     .map((postura) => `- id: "${postura.id}" → ${postura.etiqueta}`)
     .join('\n');
 
-  const promptSistema = `Eres un validador de FORMA de argumentos en español, no un juez de contenido.
+  const promptSistema = `Eres un validador de FORMA de argumentos escritos en ${instruccionesDelIdioma.nombre}, no un juez de contenido.
 
 TAREA 1 — Validar la forma.
 Tu único criterio: ¿el texto tiene una afirmación (claim) y al menos una razón, causa o consecuencia
 que la sustente? Evalúa la ESTRUCTURA LÓGICA (claim + razón), NUNCA exijas una palabra exacta.
 Cualquiera de estas formas cuenta como razón válida, entre muchas otras posibles:
-- Conectores causales: "porque", "ya que", "debido a", "esto se debe a", "dado que".
-- Conectores consecutivos: "por lo tanto", "esto implica", "lo que provoca/genera/retrasa/reduce...".
+- Conectores causales: ${instruccionesDelIdioma.conectores}.
+- Conectores consecutivos: ${instruccionesDelIdioma.consecutivos}.
 - Una evidencia, dato, ejemplo o comparación concreta, incluso sin conector explícito.
-Si hay una relación causa-efecto identificable en el texto, apruébalo aunque no use "porque"/"ya que"
+Si hay una relación causa-efecto identificable en el texto, apruébalo aunque no use ningún conector
 literalmente. Recházalo solo si es una afirmación sin ninguna razón, causa, consecuencia o evidencia.
 No evalúes profundidad filosófica ni si estás de acuerdo con el contenido, solo la forma.
 
@@ -153,10 +169,11 @@ Decide cuál de esas posturas defiende el texto. Reglas:
 - La clasificación es independiente de la forma: un texto puede tener mala forma y aun así
   dejar clara su postura.
 - "posturaSugerida" se usa TAL CUAL en una frase que lee el estudiante: escríbela como una
-  etiqueta corta en español, legible, nunca como un identificador técnico con guiones bajos.
+  etiqueta corta en ${instruccionesDelIdioma.nombre}, legible, nunca como un identificador técnico con guiones bajos.
 
 ${ejemplosFormateados}
 
+Escribe "motivo", "sugerenciaDeCorreccion" y "posturaSugerida" en ${instruccionesDelIdioma.nombre}, el mismo idioma del argumento.
 Devuelve SOLO JSON válido con esta forma exacta:
 {"aprobado": boolean, "motivo": "máximo 20 palabras", "sugerenciaDeCorreccion": "vacío si aprobado es true", "posturaDetectada": "id o null", "esPosturaNueva": boolean, "posturaSugerida": "etiqueta corta o vacío", "confianza": number entre 0 y 1}`;
 

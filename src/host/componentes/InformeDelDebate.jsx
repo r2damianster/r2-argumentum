@@ -1,12 +1,12 @@
 import { calcularRankingPorPostura, nombreDeParticipante } from '../../shared/estado/seleccionesDerivadas.js';
-import { imprimirInformeComoPDF } from '../imprimirInforme.js';
 
 // Informe imprimible para evaluar el debate.
 //
 // Se genera como vista de impresión en vez de armar el PDF con una librería: el docente usa
 // "Guardar como PDF" del navegador y obtiene un documento con texto real (seleccionable y
 // buscable), no una imagen. Cero dependencias nuevas, y el mismo HTML sirve para imprimir en
-// papel. Ver docs/03, campo `exportaPDF`.
+// papel. Ver docs/03, campo `exportaPDF`. El botón para generarlo vive una sola vez, junto al
+// ranking (PantallaDeRanking), con el resto de las acciones de cierre.
 export function InformeDelDebate({ estado, programa, presencia, eventos }) {
   const ranking = calcularRankingPorPostura(estado, programa, presencia);
   const argumentos = Object.values(estado.argumentos).sort((a, b) => a.timestamp - b.timestamp);
@@ -25,15 +25,6 @@ export function InformeDelDebate({ estado, programa, presencia, eventos }) {
 
   return (
     <section className="informe-del-debate">
-      <div className="acciones-del-informe">
-        <button type="button" onClick={() => imprimirInformeComoPDF(programa.titulo)}>
-          🖨️ Generar PDF del debate
-        </button>
-        <p className="texto-de-ayuda">
-          Se abre el diálogo de impresión: elige “Guardar como PDF” como destino.
-        </p>
-      </div>
-
       <article className="hoja-del-informe">
         <header>
           <h1>{programa.titulo}</h1>

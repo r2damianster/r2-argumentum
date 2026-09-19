@@ -48,8 +48,11 @@ No hace falta que vengan en el JSON (pero pueden venir como valor por defecto). 
 ```
 perfilDePuntaje: "liviano" | "estandar" | "estricto"   // ver 05-reglas-de-puntaje.md
 permitirPosturasNuevas: boolean                         // por defecto false
+idioma: "es" | "en"                                     // idioma de los argumentos; por defecto "es"
 posturas: [ ...solo las tildadas... ]
 ```
+
+`idioma` solo afecta a lo que escriben los participantes: el corrector ortográfico del navegador (atributo `lang` de la pantalla del participante) y el idioma con que Groq valida y comenta el argumento (conectores de razón y textos de respuesta). La interfaz —botones, avisos, instrucciones— sigue en español; no hay capa de traducción. Un Programa sin `idioma` se juega en español.
 
 Con `permitirPosturasNuevas: true`, si Groq detecta que el argumento no defiende ninguna postura de la lista, el estudiante puede proponer la suya; si el moderador la acepta se suma a `posturas` y se le asigna a quien la propuso. Con `false`, el estudiante debe reescribir su argumento para una postura existente.
 
@@ -130,7 +133,7 @@ exclusionMutua: true                    // un co-moderador sorteado no argumenta
 
 ```
 exportaJSON: { estadoDeLaSesion: "parcial" | "cerrada", eventLogCompleto, mapaArgumental, rankingPorPostura, perfilPorEstudiante }
-exportaPDF: opcional                    // informe imprimible: "Descargar informe (PDF)" (ranking) y "Generar PDF del debate" abren la
+exportaPDF: opcional                    // informe imprimible: "Descargar informe (PDF)" (junto al ranking) abre la
                                         // impresión del navegador (window.print + CSS @media print)
 ```
 

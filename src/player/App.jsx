@@ -22,6 +22,7 @@ import { PanelDeCoModerador } from './componentes/PanelDeCoModerador.jsx';
 import { IngresoConArgumento } from './componentes/IngresoConArgumento.jsx';
 import { PrepararArgumento } from './componentes/PrepararArgumento.jsx';
 import { IntervencionVerbal } from './componentes/IntervencionVerbal.jsx';
+import { resolverIdiomaDelDebate } from '../shared/programa/idiomaDelDebate.js';
 import { ingresoEstaCerrado } from '../shared/ingreso/reglasDeIngreso.js';
 
 // Mismo set de emojis que R2 Quiz, ver docs/07-acceso-y-paginas.md.
@@ -275,9 +276,13 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
 
   // Requisito de ingreso: sin argumento aprobado no se entra al roster (docs/09). Si el debate
   // ya arrancó, quien no alcanzó a confirmar se queda como oyente y solo mira.
+  // `lang` en la raíz de lo que ve el participante: lo heredan todos los campos de texto y de ahí
+  // el corrector del navegador toma el idioma del debate (español por defecto).
+  const idiomaDelDebate = resolverIdiomaDelDebate(programa);
+
   if (!ingresoConfirmado && !ingresoCerrado) {
     return (
-      <main>
+      <main lang={idiomaDelDebate}>
         <div className="barra-superior">
           <h1>{programa.titulo}</h1>
         </div>
@@ -299,7 +304,7 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
   }
 
   return (
-    <main>
+    <main lang={idiomaDelDebate}>
       <div className="barra-superior">
         <h1>{programa.titulo}</h1>
       </div>

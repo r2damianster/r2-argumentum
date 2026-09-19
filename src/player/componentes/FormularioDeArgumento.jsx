@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
+import { resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.js';
 import { siguientePosicionParaParticipante } from '../../shared/estado/seleccionesDerivadas.js';
 
 const TIPOS_QUE_REQUIEREN_OBJETIVO = [
@@ -61,7 +62,7 @@ export function FormularioDeArgumento({ estado, programa, participantId, turnoEn
       const respuesta = await fetch('/api/groq-validar-argumento', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto, ejemplos: programa.ejemplosPorTema }),
+        body: JSON.stringify({ texto, ejemplos: programa.ejemplosPorTema, idioma: resolverIdiomaDelDebate(programa) }),
       });
       if (!respuesta.ok) {
         resultado = { aprobado: false, motivo: 'El validador no respondió, inténtalo de nuevo.', sugerenciaDeCorreccion: '' };
