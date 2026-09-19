@@ -29,13 +29,13 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 - **Sala de configuración previa**: código + QR + link corto, participantes conectados, y la configuración de la sesión.
 - **Selector de posturas** (si el Programa tiene más de 2): checklist, todas tildadas por defecto, mínimo 2.
 - **Modo de calificación** (nuevo): Liviano (10/8/3), Estándar (100/80/30) o Estricto (1000/800/300). Cambia la escala y qué tan caro sale demorarse o rechazar un turno, pero **la proporción entre posiciones se mantiene**.
-- **"Permitir posturas nuevas"** (nuevo): casilla, **desactivada por defecto**.
+- **"Permitir posturas nuevas"** (nuevo): casilla, **desactivada por defecto**. La configuración (posturas, modo de calificación y esta casilla) se **republica en vivo mientras la sala está en espera**, no solo al iniciar: los estudiantes ingresan antes de que el moderador arranque, así que tiene que llegarles al toque.
 
 ### Ingreso del estudiante — el cambio más grande
 
 El argumento es **requisito para entrar**. El flujo es: nombre + avatar → conecta al canal **sin aparecer en la sala** → elige postura → escribe argumento → lo revisa con Groq → confirma ingreso → **recién ahí aparece en el roster**.
 
-- Con `asignacionPostura: "libre"` el estudiante elige postura; con `"aleatoria"` se le asigna la menos representada, para que los bandos queden parejos.
+- Con `asignacionPostura: "libre"` el estudiante elige postura; con `"aleatoria"` se le asigna la menos representada, para que los bandos queden parejos. La asignación **se recalcula mientras el estudiante no haya escrito nada** y los empates se reparten por el lugar de cada quien en la sala, no al azar: entrando ocho a la vez los bandos deben quedar parejos.
 - Groq hace dos cosas: valida forma (claim + razón) **y clasifica a qué postura pertenece** el argumento.
 - Quien no confirma antes de que el host inicie queda como **oyente**: ve todo, no recibe turnos, no puntúa.
 - **La fase de apertura simultánea ya no existe** en los Programas de ejemplo: el ingreso la reemplaza.
@@ -44,7 +44,8 @@ El argumento es **requisito para entrar**. El flujo es: nombre + avatar → cone
 
 - **El turno es para defender lo ya escrito.** El estudiante prepara su argumento mientras escucha ("Revisar y ponerme en la ruleta"); al aprobarse entra a la ruleta. **Sin argumento preparado no se le ofrece la palabra.**
 - **Rechazar el turno cuesta puntos** y el botón muestra el costo antes de confirmar.
-- **Turno hablado de respaldo**: si no queda ningún argumento preparado por exponer y alguien no ha hablado nunca, se le ofrece intervenir de viva voz. Vale poco, y un co-moderador la califica después.
+- **Turno hablado de respaldo**: si no queda ningún argumento preparado por exponer y alguien no ha hablado nunca, se le ofrece intervenir de viva voz. Vale poco, y un co-moderador la califica después. El **argumento de ingreso no cuenta** como haber tomado la palabra, y hay **un minuto de margen** desde el inicio de la fase antes de la primera oferta hablada.
+- **El co-moderador nunca se califica a sí mismo**: su propio argumento, su propia intervención hablada y sus propios bids no aparecen en su cola.
 - **Capa instruccional** (nueva): bloque siempre visible con AHORA / PUEDES / TIENES QUE. En vertical queda fijo arriba y se colapsa a una línea al scrollear.
 - **Bids, conexión libre, sugerencias de Groq y panel de co-moderador**: igual que antes.
 - **Vista espejo** (nueva, host): ver qué tiene en pantalla cualquier participante. Solo lectura.
@@ -65,15 +66,25 @@ El argumento es **requisito para entrar**. El flujo es: nombre + avatar → cone
 
 Si alguno reaparece es una **regresión real**, va primero en la tabla, severidad alta.
 
-**Arreglados en esta ronda (los 3 del último reporte):**
+**Arreglados en esta ronda (los 10 del último reporte, prueba con 8 participantes):**
 
-1. **Nadie podía puntuar en salas sin co-moderador.** Con exactamente 2 participantes el sorteo asigna 0 co-moderadores (correcto), pero el puntaje base exigía una validación que nadie podía dar, y el marcador quedaba en 0 para siempre. **Probar con 2 participantes exactos**: al publicar un argumento, el puntaje debe aparecer en el marcador del host **sin que nadie valide nada**.
-2. **Debates mezclados por reuso del código de sala.** Un participante veía 4 nodos en el grafo y el resto 2, y el rol de co-moderador no aparecía. Confirmar que una sesión nueva arranca con el grafo vacío y el marcador en cero, sin rastros de debates anteriores.
-3. **Botón "Copiar link" sin feedback.** Debe cambiar a "✅ Copiado" 2 segundos; si el navegador bloquea el portapapeles, ahora muestra el link en un campo seleccionable en vez de no hacer nada.
+1. **El turno hablado de respaldo no se ofrecía nunca.** El argumento de ingreso contaba como "ya tomó la palabra", así que nadie quedaba nunca sin intervenir. Ahora no cuenta, y hay un minuto de margen desde el inicio de la fase antes de la primera oferta hablada. **Cómo verificar**: sesión con varios participantes, que nadie prepare argumento, esperar algo más de un minuto en `escritura_argumentos` — debe ofrecerse un turno en **modo verbal** a alguien que no habló.
+2. **El grafo no dibujaba ninguna arista.** Los nodos salían bien ubicados pero contar `.react-flow__edge` daba 0: React Flow medía los conectores en el DOM y, si el mapa se monta en un contenedor sin caja (pestaña en segundo plano, iframe sin alto), descartaba todas las aristas. Los nodos ahora declaran sus conectores. **Cómo verificar**: con conexiones publicadas, contar `.react-flow__edge` — debe coincidir con la cantidad de conexiones, **también** si el grafo se renderizó en una pestaña que estuvo en segundo plano o dentro de un iframe.
+3. **"Permitir posturas nuevas" no llegaba a los estudiantes.** El Programa se republicaba recién al pulsar "Iniciar sesión", y el ingreso ocurre antes: validaban contra la configuración por defecto. Además el aviso mostraba el id crudo de la postura (`homo_scientificus`). **Cómo verificar**: ver el caso borde de posturas nuevas en la sección 5.
+4. **Bandos desparejos con asignación aleatoria.** Con 8 entrando a la vez quedaron 5/2/1, y con 2 ambas en el mismo bando. **Cómo verificar**: abrir varias pestañas de participante casi simultáneas con un Programa de asignación `aleatoria` y confirmar que las posturas asignadas se reparten parejo (diferencia máxima de 1 entre bandos).
+5. **El co-moderador tenía su propio argumento en su cola de validación.** **Cómo verificar**: quien salga co-moderador no debe ver ningún caso propio en su panel.
+6. **Clasificación de Groq inestable** (el mismo texto rechazado y, al reenviarlo, aprobado). Ahora `temperature: 0` con semilla fija, y un argumento condicional debe venir con poca confianza en vez de asignarse a un bando. **Cómo verificar**: revisar el mismo argumento dos veces seguidas — mismo veredicto.
+7. **Banner de turno en Cierre y ranking.** Ya no debe decir "Esperando que se ofrezca el próximo turno" fuera de `escritura_argumentos` ni con la sesión cerrada.
+8. **El grafo no se reencuadraba.** Al publicar un nodo nuevo con el mapa abierto, el último quedaba cortado contra el borde; ahora el mapa vuelve a encuadrarse solo.
+9. **La capa instruccional no se re-expandía.** Colapsa al scrollear y debe volver a expandirse al volver arriba, aunque lo que scrollee sea un contenedor interno y no la ventana.
+10. **Voseo suelto** ("votá", "marcás") en el panel de co-moderador. Todo el texto visible va en "tú".
 
-**Arreglados en rondas anteriores (13):** historial de Ably (`direction:forwards`), `max_tokens` de Groq, error HTTP vacío, color del nodo "nuevo", **deadlock de turnos**, **bids que nunca se resolvían**, **nodos superpuestos en el grafo**, **nombres reemplazados por IDs** (grafo/ranking/export), Groq exigiendo la palabra literal "porque", dos botones "Cerrar sesión" ambiguos, **nombre perdido al desconectarse**, texto de turno engañoso, y **sorteo que dejaba cero argumentadores**.
+**Arreglados en rondas anteriores (16):**
 
-Los tres más valiosos de re-verificar: **deadlock de turnos**, **ciclo completo de bids** y **nombres en vez de IDs**.
+- **Los 3 de la ronda previa**: puntaje imposible en salas sin co-moderador (con 2 participantes exactos el marcador debe mostrar puntos **sin que nadie valide nada**), debates mezclados por reuso del código de sala (una sesión nueva arranca con grafo vacío y marcador en cero), y "Copiar link" sin feedback (cambia a "Copiado", o muestra el link seleccionable si el portapapeles está bloqueado).
+- **Los 13 anteriores:** historial de Ably (`direction:forwards`), `max_tokens` de Groq, error HTTP vacío, color del nodo "nuevo", **deadlock de turnos**, **bids que nunca se resolvían**, **nodos superpuestos en el grafo**, **nombres reemplazados por IDs** (grafo/ranking/export), Groq exigiendo la palabra literal "porque", dos botones "Cerrar sesión" ambiguos, **nombre perdido al desconectarse**, texto de turno engañoso, y **sorteo que dejaba cero argumentadores**.
+
+Los cuatro más valiosos de re-verificar: **turno hablado de respaldo**, **aristas del grafo**, **deadlock de turnos** y **ciclo completo de bids**.
 
 ## 4. Escenario multi-ventana (1 host + 3 participantes)
 
@@ -100,11 +111,13 @@ Los tres más valiosos de re-verificar: **deadlock de turnos**, **ciclo completo
 
 ## 5. Casos borde
 
-- **Posturas nuevas**: con el Programa de 12 posturas filosóficas y la casilla **activada**, escribir un argumento que no defienda ninguna. Confirmar que Groq lo detecta, que ofrece proponerla al moderador, que al host le llega la propuesta y que al aceptarla la postura se suma al debate. Repetir con la casilla **desactivada** → debe pedir reescribir, sin opción de proponer.
+- **Posturas nuevas**: con el Programa de 12 posturas filosóficas, **tildar la casilla en la sala de espera antes de que el estudiante escriba** y esperar un segundo a que se republique el Programa. Escribir un argumento que no defienda ninguna postura de la lista. Confirmar que Groq lo detecta, que aparece el botón para proponerla al moderador, que el nombre de la postura sugerida se lee **en texto legible y no como id** (`homo scientificus`, no `homo_scientificus`), que al host le llega la propuesta y que al aceptarla la postura se suma al debate y queda tildada. Repetir con la casilla **desactivada** → debe pedir reescribir, sin opción de proponer.
+- **Turno hablado de respaldo**: con la sesión iniciada y **nadie** preparando argumento, esperar poco más de un minuto. Debe ofrecerse un turno en modo verbal a alguien que no haya hablado. Registrarlo y confirmar que el co-moderador puede calificarlo y que el puntaje se acredita.
+- **Aristas del grafo**: publicar al menos 3 conexiones y contar `.react-flow__edge` en el DOM del host y de un participante. Debe coincidir con la cantidad de conexiones. Repetir dejando la pestaña del grafo en segundo plano mientras se publican los nodos y volviendo a ella después.
 - **Postura distinta a la elegida**: elegir "Más mercado" y escribir un argumento claramente estatista. Confirmar el aviso y la opción de cambiarse de postura. *(Si Groq viene con poca confianza, el sistema aprueba igual — eso es deliberado, no un fallo.)*
 - **Deadlock de turnos** (regresión del bug #5): dejar expirar una oferta cuando quede un solo elegible. La ruleta debe volver a ofrecérsela.
 - **Perfil Estricto**: iniciar otra sesión con modo Estricto y confirmar que el primer argumento da **1000 puntos** y que rechazar un turno cuesta **300**.
-- **Celular vertical**: reducir el viewport de un participante a ~375px. Confirmar que el grafo se reemplaza por la **lista agrupada por postura** y que la capa instruccional queda fija arriba.
+- **Celular vertical**: reducir el viewport de un participante a ~375px. Confirmar que el grafo se reemplaza por la **lista agrupada por postura**, que la capa instruccional queda fija arriba, que se colapsa al scrollear y que **se vuelve a expandir al volver arriba**.
 - **Celular horizontal**: viewport apaisado y bajo (~700×400). Confirmar el **layout partido**: instrucciones fijas a la izquierda, trabajo a la derecha.
 - Refrescar (F5) una pestaña de participante dentro del minuto → debe reconstruir el estado.
 - Conectar el mismo argumento propio dos veces → no debe permitirlo.
