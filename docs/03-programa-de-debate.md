@@ -129,8 +129,8 @@ exclusionMutua: true                    // un co-moderador sorteado no argumenta
 ### J. Exportación al cierre
 
 ```
-exportaJSON: { eventLogCompleto, mapaArgumental, rankingPorPostura, perfilPorEstudiante }
-exportaPDF: opcional                    // informe imprimible: el botón "Generar PDF del debate" abre la
+exportaJSON: { estadoDeLaSesion: "parcial" | "cerrada", eventLogCompleto, mapaArgumental, rankingPorPostura, perfilPorEstudiante }
+exportaPDF: opcional                    // informe imprimible: "Descargar informe (PDF)" (ranking) y "Generar PDF del debate" abren la
                                         // impresión del navegador (window.print + CSS @media print)
 ```
 

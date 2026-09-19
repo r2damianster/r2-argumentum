@@ -23,7 +23,8 @@ Sistema basado en eventos, no un CRUD de estudiantes/argumentos/calificaciones. 
 - Esa retención corta es el punto frágil del aula real: un celular bloqueado unos minutos, un F5 o una pestaña cerrada dejaban a ese cliente sin poder reconstruir el debate. Tres defensas, ninguna de ellas una base de datos:
   1. **Copia local del log** en `localStorage`, por sala (`instantaneaLocal.js`). Como el estado es una función pura del log de eventos, guardar el log alcanza para volver a levantarlo sin servidor. Sobrevive a cerrar la pestaña y al navegador; se descarta sola a las 12 horas y si el canal dice que el debate en curso es otro.
   2. **Recuperación al reconectar**: al volver de una caída se vuelve a leer el historial y se rellena lo que falte (los mensajes ya aplicados se descartan por id). Si quedó un hueco irrecuperable, se dice en pantalla en vez de seguir en silencio.
-  3. **Idempotencia del motor sobre el log**: cada acción irrepetible del motor viaja con una `claveDeIdempotencia` que queda registrada en el estado, así un motor nuevo (host que refrescó) sabe qué se hizo antes de él.
+  3. **Identidad y borrador del participante en el navegador**: el `participantId` se guarda en `localStorage` (además de `sessionStorage`) y, al volver a la sala, se ofrece «Continuar como X» con un clic — no se aplica solo para no confundir identidades en un dispositivo compartido. El borrador del argumento en preparación también se guarda ahí. Nombre y emoji viajan además en `ingreso.confirmado`, así el host recupera los nombres de quien ya se desconectó aunque presencia de Ably los haya olvidado.
+  4. **Idempotencia del motor sobre el log**: cada acción irrepetible del motor viaja con una `claveDeIdempotencia` que queda registrada en el estado, así un motor nuevo (host que refrescó) sabe qué se hizo antes de él.
 
 ## Por qué no hay reconocimiento de voz en v1
 
@@ -40,7 +41,17 @@ Web Speech API depende de navegadores Chrome/Edge y de conexión estable a los s
    - **Fiabilidad**: la función serverless reintenta hasta 3 veces (con espera corta, respetando `retry-after`) ante 429, 5xx, error de red o JSON cortado, y usa `max_tokens: 1500` porque el modelo razona antes de responder. Los 4xx distintos de 429 no se reintentan. Con varios estudiantes revisando a la vez, esto evita el "el validador no respondió" que se veía con ráfagas.
 2. **Sugerencia de conexiones en lote**: se dispara una sola vez por ronda, cuando el moderador cierra la fase de escritura. Groq analiza todos los argumentos de la ronda juntos y propone relaciones candidatas (origen, destino, tipo, confianza). Solo los estudiantes involucrados en cada sugerencia la ven; aceptan, la rechazan y conectan manualmente, o reescriben su argumento si la sugerencia reveló que estaba mal planteado.
 
+Antes del checkpoint 1 corren dos **filtros deterministas locales** que no son Groq: `api/_revisarFormaMinima.js` (menos de 5 palabras, o un conector causal como «porque» sin razón real detrás — el caso «Este texto no debería presentarse porque ....») y `buscarArgumentoParecido.js` (argumento casi igual a otro ya publicado, por similitud de vocabulario con contenido; se ofrece convertirlo en refuerzo). Ahorran llamadas a Groq y no juzgan contenido. La ortografía queda a cargo del corrector del navegador (`lang="es"`, `spellCheck`); una ayuda con IA sería solo una sugerencia aceptable, nunca automática.
+
 Groq nunca asigna puntaje directamente ni decide de forma final sin que un humano (el propio estudiante o el co-moderador) confirme.
+
+## Zoom del navegador
+
+El zoom de Chrome/Edge se guarda por sitio y afecta por igual al host, a los participantes y a la ventana de proyección. Cuando `outerWidth / innerWidth` cae por debajo de 0,8 la página se amplía sola con la propiedad CSS `zoom` sobre `<html>` (factor inverso, tope ×4; no se aplica con puntero táctil) y la barra ámbar lo explica. Las unidades `vh` se escalan junto con `zoom`, por eso el alto de la ventana se expone compensado en `--alto-de-ventana` y el mapa usa `factorDeCompensacionActual()`. Ver `src/shared/navegador/`.
+
+## Proyección en otra ventana
+
+La consola del host es la **única** que corre el motor de turnos. «Proyectar en otra ventana» abre `/host.html?proyeccion=<sala>`, que no se conecta a Ably: la consola le manda su estado ya calculado por un `BroadcastChannel` (`src/host/proyeccion/canalDeProyeccion.js`), agrupando los cambios en ráfaga. Así no hay segundo motor ni mensajes extra en Ably. Limitación: solo entre pestañas del mismo navegador, que es el caso de una laptop con el proyector como segunda pantalla.
 
 ## Control de costos (cuotas gratuitas de Ably y Groq)
 

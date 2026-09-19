@@ -738,8 +738,8 @@ textarea {
   top: 12px;
   left: 50%;
   z-index: 50;
-  width: min(92vw, 56rem);
-  max-height: 70vh;
+  width: min(92%, 56rem);
+  max-height: 70%;
   overflow-y: auto;
   transform: translateX(-50%);
   background: white;
@@ -767,7 +767,7 @@ textarea {
 }
 
 .destacado-en-proyeccion {
-  width: min(94vw, 84rem);
+  width: min(94%, 84rem);
   padding: 26px 34px;
 }
 

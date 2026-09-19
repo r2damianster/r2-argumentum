@@ -3,8 +3,12 @@ import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import { VentanaDeProyeccion } from './VentanaDeProyeccion.jsx';
 import { AvisoDeZoom } from '../shared/componentes/AvisoDeZoom.jsx';
+import { iniciarCompensacionDeZoom } from '../shared/navegador/compensarZoomDelNavegador.js';
 import '../shared/estilos/base.css';
 import '../shared/estilos/sesion.css';
+
+// Con el zoom del navegador muy reducido la página se amplía sola (ver compensarZoomDelNavegador.js).
+iniciarCompensacionDeZoom();
 
 // `?proyeccion=<sala>` abre la ventana del proyector en vez de la consola (ver
 // proyeccion/canalDeProyeccion.js). Se decide una vez al cargar la página.

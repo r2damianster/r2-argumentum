@@ -5,6 +5,7 @@ import {
   factorParaLeerElAviso,
   porcentajeDeZoom,
 } from './zoomDelNavegador.js';
+import { calcularFactorDeCompensacion } from './compensarZoomDelNavegador.js';
 
 describe('zoom del navegador', () => {
   it('al 100 % el cociente queda cerca de 1 y no se avisa', () => {
@@ -35,5 +36,19 @@ describe('zoom del navegador', () => {
     expect(factorParaLeerElAviso(1)).toBe(1);
     expect(factorParaLeerElAviso(0.5)).toBe(2);
     expect(factorParaLeerElAviso(0.1)).toBe(4);
+  });
+});
+
+
+describe('compensación del zoom reducido', () => {
+  it('no toca la página con zoom normal', () => {
+    expect(calcularFactorDeCompensacion(1)).toBe(1);
+    expect(calcularFactorDeCompensacion(0.9)).toBe(1);
+  });
+
+  it('con el zoom muy reducido amplía en proporción inversa, con tope', () => {
+    expect(calcularFactorDeCompensacion(0.5)).toBe(2);
+    expect(calcularFactorDeCompensacion(1936 / 5800)).toBeCloseTo(3, 0);
+    expect(calcularFactorDeCompensacion(0.1)).toBe(4);
   });
 });

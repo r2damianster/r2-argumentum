@@ -9,7 +9,7 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 - Usar **producción**: `https://r2-argumentum.vercel.app/`.
   - Host: `/host.html` (o la raíz `/` sin parámetros, redirige ahí) — Usuario `arturo.rodriguez@uleam.edu.ec` · Clave `R2ironmaiden`.
   - Participante: `/player.html`, o el link corto `/?sala=XXXX` — es el que generan el QR y el botón "Copiar link".
-- **Antes de empezar, revisa el zoom del navegador y déjalo al 100 % (`Ctrl+0`).** El zoom de Chrome se guarda **por sitio**: host y participantes comparten origen (`r2-argumentum.vercel.app`), así que si una pestaña quedó en 33 % (`window.devicePixelRatio` ≈ 0,31–0,33) todas las demás abren igual de diminutas. En la ronda anterior pasó justo eso: los clics y el scroll por coordenadas no funcionaban y hubo que manejar la interfaz por el DOM, lo que limitó lo que se pudo comprobar visualmente. La app **detecta** el zoom por debajo de ~80 % y muestra arriba una barra ámbar ("El zoom del navegador está en X %… Pulsa Ctrl + 0"), escalada para que se lea aunque todo lo demás esté diminuto. Si la barra aparece, corrige el zoom antes de seguir; si no aparece y aun así todo se ve chico, anótalo como fallo.
+- **Antes de empezar, revisa el zoom del navegador y déjalo al 100 % (`Ctrl+0`).** El zoom de Chrome se guarda **por sitio**: host y participantes comparten origen (`r2-argumentum.vercel.app`), así que si una pestaña quedó en 33 % (`window.devicePixelRatio` ≈ 0,31–0,33) todas las demás abren igual de diminutas. En la ronda anterior pasó justo eso: los clics y el scroll por coordenadas no funcionaban y hubo que manejar la interfaz por el DOM, lo que limitó lo que se pudo comprobar visualmente. La app **detecta** el zoom por debajo de ~80 % y **se amplía sola** en proporción inversa (propiedad CSS `zoom` sobre `<html>`, tope ×4) para que la interfaz salga a tamaño normal desde el primer momento, y muestra arriba una barra ámbar («El zoom del navegador está en X %, así que ampliamos la página… pulsa Ctrl + 0»). Aun así **deja el zoom al 100 % antes de empezar**: es lo que se prueba de verdad. Con la ampliación automática, comprueba que nada quede desbordado ni cortado (barra ámbar, capa instruccional fija, mapa, ventana de argumento destacado) y que al pulsar Ctrl+0 la página vuelva sola a su tamaño y desaparezca la barra. Si el zoom está bajo, **no** aparece la barra y todo se ve diminuto, anótalo como fallo. En celulares y tabletas (puntero táctil) no se aplica ninguna ampliación.
 - **No cierres la sesión del host ni escribas su clave.** Si la pestaña del host ya tiene la sesión iniciada, no hace falta la clave; y para empezar otro debate ya no hay que cerrar sesión: el ranking final tiene «➕ Iniciar un debate nuevo». Si por algún motivo el host te pide la clave, **no la teclees tú**: pídele al usuario que la escriba y espera. (En la ronda anterior se tecleó la clave para volver a entrar tras un «Cerrar sesión»; ese desvío ya no debería hacer falta.)
 - **No probar contra local** (`npm run dev`): `ABLY_API_KEY` y `GROQ_API_KEY` son variables "Sensitive" en Vercel, no se pueden recuperar vía CLI. Local no puede ejercitar Groq ni Ably.
 
@@ -41,6 +41,8 @@ El argumento es **requisito para entrar**. El flujo es: nombre + avatar → cone
 - Con `asignacionPostura: "libre"` el estudiante elige postura; con `"aleatoria"` se le asigna la menos representada, para que los bandos queden parejos. La asignación **se recalcula mientras el estudiante no haya escrito nada** y los empates se reparten por el lugar de cada quien en la sala, no al azar: entrando ocho a la vez los bandos deben quedar parejos.
 - Groq hace dos cosas: valida forma (claim + razón) **y clasifica a qué postura pertenece** el argumento. Ante un fallo transitorio la función reintenta sola hasta 3 veces. Quien eligió la postura **Matizada** nunca es contradicho por la clasificación.
 - Si propone una **postura nueva**, ve la respuesta del moderador en su pantalla: al aceptarla se le asigna esa postura.
+- **Filtros previos a Groq** (nuevo): un texto de menos de 5 palabras, o con «porque»/«ya que»/«dado que»/«debido a»/«puesto que» sin razón detrás (p. ej. «Este texto no debería presentarse porque ....»), se rechaza al instante con su motivo, sin llamar a Groq. Un argumento **casi igual a otro ya publicado** avisa «se parece mucho al de X» y pide reescribirlo con palabras propias. La ortografía **no bloquea**: sin tildes ni mayúsculas debe aprobarse (el corrector del navegador subraya las faltas).
+- **Volver tras cerrar la pestaña** (nuevo): con el mismo link `/?sala=XXXX` aparece «Ya habías entrado… Continuar como X»; al continuar conserva puntos, rol y argumentos. Si elige ser otra persona, la identidad anterior no se recupera.
 - Quien no confirma antes de que el host inicie queda como **oyente**: ve todo, no recibe turnos, no puntúa.
 - **La fase de apertura simultánea ya no existe** en los Programas de ejemplo: el ingreso la reemplaza.
 
@@ -49,6 +51,7 @@ El argumento es **requisito para entrar**. El flujo es: nombre + avatar → cone
 - **El turno es para defender lo ya escrito.** El estudiante prepara su argumento mientras escucha ("Revisar y ponerme en la ruleta"); al aprobarse entra a la ruleta. **Sin argumento preparado no se le ofrece la palabra.**
 - **Rechazar el turno cuesta puntos** y el botón muestra el costo antes de confirmar.
 - **Un argumento preparado con objetivo** (contraargumento, refuerzo, dilema o conexión) **sale conectado**: al exponerlo se publica también la arista hacia el argumento elegido. La lista de objetivos solo ofrece argumentos **ajenos**.
+- **Al preparar un argumento parecido a otro**: aviso «se parece mucho al de X» con el botón «Usarlo como refuerzo de ese argumento» (al aplicarlo, tipo y objetivo se rellenan y el aviso no vuelve a saltar). **El borrador se guarda en el navegador**: cerrar la pestaña o refrescar no lo pierde.
 - **Los formularios avisan qué falta**: "Revisar y ponerme en la ruleta" y "Lanzar bid" muestran un mensaje si falta el objetivo o el texto, en vez de no hacer nada.
 - **Turno hablado de respaldo**: si no queda ningún argumento preparado por exponer y alguien no ha hablado nunca, se le ofrece intervenir de viva voz. Vale poco, y un co-moderador la califica después. El **argumento de ingreso no cuenta** como haber tomado la palabra, y hay **un minuto de margen** desde el inicio de la fase antes de la primera oferta hablada.
 - **El co-moderador nunca se califica a sí mismo**: su propio argumento, su propia intervención hablada y sus propios bids no aparecen en su cola.
@@ -208,18 +211,27 @@ Una prueba con participantes idénticos no encuentra los fallos del aula. Corre 
 - **No son fallos**: la retención de ~2 minutos del historial de Ably para quien estuvo desconectado (debe verse el aviso, no un debate vacío tras un F5), la renovación de una oferta al único candidato elegible, la ausencia de co-moderadores en el ranking, y que una identidad de participante no se pueda recuperar desde otro navegador o dispositivo (no hay login de estudiantes).
 - Indica siempre **qué no pudiste verificar y por qué** (por ejemplo, el zoom del navegador impidió la rueda del mouse o el viewport de celular), en lugar de darlo por bueno.
 
-## 7. Pendiente de verificar de la ronda anterior
+## 7. Pendiente de verificar
 
-Quedaron sin comprobar porque el zoom del navegador impedía manejar la interfaz por coordenadas. Si puedes usar ratón real y viewports normales, prioriza estos:
+**Cambios de esta ronda que nunca se probaron en un navegador** (solo hay pruebas automatizadas de la lógica pura). Prioriza estos:
 
-- **Rueda del mouse sobre el grafo**: debe scrollear la página, no zoomear (un evento sintético llegó con `preventDefault` aplicado, pero conviene ver el comportamiento real).
-- **Celular vertical (~375 px) y horizontal (~700×400)** (con el viewport fijado en `minimum-scale=1`, la página ya no debe alejarse sola para caber si algún elemento desborda), y el **reencuadre del grafo** al publicar nodos nuevos con el mapa abierto.
+- **Ventana de proyección** («🪟 Proyectar en otra ventana»): que se abra, que se actualice sola con cada argumento y turno, que muestre el argumento destacado, y que muestre «Esperando a la consola del host…» si se abre la URL con una sala sin consola.
+- **Filtro `api/_revisarFormaMinima.js` en producción**: Vercel debe empaquetarlo con la función `groq-validar-argumento`. Si el despliegue o la primera revisión fallan con un error de import, ese es el sitio. Verifica también que **no** se exponga como endpoint (`/api/_revisarFormaMinima` debe dar 404).
+- **Corrector ortográfico** del navegador: depende de que el diccionario en español esté activo en Chrome; anota si no subraya nada.
+- **Alto dinámico del mapa**: que no salte ni parpadee al agregar nodos, que el minimapa aparezca con 6+ nodos, y cómo se ve en proyección (62 % del alto).
+- **Argumento destacado** en celular (no tapa los botones de turno) y en proyección.
+- **Recuperación de identidad** con `/?sala=XXXX` en un dispositivo compartido: no debe ofrecerse a quien no es esa persona más allá del aviso, y «Salir» debe borrar la identidad guardada.
+
+**Pendientes de rondas anteriores** (por limitaciones del navegador de automatización; si puedes usar ratón real y viewports normales, prioriza estos):
+
+- **Rueda del mouse sobre el grafo**: debe scrollear la página, no zoomear.
+- **Celular vertical (~375 px) y horizontal (~700×400)** (con `minimum-scale=1` la página no debe alejarse sola) y el **reencuadre del grafo** al publicar nodos nuevos.
 - **Re-expansión de la capa instruccional** al volver arriba tras colapsarse.
 - **JSON de Programa inválido** en la carga.
-- **Casilla "permitir posturas nuevas" desactivada**: con textos de posturas claramente ajenas a la lista, debe pedir reescribir sin ofrecer proponerla (en la prueba anterior Groq siempre devolvió alguna postura de la lista, así que no se pudo ejercitar).
-- **Aviso de zoom**: con Ctrl+− llevar una pestaña a 50 % o menos; debe aparecer la barra ámbar arriba, legible, con "Ocultar". Con Ctrl+0 desaparece sola. En una pantalla de 1920 px de ancho al 100 %, host y participante deben verse con letra y columna proporcionalmente más grandes que en una laptop de 1366 px.
-- **Repetir un veredicto aprobado** (la ronda anterior solo comprobó que un rechazo se repite igual).
-- **Vista previa real del informe** al imprimir y el contenido del `.json` descargado.
+- **Casilla «permitir posturas nuevas» desactivada** con textos claramente ajenos a la lista: debe pedir reescribir sin ofrecer proponerla.
+- **Perfil Estricto** (1000/800/300) y **postura nueva propuesta**.
+- **Ampliación automática por zoom bajo**: Ctrl+− a 50 % o menos → la página se amplía sola (no sale una tira diminuta en medio de la pantalla), con barra ámbar y «Ocultar»; con Ctrl+0 vuelve al tamaño normal y la barra desaparece. Revisa host (lista de Programas y consola en vivo), participante y la ventana de proyección; el mapa y el argumento destacado no deben desbordar. En 1920 px de ancho al 100 %, la interfaz debe verse proporcionalmente más grande que en 1366 px.
+- **Contenido real del `.json` descargado** y **vista previa del diálogo de impresión** (se dispararon sin error pero no se pudo inspeccionar el diálogo nativo).
 
 ## 8. Cierre
 

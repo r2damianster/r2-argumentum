@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ReactFlow, Background, Controls, MiniMap, MarkerType, Position, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { factorDeCompensacionActual } from '../navegador/compensarZoomDelNavegador.js';
 import { COLORES_SEMANTICOS_DEL_GRAFO } from '../estilos/colores.js';
 import { TIPOS_DE_RELACION } from '../eventos/nombresDeEventos.js';
 import { nombreDeParticipante } from '../estado/seleccionesDerivadas.js';
@@ -84,7 +85,7 @@ function usarAnchoDe(referencia) {
 // proyección se le deja hasta el 62 % del alto de la ventana para que se lea desde el fondo.
 function limitesDeAlto(modoProyeccion) {
   if (modoProyeccion) {
-    return { altoMinimo: 300, altoMaximo: Math.max(360, Math.round(window.innerHeight * 0.62)) };
+    return { altoMinimo: 300, altoMaximo: Math.max(360, Math.round((window.innerHeight / factorDeCompensacionActual()) * 0.62)) };
   }
   return { altoMinimo: 240, altoMaximo: window.innerWidth >= 900 ? 560 : 420 };
 }

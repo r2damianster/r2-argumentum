@@ -18,12 +18,13 @@ Incluye:
 - Autenticación simple sin login: código de sala + nombre + emoji. **El argumento es requisito para entrar**: quien no lo confirma antes de que el moderador inicie la sesión queda como oyente.
 - Turnos por ruleta ponderada (favorece a quien ha hablado menos) **solo para quien ya tiene un argumento preparado**: el turno sirve para defenderlo, no para escribirlo contra reloj. Se puede **aceptar o rechazar** (rechazar cuesta puntos). Si nadie tiene nada preparado y alguien aún no habló, se ofrece un turno hablado de respaldo.
 - Argumentos con puntaje decreciente por posición y ronda, validados en forma por IA (Groq) antes de publicarse. Groq además clasifica la postura que defiende el texto, sin ser nunca juez autoritativo.
-- Perfiles de puntaje elegibles por el docente (Liviano / Estándar / Estricto), capa instruccional para cada participante, vista espejo, avisos automáticos y modo proyección para el moderador.
+- Perfiles de puntaje elegibles por el docente (Liviano / Estándar / Estricto), capa instruccional para cada participante, vista espejo, avisos automáticos y modo proyección para el moderador (en la misma pestaña o en una ventana aparte para el proyector, con el argumento de quien habla destacado en grande unos segundos).
 - **Conexión libre** entre argumentos, disponible en todo momento (sin necesidad de turno), limitada a **1 conexión saliente por argumento propio**.
 - Sugerencia de conexiones en lote por IA (Groq), disparada por el moderador al cerrar una fase — el estudiante confirma, rechaza o reescribe.
 - Postura fija por debate (a favor / en contra / otras), usada para un ranking segmentado por postura, no un puntaje numérico expuesto públicamente.
 - Cada debate se configura mediante un **Programa de Debate** (plantilla reutilizable) — ver `03-programa-de-debate.md`.
-- Exportación de la sesión completa a JSON y un informe imprimible (PDF mediante la impresión del navegador) al cierre.
+- Exportación de la sesión completa a JSON y un informe imprimible (PDF mediante la impresión del navegador). El moderador puede ver el ranking parcial y bajar ambos archivos en cualquier momento, o cerrar el debate antes de tiempo.
+- Resiliencia de aula: si a alguien se le cierra la pestaña, recupera su identidad y su borrador; si quien tiene la palabra desaparece, el moderador libera la ruleta; los argumentos vacíos ("…porque ....") o casi copiados de otro se filtran antes de publicarse.
 
 No incluye en v1 (mecánicas de fases futuras, no descartadas, solo pospuestas):
 

@@ -52,6 +52,11 @@ Ruleta ponderada → ofrece turno SOLO a quien tiene argumento listo
 
 Al preparar un argumento que responde a otro, la lista de objetivos solo ofrece argumentos **ajenos**. Los formularios avisan qué falta (objetivo o texto) en vez de no hacer nada.
 
+### Argumento destacado y turno que queda abierto
+
+- Al aceptar el turno, quien tiene la palabra anuncia su argumento (`argument.presenting`): la sala, la proyección y los celulares lo ven **en grande unos 12 segundos** y después en tamaño normal bajo «X está hablando ahora». Al terminar, publica el argumento como siempre.
+- El motor no ofrece otro turno mientras haya uno en curso. Si quien hablaba cierra la pestaña o no puede continuar, el panel de avisos del host lo señala («X tiene la palabra pero está sin conexión») y el moderador pulsa **«Terminar el turno de X»** (`turn.ended_by_host`): la ruleta sigue, no cuenta como intervención ni como rechazo, y esa persona conserva su argumento preparado.
+
 ### Turno hablado de respaldo
 
 Si no queda ningún argumento preparado por exponer y alguien todavía no tomó la palabra ni una vez, se le ofrece un turno **hablado**, sin argumento escrito. Vale poco (la posición de menor valor con descuento de vía) y un co-moderador lo califica después. Dos precisiones: el argumento de ingreso **no** cuenta como haber tomado la palabra, y hay un minuto de margen desde el inicio de la fase antes de la primera oferta hablada.

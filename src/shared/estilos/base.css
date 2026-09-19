@@ -40,7 +40,8 @@ main {
   max-width: 30rem;
   margin: 0 auto;
   padding: 24px 16px 48px;
-  min-height: 100vh;
+  /* --alto-de-ventana la fija compensarZoomDelNavegador.js cuando amplía la página por zoom bajo. */
+  min-height: var(--alto-de-ventana, 100vh);
 }
 
 .portada {
