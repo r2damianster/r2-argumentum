@@ -18,6 +18,12 @@ Los tres mantienen la proporción 10 : 8 : 3 entre posiciones (hay una prueba qu
 
 Una intervención de viva voz sin argumento escrito vale como **la posición de menor valor con el descuento de vía aplicado** — sale de la misma fórmula en vez de ser un número suelto, así escala sola con el perfil. Se acredita al registrarse; la calificación del co-moderador la ajusta: "buena" la duplica, "aceptable" la deja igual, "insuficiente" la anula.
 
+## El total nunca baja de cero
+
+Una penalidad (hoy solo la de rechazar un turno) puede consumir los puntos que la persona tenía, pero no dejarla en deuda: el acumulado se topa en 0. Proyectado en el aula, un número negativo se lee como un castigo desproporcionado, y no cambia el orden del ranking, que compara por percentiles dentro de cada postura.
+
+El desincentivo de rechazar no depende de eso: a los N rechazos **consecutivos** el turno se fuerza y hay que hablar igual (ver `04-roles-y-turnos.md`). El `delta` que se publica conserva el valor nominal de la regla, así el export muestra la penalidad completa y el tope que la cortó.
+
 ## Puntaje base y revisión del co-moderador
 
 El puntaje base de un argumento (`posición × ronda × vía`) **no depende** de que un co-moderador lo revise: se acredita apenas el argumento entra al canal. Solo los bonos de co-moderación dependen de esa revisión. Antes estaban acoplados, y en una sala de 2 participantes —donde el sorteo correctamente asigna 0 co-moderadores— nadie podía puntuar nunca.

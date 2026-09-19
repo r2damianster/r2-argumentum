@@ -206,6 +206,10 @@ export function reducirEventos(estado, evento) {
       const siguiente = conParticipanteActualizado(estado, data.participantId, (participante) => ({
         ...participante,
         turnosPrincipalesAceptados: participante.turnosPrincipalesAceptados + 1,
+        // El tope es de rechazos CONSECUTIVOS (docs/04): tomar la palabra corta la racha. Sin
+        // este reset, tres rechazos en toda la sesión dejaban a esa persona en modo forzado
+        // para siempre, sin volver a poder decidir nunca.
+        rechazosAcumulados: 0,
       }));
       return {
         ...siguiente,
@@ -261,6 +265,9 @@ export function reducirEventos(estado, evento) {
       const siguiente = conParticipanteActualizado(estado, data.participantId, (participante) => ({
         ...participante,
         turnosPrincipalesAceptados: participante.turnosPrincipalesAceptados + 1,
+        // Igual que al aceptar: ya tomó la palabra, la racha de rechazos se corta. Si no, el
+        // primer turno forzado condenaba a todos los siguientes a ser forzados también.
+        rechazosAcumulados: 0,
       }));
       return {
         ...siguiente,

@@ -115,6 +115,28 @@ describe('rechazo del turno', () => {
 
     expect(estado.turnos.rechazos).toHaveLength(2);
   });
+
+  // docs/04: el tope es de rechazos CONSECUTIVOS. Sin reset, tres rechazos sueltos en toda la
+  // sesión dejaban a esa persona en modo forzado para siempre.
+  it('aceptar un turno corta la racha de rechazos', () => {
+    const estado = reducirTodos([
+      evento(EVENTOS.TURNO_RECHAZADO, { turnId: 't1', participantId: 'ana', totalRechazosDelParticipante: 1 }),
+      evento(EVENTOS.TURNO_RECHAZADO, { turnId: 't2', participantId: 'ana', totalRechazosDelParticipante: 2 }),
+      evento(EVENTOS.TURNO_OFRECIDO, { turnId: 't3', candidateId: 'ana', expiraEn: Date.now() + 1000 }),
+      evento(EVENTOS.TURNO_ACEPTADO, { turnId: 't3', participantId: 'ana' }),
+    ]);
+
+    expect(estado.participantes.ana.rechazosAcumulados).toBe(0);
+  });
+
+  it('un turno forzado también corta la racha: si no, todos los siguientes serían forzados', () => {
+    const estado = reducirTodos([
+      evento(EVENTOS.TURNO_RECHAZADO, { turnId: 't1', participantId: 'ana', totalRechazosDelParticipante: 3 }),
+      evento(EVENTOS.TURNO_FORZADO, { turnId: 't2', participantId: 'ana' }),
+    ]);
+
+    expect(estado.participantes.ana.rechazosAcumulados).toBe(0);
+  });
 });
 
 describe('intervención hablada', () => {

@@ -198,6 +198,30 @@ describe('puntaje', () => {
     expect(penalidades[0].participantId).toBe('ana');
   });
 
+  it('el total nunca baja de cero, aunque la penalidad sea mayor que lo acumulado', () => {
+    // Observado en prueba en vivo: con 10 puntos, rechazar un turno dejaba a la persona en
+    // −10. La penalidad consume lo que tenía, no la deja en deuda.
+    const estado = estadoEnDebate([
+      evento(EVENTOS.PUNTAJE_ACTUALIZADO, {
+        participantId: 'ana',
+        delta: 10,
+        categoria: 'argumento',
+        nuevoTotal: 10,
+      }),
+      evento(EVENTOS.TURNO_OFRECIDO, { turnId: 't1', candidateId: 'ana', expiraEn: Date.now() + 1000 }),
+      evento(EVENTOS.TURNO_RECHAZADO, { turnId: 't1', participantId: 'ana', totalRechazosDelParticipante: 1 }),
+    ]);
+
+    const { publicar } = sincronizarCon(estado);
+    const penalidad = eventosPublicados(publicar, EVENTOS.PUNTAJE_ACTUALIZADO).find(
+      (puntaje) => puntaje.delta < 0
+    );
+
+    // El delta conserva el valor nominal de la regla, pero el total queda topado en 0.
+    expect(penalidad.delta).toBe(-20);
+    expect(penalidad.nuevoTotal).toBe(0);
+  });
+
   it('puntúa la intervención hablada al registrarse, sin esperar calificación', () => {
     const estado = estadoEnDebate([
       evento(EVENTOS.INTERVENCION_VERBAL_REGISTRADA, {

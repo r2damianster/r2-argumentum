@@ -96,13 +96,22 @@ function elegirCandidatoParaTurno(estado, presencia, limiteDePosiciones) {
   return sorteoPonderado(pool, pesos);
 }
 
+// El puntaje acumulado nunca baja de cero: una penalidad puede consumir lo que la persona
+// tenía, no dejarla en deuda. Observado en prueba en vivo (alguien con 10 puntos rechazó un
+// turno y quedó en −10): proyectado en el aula se lee como un castigo desproporcionado, y no
+// cambia el ranking, que ordena por percentiles dentro de cada postura. El desincentivo real
+// de rechazar sigue existiendo por otro lado: a los N rechazos consecutivos el turno se
+// fuerza y hay que hablar igual (ver docs/04).
+//
+// El `delta` publicado conserva el valor nominal de la regla — así el export muestra la
+// penalidad completa que se aplicó y el tope que la cortó, en vez de esconderla.
 function crearAcumuladorDePuntaje(estado) {
   const totales = {};
   return function aplicarDelta(participantId, delta) {
     if (totales[participantId] === undefined) {
       totales[participantId] = estado.participantes[participantId]?.puntajeTotal ?? 0;
     }
-    totales[participantId] += delta;
+    totales[participantId] = Math.max(0, totales[participantId] + delta);
     return totales[participantId];
   };
 }

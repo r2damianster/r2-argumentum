@@ -49,7 +49,8 @@ Ruleta ponderada → ofrece turno a un participante
 Reglas de seguridad del turno:
 
 - **Timeout de aceptación** (ej. 20 segundos) — si nadie responde, se reoferta a otro participante automáticamente. Sin esto el debate se congela.
-- **Tope de rechazos** — tras N rechazos consecutivos en la sesión, la siguiente oferta a esa persona ya no puede rechazarse (evita que todos rechacen para no participar).
+- **Tope de rechazos** — tras N rechazos consecutivos en la sesión, la siguiente oferta a esa persona ya no puede rechazarse (evita que todos rechacen para no participar). **Consecutivos** significa que tomar la palabra corta la racha: el contador vuelve a cero tanto al aceptar un turno como al recibir uno forzado. Sin ese reset, tres rechazos sueltos en toda la sesión dejaban a esa persona en modo forzado de forma permanente.
+- **Rechazar cuesta puntos**, y el botón lo avisa antes de confirmar. El descuento sale de la fórmula única y escala con el perfil elegido; el acumulado nunca baja de cero (ver `05-reglas-de-puntaje.md`).
 - El tipo de relación que el estudiante autodeclara **puede ser corregido** por el co-moderador al validar. El puntaje final depende del tipo confirmado, no del autodeclarado — evita que se autoetiquete como "contraargumento" solo para ganar más puntos.
 
 ## Conexión libre (fuera de turno)
