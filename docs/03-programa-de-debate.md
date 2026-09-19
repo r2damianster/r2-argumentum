@@ -33,8 +33,25 @@ posturas: [
   // no le contradice la postura aunque el argumento suene a uno de los polos
 ]
 asignacionPostura: "libre" | "aleatoria" | "por_grupo"
+                                // "aleatoria" reparte por turnos entre quienes están en la sala
+                                // (la postura menos representada), no sortea a ciegas: con 8
+                                // ingresando a la vez los bandos quedan con 1 de diferencia como máximo
 permiteCambioPostura: boolean   // habilita mecánica "defiende lo contrario" (fase futura)
 ```
+
+Las posturas de un Programa son **candidatas**: al iniciar la sesión el moderador tilda cuáles se debaten (mínimo 2). Un Programa puede traer más de 3 (el de Filosofía trae 12).
+
+### C.1 Ajustes de sesión que fija el moderador en la sala de espera
+
+No hace falta que vengan en el JSON (pero pueden venir como valor por defecto). Se republican al canal **en vivo mientras la sala está en espera**, porque los estudiantes ingresan antes de que el moderador arranque:
+
+```
+perfilDePuntaje: "liviano" | "estandar" | "estricto"   // ver 05-reglas-de-puntaje.md
+permitirPosturasNuevas: boolean                         // por defecto false
+posturas: [ ...solo las tildadas... ]
+```
+
+Con `permitirPosturasNuevas: true`, si Groq detecta que el argumento no defiende ninguna postura de la lista, el estudiante puede proponer la suya; si el moderador la acepta se suma a `posturas` y se le asigna a quien la propuso. Con `false`, el estudiante debe reescribir su argumento para una postura existente.
 
 ### D. Estructura de fases
 
@@ -55,7 +72,9 @@ Cada fase tiene inicio y fin controlado explícitamente por el moderador — evi
 Ver el detalle completo de la fórmula en `05-reglas-de-puntaje.md`. Aquí solo se referencian los parámetros configurables:
 
 ```
-valoresBasePosicion: [10, 8, 3]        // 1er, 2do, 3er argumento
+valoresBasePosicion: [10, 8, 3]        // 1er, 2do, 3er argumento (escala Liviana; el perfil de
+                                        // puntaje elegido por el moderador la reemplaza y la
+                                        // escala manteniendo la proporción 10:8:3)
 descuentoRonda2: 0.7
 descuentoViaCoModerador: 0.5
 maxIntentosGroqPorArgumento: 2
@@ -69,8 +88,10 @@ tiers: ["Sólido", "Consistente", "En desarrollo"]
 ```
 mecanismoTurno: "ruleta_ponderada_con_prioridad_a_no_participantes"
                                         // prioridad absoluta a quien no ha tenido turno principal;
-                                        // agotado ese grupo, pesa por quién ha hablado menos
-timeoutAceptacion: 20                  // segundos antes de reintentar con otro
+                                        // agotado ese grupo, pesa por quién ha hablado menos.
+                                        // Solo entra a la ruleta quien tiene un argumento preparado.
+timeoutAceptacion: 20                  // segundos antes de que la oferta expire y se reofrezca (si
+                                        // es el único elegible, se le vuelve a ofrecer a la misma persona)
 maxRechazosAntesDeForzar: 3            // tras N rechazos, la oferta ya no se puede rechazar
 
 tiempoLimiteEvaluacionBid: 20          // segundos para que un co-moderador vote un bid
@@ -109,7 +130,8 @@ exclusionMutua: true                    // un co-moderador sorteado no argumenta
 
 ```
 exportaJSON: { eventLogCompleto, mapaArgumental, rankingPorPostura, perfilPorEstudiante }
-exportaPDF: opcional                    // mapa de evolución argumentativa del debate
+exportaPDF: opcional                    // informe imprimible: el botón "Generar PDF del debate" abre la
+                                        // impresión del navegador (window.print + CSS @media print)
 ```
 
 ### K. Configuración técnica

@@ -8,7 +8,8 @@ Consistente con otro proyecto del usuario, **R2 Quiz** (consola de host reservad
 - Acceso reservado — pantalla de login simple ("Usuario" / "Clave") antes de entrar.
 - Credencial **hardcodeada en el código**, sin backend de autenticación real. Aceptable porque no se maneja información sensible ni datos personales protegidos — mismo criterio ya validado en R2 Quiz ("no es peligroso porque no tendremos nada relevante ahí").
 - Imagen de portada de esta consola: `public/avatar.png`.
-- Desde aquí el profesor: crea/carga un Programa de Debate, controla el avance de fases, proyecta el grafo en vivo, ve el ranking por postura, sortea co-moderadores.
+- Desde aquí el profesor: crea/carga un Programa de Debate, elige el modo de calificación y las posturas, controla el avance de fases, proyecta el grafo en vivo (modo proyección), ve la pantalla de cualquier participante (vista espejo, solo lectura), recibe avisos operativos, ve el ranking por postura, descarga el JSON de la sesión e imprime el informe. Los co-moderadores se sortean solos al iniciar.
+- **Recarga (F5)**: si la sesión ya estaba iniciada y el canal todavía trae su Programa, la consola se reconstruye sola; si el historial ya expiró, vuelve a la lista de Programas (nunca reabre una sala nueva con el código viejo).
 - **Código de sala + QR**, mismo patrón que R2 Quiz: al abrir la sesión se genera un código de 4 dígitos y un QR que enlaza a `/player.html?sala={codigo}`. El estudiante escanea y entra con el código ya prellenado — no necesita tipearlo. Implementado con `qrcode.react` (`src/host/App.jsx`).
 
 ### Copy de referencia (mismo molde que R2 Quiz)
@@ -41,6 +42,9 @@ Diferencias respecto al copy de R2 Quiz: "docente anfitrión" → "docente moder
   - **Tu nombre** (campo de texto libre, ej. "Arturo").
   - **Tu avatar**: grid de emojis seleccionables + botón "🎲 Sorpréndeme" para elegir uno al azar. El emoji elegido es cómo se lo identifica en el marcador/grafo.
   - Botón **Entrar**.
+- **Entrar no alcanza para aparecer en la sala.** Después de conectarse el estudiante elige postura (o se le asigna), escribe su argumento, lo revisa con Groq y **confirma su ingreso**; recién ahí lo ve el resto. Quien no confirma antes de que el moderador inicie la sesión queda como oyente (mira, no recibe turnos ni puntúa).
+- **Link corto**: `https://r2-argumentum.vercel.app/?sala=XXXX` redirige a `/player.html?sala=XXXX` (lo usan el QR y el botón "Copiar link").
+- Quien refresca la pestaña reconstruye el debate desde una copia local del log (ver `02-arquitectura.md`).
 - La URL/código de sala se comparte con los estudiantes al iniciar la sesión (generado a partir del Programa activo).
 - Desde aquí el participante: recibe/acepta turnos, escribe argumentos, conecta argumentos libremente. Si fue sorteado co-moderador, ve además el panel de moderación (valorar, anotar, marcar falta).
 

@@ -4,9 +4,9 @@ Plataforma educativa para debates estructurados en tiempo real. El objetivo no e
 
 ## Estado del proyecto
 
-**Motor de debate real construido y desplegado en producción** (`r2-argumentum.vercel.app`): login del host, selector de Programa de Debate por categorías, sala con código+QR, sorteo de posturas y co-moderadores, ruleta de turnos, escritura de argumentos validada por Groq, grafo argumental en vivo (React Flow), conexión libre, sugerencias de conexión por Groq, bids de intervención con voto de co-moderadores, panel de co-moderador, puntaje en vivo y ranking final con export a JSON.
+**Motor de debate real construido y desplegado en producción** (`r2-argumentum.vercel.app`): login del host, selector de Programa de Debate por categorías, sala con código+QR y link corto, **ingreso obligatorio con argumento** (Groq valida la forma y clasifica la postura), asignación de posturas balanceada y sorteo de co-moderadores, **ruleta de turnos para defender un argumento ya preparado** (con turno hablado de respaldo), perfiles de puntaje (Liviano / Estándar / Estricto), grafo argumental en vivo (React Flow + dagre), conexión libre, sugerencias de conexión por Groq, bids de intervención con voto de co-moderadores, panel de co-moderador, capa instruccional, vista espejo y modo proyección para el host, ranking por postura con tiers, export a JSON e informe imprimible (PDF vía impresión del navegador).
 
-Probado de punta a punta contra producción en una sesión de prueba manual — ver `docs/10-guia-prueba-manual-chrome.md` para el detalle. Pendientes conocidos en `docs/06-pendientes.md` (el más relevante: el puntaje de conexiones todavía no está implementado).
+Probado de punta a punta contra producción en varias sesiones de prueba manual (la última: 8 participantes más una sesión corta de casos borde, sin regresiones) — ver `docs/10-guia-prueba-manual-chrome.md` para el procedimiento y `docs/06-pendientes.md` para el detalle de lo cerrado y lo que sigue abierto (el más relevante: el puntaje de conexiones todavía no está implementado). Hay pruebas automatizadas con vitest sobre la lógica pura (`npm test`).
 
 ## Idea central
 
@@ -18,8 +18,8 @@ No se registra solo quién habla, sino cómo se relacionan los argumentos entre 
 |---|---|
 | Frontend | React + Vite (mobile-first para estudiantes, `host.html`/`player.html` multi-page) |
 | Tiempo real | Ably (canales pub/sub + presence), event-sourcing puro — sin base de datos para el estado de la sesión en vivo. Historial retenido ~2 min por defecto (ver `docs/02-arquitectura.md`) |
-| IA asistencial | Groq (`openai/gpt-oss-20b` para validar, `openai/gpt-oss-120b` para sugerir conexiones) — nunca puntúa de forma autoritativa sin confirmación humana |
-| Persistencia de sesión | Event log de Ably + export a JSON al cierre (PDF todavía no implementado) |
+| IA asistencial | Groq (`openai/gpt-oss-20b` para validar forma y clasificar postura, `openai/gpt-oss-120b` para sugerir conexiones) — nunca puntúa de forma autoritativa sin confirmación humana. La función serverless reintenta ante fallos transitorios |
+| Persistencia de sesión | Event log de Ably (con copia local en `localStorage` de cada cliente) + export a JSON al cierre + informe imprimible a PDF |
 | Persistencia de plantillas | "Programas de Debate" como archivos JSON exportables/importables, catálogo por categoría en la consola del host |
 
 ## Por qué no hay base de datos ni reconocimiento de voz en v1

@@ -64,7 +64,7 @@ export function FormularioDeArgumento({ estado, programa, participantId, turnoEn
         body: JSON.stringify({ texto, ejemplos: programa.ejemplosPorTema }),
       });
       if (!respuesta.ok) {
-        resultado = { aprobado: false, motivo: 'El validador no respondió, intentá de nuevo.', sugerenciaDeCorreccion: '' };
+        resultado = { aprobado: false, motivo: 'El validador no respondió, inténtalo de nuevo.', sugerenciaDeCorreccion: '' };
       } else {
         resultado = await respuesta.json();
       }

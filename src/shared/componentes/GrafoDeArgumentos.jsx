@@ -115,7 +115,7 @@ export function GrafoDeArgumentos({ estado, programa, presencia }) {
 
     // Una sugerencia de Groq puede nombrar un argumento que no existe (inventa ids), y una
     // conexión puede apuntar a un argumento que todavía no llegó por el canal. Esas aristas
-    // colgadas no se pueden dibujar: se descartan acá, igual que en el layout.
+    // colgadas no se pueden dibujar: se descartan aquí, igual que en el layout.
     const idsDeNodos = new Set(nodosSinUbicar.map((nodo) => nodo.id));
     const todasLasAristas = [...aristasDeConexiones, ...aristasDeSugerencias].filter(
       (arista) => idsDeNodos.has(arista.source) && idsDeNodos.has(arista.target)

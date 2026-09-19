@@ -15,14 +15,15 @@ No registrar solo intervenciones; registrar relaciones entre argumentos: apoyo, 
 Incluye:
 
 - 3 roles: **Moderador** (profesor), **Co-moderador** (sorteado entre participantes), **Participante** (estudiante).
-- Autenticación simple sin login: nombre + apellido + emoji aleatorio.
-- Turnos por ruleta ponderada (favorece a quien ha hablado menos), con opción de **aceptar o rechazar** el turno ofrecido.
-- Escritura de argumentos en rondas con cupos y puntaje decreciente, validados en forma por IA (Groq) antes de publicarse.
+- Autenticación simple sin login: código de sala + nombre + emoji. **El argumento es requisito para entrar**: quien no lo confirma antes de que el moderador inicie la sesión queda como oyente.
+- Turnos por ruleta ponderada (favorece a quien ha hablado menos) **solo para quien ya tiene un argumento preparado**: el turno sirve para defenderlo, no para escribirlo contra reloj. Se puede **aceptar o rechazar** (rechazar cuesta puntos). Si nadie tiene nada preparado y alguien aún no habló, se ofrece un turno hablado de respaldo.
+- Argumentos con puntaje decreciente por posición y ronda, validados en forma por IA (Groq) antes de publicarse. Groq además clasifica la postura que defiende el texto, sin ser nunca juez autoritativo.
+- Perfiles de puntaje elegibles por el docente (Liviano / Estándar / Estricto), capa instruccional para cada participante, vista espejo, avisos automáticos y modo proyección para el moderador.
 - **Conexión libre** entre argumentos, disponible en todo momento (sin necesidad de turno), limitada a **1 conexión saliente por argumento propio**.
 - Sugerencia de conexiones en lote por IA (Groq), disparada por el moderador al cerrar una fase — el estudiante confirma, rechaza o reescribe.
 - Postura fija por debate (a favor / en contra / otras), usada para un ranking segmentado por postura, no un puntaje numérico expuesto públicamente.
 - Cada debate se configura mediante un **Programa de Debate** (plantilla reutilizable) — ver `03-programa-de-debate.md`.
-- Exportación de la sesión completa a JSON (y opcionalmente PDF) al cierre.
+- Exportación de la sesión completa a JSON y un informe imprimible (PDF mediante la impresión del navegador) al cierre.
 
 No incluye en v1 (mecánicas de fases futuras, no descartadas, solo pospuestas):
 

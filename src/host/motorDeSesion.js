@@ -517,7 +517,7 @@ export function crearMotorDeSesion({ programa }) {
           viaCoModerador: false,
         });
         // El puntaje base de este argumento lo acredita procesarArgumentosNuevos, igual que a
-        // cualquier otro (misma fórmula de posición/ronda/vía) — publicarlo también acá lo
+        // cualquier otro (misma fórmula de posición/ronda/vía) — publicarlo también aquí lo
         // puntuaba dos veces, porque ese argumentId no tenía todavía su clave de idempotencia.
         // Bug real reportado en prueba en vivo.
 
@@ -760,7 +760,7 @@ export function crearMotorDeSesion({ programa }) {
 
     // La postura ya se asignó al confirmar el ingreso (ver IngresoConArgumento.jsx): con
     // asignación aleatoria, `elegirPosturaMenosRepresentada` la fijó de forma balanceada antes
-    // de escribir el argumento; con "libre", el estudiante la eligió. Reasignarla acá por
+    // de escribir el argumento; con "libre", el estudiante la eligió. Reasignarla aquí por
     // round-robin (como se hacía antes de que el ingreso incluyera la postura) le pisaba la
     // postura ya elegida sin avisar — el argumento de ingreso quedaba con un stanceId y el
     // participante con otro distinto, y el ranking/informe los mostraban en columnas

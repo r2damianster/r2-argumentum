@@ -2,13 +2,14 @@
 
 Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate real de punta a punta contra producción y devolver una lista de fallos detectados. No inventes funcionalidad ni la pruebes por encima de lo que existe.
 
-> **Esta guía cubre el rediseño grande de septiembre 2026.** El flujo cambió de raíz: el argumento ahora es requisito para entrar, el turno sirve para defender lo ya escrito (no para escribir contra reloj), y hay capa instruccional, perfiles de puntaje, vista espejo e informe imprimible. Si lo que ves en pantalla se parece más a la versión anterior (fase de "apertura simultánea", turno que abre un formulario en blanco), **el deploy no tomó los cambios**: avisá y no sigas.
+> **Esta guía cubre el rediseño grande de septiembre 2026.** El flujo cambió de raíz: el argumento ahora es requisito para entrar, el turno sirve para defender lo ya escrito (no para escribir contra reloj), y hay capa instruccional, perfiles de puntaje, vista espejo e informe imprimible. Si lo que ves en pantalla se parece más a la versión anterior (fase de "apertura simultánea", turno que abre un formulario en blanco), **el deploy no tomó los cambios**: avisa y no sigas.
 
 ## 0. Entorno
 
 - Usar **producción**: `https://r2-argumentum.vercel.app/`.
   - Host: `/host.html` (o la raíz `/` sin parámetros, redirige ahí) — Usuario `arturo.rodriguez@uleam.edu.ec` · Clave `R2ironmaiden`.
   - Participante: `/player.html`, o el link corto `/?sala=XXXX` — es el que generan el QR y el botón "Copiar link".
+- **Antes de empezar**, revisa el zoom del navegador de cada pestaña (host y participantes) y déjalo al 100 % (`Ctrl+0`). En la ronda anterior las pestañas estaban con el zoom muy reducido (DPR 0,31): los clics y el scroll por coordenadas no funcionaban y hubo que manejar la interfaz por el DOM, lo que limita lo que se puede comprobar visualmente (rueda del mouse, celular, reencuadre del grafo). Si el host ya tenía la sesión iniciada, no hace falta usar la clave.
 - **No probar contra local** (`npm run dev`): `ABLY_API_KEY` y `GROQ_API_KEY` son variables "Sensitive" en Vercel, no se pueden recuperar vía CLI. Local no puede ejercitar Groq ni Ably.
 
 ## 1. Restricciones operativas — leer antes de empezar
@@ -26,7 +27,7 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 ### Configuración (host)
 
 - **Login persistente** (`localStorage`) + catálogo de Programas por categoría o carga de `.json` propio.
-- **Solo se restaura automáticamente una sesión ya iniciada.** Si quedó a medio configurar sin iniciar, al recargar vuelve a la lista de Programas.
+- **Solo se restaura automáticamente una sesión ya iniciada.** Si quedó a medio configurar sin iniciar, al recargar vuelve a la lista de Programas. Si estaba iniciada pero el historial del canal ya expiró (por ejemplo, con el debate cerrado hace rato), **también** vuelve a la lista de Programas, con código nuevo al elegir uno; nunca debe reabrir una sala de configuración con el código viejo.
 - **Sala de configuración previa**: código + QR + link corto, participantes conectados, y la configuración de la sesión.
 - **Selector de posturas** (si el Programa tiene más de 2): checklist, todas tildadas por defecto, mínimo 2.
 - **Modo de calificación** (nuevo): Liviano (10/8/3), Estándar (100/80/30) o Estricto (1000/800/300). Cambia la escala y qué tan caro sale demorarse o rechazar un turno, pero **la proporción entre posiciones se mantiene**.
@@ -37,7 +38,8 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 El argumento es **requisito para entrar**. El flujo es: nombre + avatar → conecta al canal **sin aparecer en la sala** → elige postura → escribe argumento → lo revisa con Groq → confirma ingreso → **recién ahí aparece en el roster**.
 
 - Con `asignacionPostura: "libre"` el estudiante elige postura; con `"aleatoria"` se le asigna la menos representada, para que los bandos queden parejos. La asignación **se recalcula mientras el estudiante no haya escrito nada** y los empates se reparten por el lugar de cada quien en la sala, no al azar: entrando ocho a la vez los bandos deben quedar parejos.
-- Groq hace dos cosas: valida forma (claim + razón) **y clasifica a qué postura pertenece** el argumento.
+- Groq hace dos cosas: valida forma (claim + razón) **y clasifica a qué postura pertenece** el argumento. Ante un fallo transitorio la función reintenta sola hasta 3 veces. Quien eligió la postura **Matizada** nunca es contradicho por la clasificación.
+- Si propone una **postura nueva**, ve la respuesta del moderador en su pantalla: al aceptarla se le asigna esa postura.
 - Quien no confirma antes de que el host inicie queda como **oyente**: ve todo, no recibe turnos, no puntúa.
 - **La fase de apertura simultánea ya no existe** en los Programas de ejemplo: el ingreso la reemplaza.
 
@@ -45,12 +47,14 @@ El argumento es **requisito para entrar**. El flujo es: nombre + avatar → cone
 
 - **El turno es para defender lo ya escrito.** El estudiante prepara su argumento mientras escucha ("Revisar y ponerme en la ruleta"); al aprobarse entra a la ruleta. **Sin argumento preparado no se le ofrece la palabra.**
 - **Rechazar el turno cuesta puntos** y el botón muestra el costo antes de confirmar.
+- **Un argumento preparado con objetivo** (contraargumento, refuerzo, dilema o conexión) **sale conectado**: al exponerlo se publica también la arista hacia el argumento elegido. La lista de objetivos solo ofrece argumentos **ajenos**.
+- **Los formularios avisan qué falta**: "Revisar y ponerme en la ruleta" y "Lanzar bid" muestran un mensaje si falta el objetivo o el texto, en vez de no hacer nada.
 - **Turno hablado de respaldo**: si no queda ningún argumento preparado por exponer y alguien no ha hablado nunca, se le ofrece intervenir de viva voz. Vale poco, y un co-moderador la califica después. El **argumento de ingreso no cuenta** como haber tomado la palabra, y hay **un minuto de margen** desde el inicio de la fase antes de la primera oferta hablada.
 - **El co-moderador nunca se califica a sí mismo**: su propio argumento, su propia intervención hablada y sus propios bids no aparecen en su cola.
 - **Capa instruccional** (nueva): bloque siempre visible con AHORA / PUEDES / TIENES QUE. En vertical queda fijo arriba y se colapsa a una línea al scrollear.
 - **Bids, conexión libre, sugerencias de Groq y panel de co-moderador**: igual que antes.
-- **Vista espejo** (nueva, host): ver qué tiene en pantalla cualquier participante. Solo lectura.
-- **Avisos automáticos** (nuevo, host): quién no confirmó ingreso, quién no preparó argumento, quién no ha hablado.
+- **Vista espejo** (nueva, host): ver qué tiene en pantalla cualquier participante. Solo lectura. Muestra el **total** de turnos rechazados y, entre paréntesis, la racha si la hay.
+- **Avisos automáticos** (nuevo, host): quién no confirmó ingreso, quién no preparó argumento, quién no ha hablado. **En Cierre y ranking no hay avisos.**
 - **Modo proyección** (nuevo, host): botón "📽️ Proyectar" — agranda todo y esconde los controles.
 
 ### Grafo
@@ -61,13 +65,25 @@ El argumento es **requisito para entrar**. El flujo es: nombre + avatar → cone
 
 ### Cierre
 
-- Ranking por postura con tiers, export `.json`, y **informe imprimible** (nuevo): botón "🖨️ Generar PDF del debate" que abre el diálogo de impresión.
+- Ranking por postura con tiers (**los co-moderadores no aparecen a propósito**: no defienden postura), export `.json`, y **informe imprimible** (nuevo): botón "🖨️ Generar PDF del debate" que abre el diálogo de impresión.
 
 ## 3. Bugs ya arreglados — verificar que NO reaparezcan
 
 Si alguno reaparece es una **regresión real**, va primero en la tabla, severidad alta.
 
-**Arreglados en esta ronda (los 10 del último reporte, prueba con 8 participantes):**
+**Arreglados en la última ronda (reporte de la prueba con 8 participantes, 11 puntos):**
+
+A1. **Argumento preparado que apuntaba a otro quedaba suelto en el grafo** (severidad media-alta). Contraargumentos, refuerzos y dilemas publicados al exponer el turno salían sin arista: 13 nodos y solo 3 aristas. **Cómo verificar**: preparar un contraargumento, un refuerzo y un dilema eligiendo "Argumento al que apunta", ganar el turno y publicar cada uno; contar `.react-flow__edge` — debe haber una arista por cada uno, y cada nodo debe quedar **debajo** del que responde, no en la fila raíz.
+A2. **"El validador no respondió, inténtalo de nuevo"** con varias revisiones a la vez. La función reintenta y el tope de tokens subió. **Cómo verificar**: que 5–7 participantes pulsen "Revisar" casi a la vez; no debería aparecer ese mensaje (si aparece una vez y al reintentar funciona, anótalo como media y di cuántos revisaban a la vez).
+A3. **Postura Matizada rechazada** ("Groq lo clasifica como Más mercado"). **Cómo verificar**: con el Programa de política y asignación que le dé la postura Matizada a alguien, escribir un argumento que critique el libre mercado; debe aprobarse. Para cualquier otra postura la contradicción sigue vigente.
+A4. **Formularios sin mensaje**: "Revisar y ponerme en la ruleta" sin objetivo o sin texto, y "Lanzar bid" con objetivo o texto vacíos. **Cómo verificar**: pulsar con cada campo vacío; debe aparecer un aviso rojo que diga qué falta.
+A5. **Postura nueva aceptada sin aviso**: al aceptarla el host, la pantalla del estudiante seguía en "Espera su respuesta". **Cómo verificar**: caso borde de posturas nuevas (sección 5), mirando la pantalla del estudiante.
+A6. **Vista espejo con "Turnos rechazados: 0"** tras haber rechazado. **Cómo verificar**: que alguien rechace un turno y luego acepte otro; la vista espejo debe decir "Turnos rechazados: 1".
+A7. **Avisos operativos en Cierre y ranking** ("6 sin argumento preparado", "5 casos esperando revisión"). **Cómo verificar**: avanzar a `cierre_y_ranking` con casos pendientes; el panel de avisos no debe mostrar nada.
+A8. **El objetivo de un contraargumento incluía el argumento propio.** **Cómo verificar**: abrir "Argumento al que apunta" con argumentos propios ya publicados; no deben aparecer.
+A9. **F5 del host con el debate cerrado** volvía a la sala de configuración con el mismo código. **Cómo verificar**: cerrar el debate, esperar a que pase la retención del historial (unos minutos) y refrescar el host; debe mostrar la lista de Programas.
+
+**Arreglados en la ronda anterior (los 10 del reporte de 8 participantes previo):**
 
 1. **El turno hablado de respaldo no se ofrecía nunca.** El argumento de ingreso contaba como "ya tomó la palabra", así que nadie quedaba nunca sin intervenir. Ahora no cuenta, y hay un minuto de margen desde el inicio de la fase antes de la primera oferta hablada. **Cómo verificar**: sesión con varios participantes, que nadie prepare argumento, esperar algo más de un minuto en `escritura_argumentos` — debe ofrecerse un turno en **modo verbal** a alguien que no habló.
 2. **El grafo no dibujaba ninguna arista.** Los nodos salían bien ubicados pero contar `.react-flow__edge` daba 0: React Flow medía los conectores en el DOM y, si el mapa se monta en un contenedor sin caja (pestaña en segundo plano, iframe sin alto), descartaba todas las aristas. Los nodos ahora declaran sus conectores. **Cómo verificar**: con conexiones publicadas, contar `.react-flow__edge` — debe coincidir con la cantidad de conexiones, **también** si el grafo se renderizó en una pestaña que estuvo en segundo plano o dentro de un iframe.
@@ -107,22 +123,28 @@ Los cuatro más valiosos de re-verificar: **turno hablado de respaldo**, **arist
 6. **Verificar el puntaje sin co-moderador**: el argumento de ingreso de Ana debe haberle dado **100 puntos** en el marcador del host, sin que nadie valide nada. *(Este es el bug #1 — si el marcador está en 0, es regresión alta.)*
 7. **Capa instruccional**: en la pestaña de Ana, confirmar que el bloque de arriba dice qué está pasando y que en **TIENES QUE** aparece "Prepara un argumento para entrar a la ruleta". Scrollear y confirmar que se colapsa a una línea con ese aviso.
 8. **Preparar argumento**: Ana escribe su segundo argumento y pulsa "Revisar y ponerme en la ruleta". Confirmar que al aprobarse dice "esperando turno" y que **recién entonces** la ruleta le ofrece la palabra.
-9. **Turno**: confirmar que la pantalla de turno ofrecido **muestra el costo de rechazar** ("Rechazar (−20 pts)") y que al aceptar **no aparece un formulario en blanco**, sino su argumento ya escrito con el botón "Ya lo expuse, publicarlo en el mapa".
+9. **Turno**: confirmar que la pantalla de turno ofrecido **muestra el costo de rechazar** ("Rechazar (−20 pts)") y que al aceptar **no aparece un formulario en blanco**, sino su argumento ya escrito con el botón "Ya lo expuse, publicarlo en el mapa". Si ese argumento apuntaba a otro, al publicarlo debe aparecer **la arista** en el grafo.
 10. **Rechazo con penalidad**: en el siguiente turno ofrecido, rechazar. Confirmar que el marcador baja 20 puntos.
 11. **Turno hablado**: cuando nadie tenga argumento preparado y alguien no haya intervenido, confirmar que se le ofrece un turno en **modo verbal** (texto distinto: "intervenir hablando"). Registrarlo y confirmar que aparece en el panel del co-moderador para calificar. Dos aclaraciones: el argumento de ingreso **no** cuenta como haber tomado la palabra, y el primer turno hablado no se ofrece hasta pasado un minuto del inicio de la fase.
 12. **Bid**: mientras alguien tiene el turno, otro lanza un bid. El co-moderador vota, el host da veredicto.
-13. **Vista espejo**: en el host, elegir a Ana en "Ver la pantalla de un participante". Confirmar que muestra lo mismo que ella tiene (misma capa instruccional) y que **no** muestra lo que está escribiendo.
+13. **Vista espejo**: en el host, elegir a Ana en "Ver la pantalla de un participante". Confirmar que muestra lo mismo que ella tiene (misma capa instruccional), que **no** muestra lo que está escribiendo y que "Turnos rechazados" cuenta los rechazos que hizo aunque después haya aceptado otro turno.
 14. **Grafo**: con 3+ argumentos conectados, confirmar que las respuestas quedan **debajo** de aquello a lo que responden, que hay leyenda y minimapa, y que **rodar la rueda del mouse sobre el grafo scrollea la página en vez de zoomear**.
 15. **Modo proyección**: botón "📽️ Proyectar" → todo más grande, sin controles. Salir.
-16. **Cierre**: avanzar fases hasta `cierre_y_ranking`. Confirmar ranking por postura con **nombres** (no IDs), "Descargar sesión (.json)", y el **informe imprimible**: pulsar "🖨️ Generar PDF del debate", confirmar que se abre el diálogo de impresión y que la vista previa muestra **solo el informe** (sin botones ni paneles). Cancelar el diálogo.
+16. **Cierre**: avanzar fases hasta `cierre_y_ranking`. Confirmar que el panel de avisos del host quedó vacío, ranking por postura con **nombres** (no IDs), "Descargar sesión (.json)", y el **informe imprimible**: pulsar "🖨️ Generar PDF del debate", confirmar que se abre el diálogo de impresión y que la vista previa muestra **solo el informe** (sin botones ni paneles). Cancelar el diálogo.
 
 ## 5. Casos borde
 
-- **Posturas nuevas**: con el Programa de 12 posturas filosóficas, **tildar la casilla en la sala de espera antes de que el estudiante escriba** y esperar un segundo a que se republique el Programa. Escribir un argumento que no defienda ninguna postura de la lista. Confirmar que Groq lo detecta, que aparece el botón para proponerla al moderador, que el nombre de la postura sugerida se lee **en texto legible y no como id** (`homo scientificus`, no `homo_scientificus`), que al host le llega la propuesta y que al aceptarla la postura se suma al debate y queda tildada. Repetir con la casilla **desactivada** → debe pedir reescribir, sin opción de proponer.
+- **Posturas nuevas**: con el Programa de 12 posturas filosóficas, **tildar la casilla en la sala de espera antes de que el estudiante escriba** y esperar un segundo a que se republique el Programa. Escribir un argumento que no defienda ninguna postura de la lista. Confirmar que Groq lo detecta, que aparece el botón para proponerla al moderador, que el nombre de la postura sugerida se lee **en texto legible y no como id** (`homo scientificus`, no `homo_scientificus`), que al host le llega la propuesta y que al aceptarla la postura se suma al debate y queda tildada. **En la pantalla del estudiante**, al aceptarla debe aparecer un aviso de aceptación, la postura nueva debe quedar asignada y debe poder confirmar su ingreso; al rechazarla, debe pedirle reescribir. Repetir con la casilla **desactivada** → debe pedir reescribir, sin opción de proponer.
+- **Arista de un argumento preparado**: con 3 participantes, cada uno prepara un tipo distinto con objetivo (contraargumento, refuerzo, dilema) apuntando a un argumento **ajeno**, y lo publica al ganar el turno. Contar `.react-flow__edge` en host y participante: una por cada uno. Confirmar que ninguna lista de objetivos ofrece el argumento propio.
+- **Ráfaga de revisiones con Groq**: 5–7 participantes pulsan "Revisar" casi a la vez (en el ingreso o preparando argumento). No debe aparecer "El validador no respondió". Repetir el mismo texto dos veces: mismo veredicto.
+- **Postura Matizada**: entrar con la postura Matizada (Programa de política o de libre albedrío) y escribir un argumento que critique un polo; debe aprobarse sin pedir cambiar de postura.
+- **Formularios incompletos**: en "Prepara tu próximo argumento" pulsar "Revisar y ponerme en la ruleta" con objetivo vacío (tipo contraargumento) y con el texto vacío; en el panel de bid pulsar "Lanzar bid" con objetivo vacío y con texto vacío. Cada caso debe mostrar un aviso que diga qué falta.
+- **Oferta de turno sin responder**: dejar una oferta sin contestar más de 20 segundos. Debe expirar y volver a ofrecerse. **No es un fallo** que, si esa persona es la única con argumento preparado, se le renueve a ella misma (con cuenta regresiva nueva) — anótalo solo si la cuenta regresiva **no se reinicia** o si hay otro candidato con argumento listo y nunca le llega.
 - **Turno hablado de respaldo**: con la sesión iniciada y **nadie** preparando argumento, esperar poco más de un minuto. Debe ofrecerse un turno en modo verbal a alguien que no haya hablado. Registrarlo y confirmar que el co-moderador puede calificarlo y que el puntaje se acredita.
 - **Aristas del grafo**: publicar al menos 3 conexiones y contar `.react-flow__edge` en el DOM del host y de un participante. Debe coincidir con la cantidad de conexiones. Repetir dejando la pestaña del grafo en segundo plano mientras se publican los nodos y volviendo a ella después.
 - **Host que refresca** (importante): con el debate andando, varios argumentos publicados y al menos un bid aprobado, anotar el marcador de cada participante y la cantidad de nodos del grafo. Refrescar la pestaña del host (F5) y esperar a que reconstruya. Verificar que **los puntajes son los mismos** (no el doble), que **no aparecieron nodos duplicados**, que la fase sigue siendo la misma (no volvió a la ronda 1) y que las posturas destildadas siguen fuera. Después cerrar una fase y confirmar que avanza a la que sigue, no a la primera.
 - **Host que refresca con un turno ofrecido**: refrescar justo mientras hay una oferta de turno en pantalla. La oferta debe expirar sola y la ruleta volver a girar, en vez de quedar colgada.
+- **Host que refresca con el debate cerrado**: cerrar el debate, esperar unos minutos (que expire el historial de Ably) y refrescar el host. Debe volver a la **lista de Programas**, no a la sala de configuración con el mismo código. Si el refresco es dentro del minuto, debe reconstruir el ranking desde la copia local. Cerrar las pestañas de participantes viejas antes de abrir otra sesión.
 - **Co-moderador que refresca**: con el debate avanzado, F5 en la pestaña del co-moderador. Debe reaparecer con el debate completo (no vacío), con su rol y su cola de validación.
 - **Desconexión larga de un participante**: en Chrome DevTools, poner la pestaña de un participante en modo offline (Network → Offline) tres o cuatro minutos mientras el debate sigue, y volver a ponerla online. Debe aparecer primero el aviso rojo de conexión caída, después el de "poniéndote al día", y —si se perdió algo— el aviso ámbar permanente de estado incompleto. Lo que pase después de reconectar debe verse normalmente.
 - **Postura distinta a la elegida**: elegir "Más mercado" y escribir un argumento claramente estatista. Confirmar el aviso y la opción de cambiarse de postura. *(Si Groq viene con poca confianza, el sistema aprueba igual — eso es deliberado, no un fallo.)*
@@ -133,6 +155,7 @@ Los cuatro más valiosos de re-verificar: **turno hablado de respaldo**, **arist
 - Refrescar (F5) una pestaña de participante, dentro del minuto y también pasados varios minutos → en los dos casos debe reconstruir el estado, ahora desde la copia local.
 - Conectar el mismo argumento propio dos veces → no debe permitirlo.
 - Cargar un `.json` de Programa inválido → mensaje de error, no avanza.
+- **Ranking con co-moderadora**: cierra el debate con al menos un co-moderador con puntos. **Es intencional** que no aparezca en el ranking ni en el informe (no defiende postura); no lo anotes como fallo, pero deja constancia de cuántos puntos tenía por si se decide mostrarlos.
 
 ## 6. Formato de reporte
 
@@ -142,7 +165,21 @@ Los cuatro más valiosos de re-verificar: **turno hablado de respaldo**, **arist
 - Si algo falla por historial de Ably expirado tras varios minutos, anótalo aparte como "esperado por retención de Ably", no en la tabla.
 - Si reaparece un bug de la sección 3, márcalo como **REGRESIÓN**, primero en la tabla, severidad alta.
 - Si no hay fallos reales, dilo explícitamente. No inventes hallazgos.
+- **No son fallos**: la retención de ~2 minutos del historial de Ably para quien estuvo desconectado (debe verse el aviso, no un debate vacío tras un F5), la renovación de una oferta al único candidato elegible, y la ausencia de co-moderadores en el ranking.
+- Indica siempre **qué no pudiste verificar y por qué** (por ejemplo, el zoom del navegador impidió la rueda del mouse o el viewport de celular), en lugar de darlo por bueno.
 
-## 7. Cierre
+## 7. Pendiente de verificar de la ronda anterior
+
+Quedaron sin comprobar porque el zoom del navegador impedía manejar la interfaz por coordenadas. Si puedes usar ratón real y viewports normales, prioriza estos:
+
+- **Rueda del mouse sobre el grafo**: debe scrollear la página, no zoomear (un evento sintético llegó con `preventDefault` aplicado, pero conviene ver el comportamiento real).
+- **Celular vertical (~375 px) y horizontal (~700×400)**, y el **reencuadre del grafo** al publicar nodos nuevos con el mapa abierto.
+- **Re-expansión de la capa instruccional** al volver arriba tras colapsarse.
+- **JSON de Programa inválido** en la carga.
+- **Casilla "permitir posturas nuevas" desactivada**: con textos de posturas claramente ajenas a la lista, debe pedir reescribir sin ofrecer proponerla (en la prueba anterior Groq siempre devolvió alguna postura de la lista, así que no se pudo ejercitar).
+- **Repetir un veredicto aprobado** (la ronda anterior solo comprobó que un rechazo se repite igual).
+- **Vista previa real del informe** al imprimir y el contenido del `.json` descargado.
+
+## 8. Cierre
 
 Resumen de máximo 4 líneas: fallos por severidad, si hubo regresiones, y si el ciclo completo (ingreso con argumento → preparación → turno → exposición → puntaje → bid → cierre → ranking → informe) se completó de punta a punta o dónde se cortó.

@@ -14,7 +14,7 @@ function generarIdDePostura(etiqueta) {
 const COLORES_PARA_POSTURAS_NUEVAS = ['#0891B2', '#BE185D', '#4D7C0F', '#7C3AED', '#EA580C'];
 
 // Solo aparece si el Programa tiene permitirPosturasNuevas (ver ControlDeFases). Un estudiante
-// cuyo argumento no encaja en ninguna postura puede proponer la suya; acá el moderador decide
+// cuyo argumento no encaja en ninguna postura puede proponer la suya; aquí el moderador decide
 // si entra al debate. Aceptarla republica el Programa con la postura agregada, así el grafo, el
 // ranking y el resto de la UI la toman desde el canal como cualquier otra.
 export function PanelDePosturasPropuestas({ estado, programa, identificadorDeSesion, publicar }) {

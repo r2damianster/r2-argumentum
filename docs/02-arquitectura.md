@@ -31,14 +31,20 @@ Web Speech API depende de navegadores Chrome/Edge y de conexión estable a los s
 
 ## Cómo se usa Groq — dos checkpoints controlados, nunca juez en vivo sin supervisión
 
-1. **Validación de forma**, al enviar un argumento: ¿tiene una afirmación (claim) y al menos una razón (conector como "porque", "ya que", "esto se debe a", evidencia o ejemplo)? El criterio es **estructural**, no un juicio filosófico de "qué tan bueno es el argumento" — esto evita que la IA sea inconsistente y tome decisiones que un profesor no pueda justificar dos veces de la misma forma ante un estudiante.
+1. **Validación de forma y clasificación de postura**, al revisar un argumento (en el ingreso y al prepararlo para la ruleta): ¿tiene una afirmación (claim) y al menos una razón (conector como "porque", "ya que", "esto se debe a", evidencia, ejemplo o una relación causa-efecto identificable)? El criterio es **estructural**, no un juicio filosófico de "qué tan bueno es el argumento" — esto evita que la IA sea inconsistente y tome decisiones que un profesor no pueda justificar dos veces de la misma forma ante un estudiante. En la misma llamada Groq devuelve `posturaDetectada`, `esPosturaNueva` y `confianza`; `decidirValidacion.js` los traduce a una decisión y aplica el principio rector: **ante la duda se aprueba**. Reglas de esa decisión:
+   - Con `temperature: 0` y semilla fija, el mismo texto da el mismo veredicto.
+   - Por debajo de 0.6 de confianza no se le contradice al estudiante la postura que eligió.
+   - Una postura marcada `esMatizada: true` en el Programa nunca se contradice: por definición critica o concede algo a los dos polos, y su argumento puede sonar a cualquiera de los otros bandos.
+   - Si el argumento no encaja en ninguna postura, se ofrece proponerla al moderador (solo con `permitirPosturasNuevas`) o se pide reescribir.
+   - La revisión va por HTTP directo a `/api/groq-validar-argumento`, sin publicar nada a Ably: corregir el borrador las veces que haga falta no gasta cuota de mensajes.
+   - **Fiabilidad**: la función serverless reintenta hasta 3 veces (con espera corta, respetando `retry-after`) ante 429, 5xx, error de red o JSON cortado, y usa `max_tokens: 1500` porque el modelo razona antes de responder. Los 4xx distintos de 429 no se reintentan. Con varios estudiantes revisando a la vez, esto evita el "el validador no respondió" que se veía con ráfagas.
 2. **Sugerencia de conexiones en lote**: se dispara una sola vez por ronda, cuando el moderador cierra la fase de escritura. Groq analiza todos los argumentos de la ronda juntos y propone relaciones candidatas (origen, destino, tipo, confianza). Solo los estudiantes involucrados en cada sugerencia la ven; aceptan, la rechazan y conectan manualmente, o reescriben su argumento si la sugerencia reveló que estaba mal planteado.
 
 Groq nunca asigna puntaje directamente ni decide de forma final sin que un humano (el propio estudiante o el co-moderador) confirme.
 
 ## Control de costos (cuotas gratuitas de Ably y Groq)
 
-- Groq solo se llama en: (a) intentos de envío de un argumento — máximo 2 intentos automáticos por argumento, al tercer fallo escala a un co-moderador humano —, y (b) el disparo manual de sugerencia de conexiones, una vez por ronda.
+- Groq solo se llama en: (a) revisiones de un argumento — máximo 2 intentos automáticos por argumento, al tercer fallo escala a un co-moderador humano —, y (b) el disparo manual de sugerencia de conexiones, una vez por ronda. Los reintentos internos de la función serverless ante un fallo transitorio no cuentan como intentos del estudiante.
 - Groq **nunca** se llama en eventos de conexión libre (`link.created`) — esa conexión la valida el co-moderador manualmente, sin costo de API.
 - El límite de "1 conexión saliente por argumento propio" acota el volumen de mensajes de Ably de forma natural: el total de conexiones posibles nunca puede superar el total de argumentos existentes en la sesión.
 - El sistema de rondas con cupos decrecientes (ver `05-reglas-de-puntaje.md`) también acota el número máximo de intentos de validación Groq por estudiante por sesión — el costo es predecible desde el diseño del Programa, no depende de comportamiento errático de los usuarios.

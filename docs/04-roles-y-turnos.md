@@ -16,46 +16,56 @@ n_co_moderadores = max(1, ceil(n_participantes * 0.10))
 
 El profesor puede fijar un tope máximo para grupos grandes. Los co-moderadores se sorprenden al azar entre los inscritos (mismo mecanismo de presence de Ably usado para la ruleta de turnos) y, por defecto, no participan también como argumentadores en la misma sesión (evita conflicto de interés al validar sus propios argumentos).
 
-## Flujo de turno (producción de argumento nuevo)
+## Flujo de turno — defender un argumento ya preparado
 
-Solo quien tiene el turno puede **crear** un argumento nuevo. El resto puede conectar libremente (ver más abajo), pero no agregar.
+**El turno sirve para defender en voz alta un argumento ya escrito y aprobado, no para empezar a escribirlo contra reloj.** Mientras escucha a los demás, cada participante prepara su próximo argumento; solo quien lo tiene listo entra a la ruleta.
 
 ```
-Ruleta ponderada → ofrece turno a un participante
+Participante prepara su argumento (tipo + objetivo si corresponde + texto)
+  └─ lo revisa con Groq por HTTP (sin gastar Ably) → aprobado → argument.ready
+                          │
+                          ▼
+Ruleta ponderada → ofrece turno SOLO a quien tiene argumento listo
                           │
                 ┌─────────┴─────────┐
                 ▼                   ▼
             RECHAZA              ACEPTA
                 │                   │
-         reroll (excluye      elige tipo de argumento:
-         temporalmente        nuevo / contra / refuerzo /
-         a quien rechazó)     dilema / pregunta / concesión
+         reroll (excluye      ve su argumento ya escrito y lo
+         temporalmente        defiende en voz alta; al terminar
+         a quien rechazó,     pulsa "Ya lo expuse, publicarlo
+         cuesta puntos)       en el mapa"
                                     │
-                          si el tipo requiere objetivo
-                          (contra/refuerzo/conexión):
-                          selecciona el argumento al que apunta
+                          se publica argument.submitted y, si el
+                          tipo tiene objetivo (contra / refuerzo /
+                          dilema / conexión), también link.created
+                          hacia el argumento elegido: el nodo queda
+                          debajo de aquel al que responde
                                     │
-                              escribe el texto
-                                    │
-                          Groq valida forma (ver 02-arquitectura.md)
-                                    │
-                          se publica el evento argument.submitted
+                          el "listo" se consume: para volver a la
+                          ruleta hay que preparar otro
                                     │
                           co-moderador REVISA después (no bloquea)
                           → valora, corrige el tipo si hace falta,
                             asigna bonus o marca falta
 ```
 
+Al preparar un argumento que responde a otro, la lista de objetivos solo ofrece argumentos **ajenos**. Los formularios avisan qué falta (objetivo o texto) en vez de no hacer nada.
+
+### Turno hablado de respaldo
+
+Si no queda ningún argumento preparado por exponer y alguien todavía no tomó la palabra ni una vez, se le ofrece un turno **hablado**, sin argumento escrito. Vale poco (la posición de menor valor con descuento de vía) y un co-moderador lo califica después. Dos precisiones: el argumento de ingreso **no** cuenta como haber tomado la palabra, y hay un minuto de margen desde el inicio de la fase antes de la primera oferta hablada.
+
 Reglas de seguridad del turno:
 
-- **Timeout de aceptación** (ej. 20 segundos) — si nadie responde, se reoferta a otro participante automáticamente. Sin esto el debate se congela.
+- **Timeout de aceptación** (ej. 20 segundos) — si nadie responde, la oferta expira (`turn.timeout`) y se reoferta a otro participante automáticamente. Sin esto el debate se congela. Si quien no respondió es el **único elegible**, la ruleta se lo vuelve a ofrecer a esa misma persona con un `turnId` nuevo (mismo criterio que con un rechazo, para no bloquear la ruleta); en pantalla eso se lee como una oferta que se renueva cada 20 segundos.
 - **Tope de rechazos** — tras N rechazos consecutivos en la sesión, la siguiente oferta a esa persona ya no puede rechazarse (evita que todos rechacen para no participar). **Consecutivos** significa que tomar la palabra corta la racha: el contador vuelve a cero tanto al aceptar un turno como al recibir uno forzado. Sin ese reset, tres rechazos sueltos en toda la sesión dejaban a esa persona en modo forzado de forma permanente.
 - **Rechazar cuesta puntos**, y el botón lo avisa antes de confirmar. El descuento sale de la fórmula única y escala con el perfil elegido; el acumulado nunca baja de cero (ver `05-reglas-de-puntaje.md`).
 - El tipo de relación que el estudiante autodeclara **puede ser corregido** por el co-moderador al validar. El puntaje final depende del tipo confirmado, no del autodeclarado — evita que se autoetiquete como "contraargumento" solo para ganar más puntos.
 
 ## Conexión libre (fuera de turno)
 
-Cualquier participante, en cualquier momento, sin necesidad de turno, puede conectar **un argumento que ya haya publicado él mismo** con el argumento de otro participante — pero solo **una vez por cada argumento propio** (cada argumento que posee puede ser el origen de, como máximo, una conexión saliente).
+Cualquier participante, en cualquier momento, sin necesidad de turno, puede conectar **un argumento que ya haya publicado él mismo** con el argumento de otro participante — pero solo **una vez por cada argumento propio** (cada argumento que posee puede ser el origen de, como máximo, una conexión saliente). Un argumento que se publicó respondiendo a otro (contra / refuerzo / dilema) o que salió de un bid aprobado ya trae su conexión, así que no aparece disponible aquí.
 
 ```
 Participante elige uno de sus argumentos ya publicados

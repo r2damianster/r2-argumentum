@@ -30,6 +30,8 @@ El puntaje base de un argumento (`posición × ronda × vía`) **no depende** de
 
 ## Fórmula base (argumentos de estudiantes)
 
+Los valores que siguen usan la escala **Liviana** (10 / 8 / 3) para que las cuentas sean legibles; con Estándar o Estricto se usan los valores y descuentos de la tabla de perfiles.
+
 ```
 valor de una posición (1ra, 2da, 3ra) = valor_base(posición) × descuento_ronda × descuento_vía
 

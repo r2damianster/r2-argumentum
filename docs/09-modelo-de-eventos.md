@@ -86,6 +86,8 @@ stance.proposed            { propuestaId, participantId, nombre, emoji, etiqueta
 stance.decision_moderador  { propuestaId, decision: "aceptada" | "rechazada", stanceId }
 ```
 
+Quien propuso la postura ve la respuesta del moderador en su pantalla de ingreso: si la aceptan se le asigna la postura nueva (y, si no tocó su texto, puede confirmar el ingreso sin volver a revisar); si la rechazan, se le pide reescribir para una postura existente.
+
 Solo si el Programa tiene `permitirPosturasNuevas: true` (por defecto `false`). Si Groq detecta que el argumento no defiende ninguna de las posturas de la lista, el estudiante puede proponer la suya. Al aceptarla, el host republica `programa.publicado` con la postura agregada: el grafo, el ranking y el resto de la UI la toman del canal como a cualquier otra.
 
 ## Postura
@@ -140,7 +142,7 @@ turn.timeout   { turnId, candidateId }
 turn.forced    { turnId, participantId }   // ya superó maxRechazosAntesDeForzar, no puede rechazar
 ```
 
-Flujo: `turn.offered` → dentro de `timeoutAceptacion` segundos llega `turn.accepted`, `turn.rejected` o (si no responde) `turn.timeout`. Cualquier resultado distinto de `accepted` dispara un nuevo `turn.offered` a otro candidato (ruleta ponderada, excluye temporalmente a quien rechazó/no respondió).
+Flujo: `turn.offered` → dentro de `timeoutAceptacion` segundos llega `turn.accepted`, `turn.rejected` o (si no responde) `turn.timeout`. `rechazosAcumulados` de cada participante es la **racha** (vuelve a 0 al aceptar); el total de turnos rechazados sale del log `estado.turnos.rechazos`. Cualquier resultado distinto de `accepted` dispara un nuevo `turn.offered` a otro candidato (ruleta ponderada, excluye temporalmente a quien rechazó/no respondió).
 
 ## Argumentos
 
@@ -174,6 +176,8 @@ argument.validated {   // publicado después, por un co-moderador
   timestamp
 }
 ```
+
+Cuando el argumento se publica al exponerlo en su turno y su tipo tiene objetivo (contraargumento, refuerzo, dilema, conexión), el mismo cliente publica a continuación `link.created` con `sourceArgumentId` = el argumento nuevo y `targetArgumentId` = `argumentoObjetivoId` (y `tipoDeRelacion` = el tipo declarado). El bid aprobado hace lo mismo desde el motor del host. Sin ese evento el nodo queda suelto en la fila raíz del grafo.
 
 `argument.submit_attempt` y `argument.validation_result` son el ciclo de validación de forma (checkpoint 1 de Groq). Solo tras un `aprobado: true` (o una escalada a co-moderador) se publica `argument.submitted`.
 
