@@ -26,6 +26,20 @@ describe('armarProgramaDeLaSesion', () => {
     expect(programa.titulo).toBe('Izquierda o derecha');
   });
 
+  it('preserva y permite cambiar asignacionPostura', () => {
+    const programa = armarProgramaDeLaSesion({
+      programaBase: { ...programaBase, asignacionPostura: 'aleatoria' },
+      posturasDelPrograma,
+      idsDePosturasSeleccionadas: new Set(['izquierda', 'derecha']),
+      perfilDePuntaje: 'liviano',
+      permitirPosturasNuevas: false,
+      idioma: 'es',
+      asignacionPostura: 'por_argumento',
+    });
+
+    expect(programa.asignacionPostura).toBe('por_argumento');
+  });
+
   it('deja fuera las posturas destildadas sin perder el resto de la configuración', () => {
     const programa = armarProgramaDeLaSesion({
       programaBase,

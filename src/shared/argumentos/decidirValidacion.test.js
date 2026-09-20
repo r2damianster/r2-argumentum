@@ -164,3 +164,31 @@ describe('postura matizada', () => {
     expect(resultado.decision).toBe(DECISIONES.POSTURA_DISTINTA);
   });
 });
+
+describe('asignacionPostura por_argumento', () => {
+  it('asigna automáticamente la postura detectada por Groq', () => {
+    const resultado = decidirValidacion({
+      resultadoDeGroq: respuestaDeGroq({ posturaDetectada: 'derecha', confianza: 0.95 }),
+      stanceElegido: '',
+      posturas: POSTURAS,
+      asignacionPostura: 'por_argumento',
+    });
+
+    expect(resultado.decision).toBe(DECISIONES.APROBADO);
+    expect(resultado.posturaDetectada).toBe('derecha');
+    expect(resultado.mensaje).toContain('Groq determinó que tu postura es');
+  });
+
+  it('informa amablemente cuando la confianza es baja en por_argumento', () => {
+    const resultado = decidirValidacion({
+      resultadoDeGroq: respuestaDeGroq({ posturaDetectada: 'izquierda', confianza: 0.4 }),
+      stanceElegido: '',
+      posturas: POSTURAS,
+      asignacionPostura: 'por_argumento',
+    });
+
+    expect(resultado.decision).toBe(DECISIONES.APROBADO);
+    expect(resultado.posturaDetectada).toBe('izquierda');
+    expect(resultado.mensaje).toContain('se aproxima a');
+  });
+});

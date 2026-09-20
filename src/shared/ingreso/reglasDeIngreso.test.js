@@ -9,6 +9,7 @@ import {
   participantesSinIntervenir,
   seAlcanzoElMinimoDeParticipacion,
   ingresoEstaCerrado,
+  analizarBalanceDePosturas,
 } from './reglasDeIngreso.js';
 
 const POSTURAS = [
@@ -191,5 +192,32 @@ describe('cierre del ingreso', () => {
 
     expect(ingresoEstaCerrado(antes)).toBe(false);
     expect(ingresoEstaCerrado(despues)).toBe(true);
+  });
+});
+
+describe('analizarBalanceDePosturas', () => {
+  it('detecta desbalance monopostura cuando todos están en una misma postura', () => {
+    const estado = reducirTodos([
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'ana', stanceId: 'izquierda' }),
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'luis', stanceId: 'izquierda' }),
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'marta', stanceId: 'izquierda' }),
+    ]);
+    const presencia = [conectado('ana'), conectado('luis'), conectado('marta')];
+
+    const analisis = analizarBalanceDePosturas(estado, presencia, POSTURAS);
+    expect(analisis.hayDesbalanceExtremo).toBe(true);
+    expect(analisis.posturaDominanteId).toBe('izquierda');
+    expect(analisis.totalConfirmados).toBe(3);
+  });
+
+  it('no marca desbalance si hay al menos dos posturas representadas', () => {
+    const estado = reducirTodos([
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'ana', stanceId: 'izquierda' }),
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'luis', stanceId: 'derecha' }),
+    ]);
+    const presencia = [conectado('ana'), conectado('luis')];
+
+    const analisis = analizarBalanceDePosturas(estado, presencia, POSTURAS);
+    expect(analisis.hayDesbalanceExtremo).toBe(false);
   });
 });

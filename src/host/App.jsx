@@ -470,7 +470,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
             <BotonCopiarLink url={urlDeIngreso} />
           </div>
           <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
-          <PanelDeAvisos estado={estado} presencia={presencia} />
+          <PanelDeAvisos estado={estado} presencia={presencia} motor={motor} />
           <PanelDePosturasPropuestas
             estado={estado}
             programa={programaVisible}
@@ -487,7 +487,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
         </section>
       ) : (
         <>
-          <PanelDeAvisos estado={estado} presencia={presencia} />
+          <PanelDeAvisos estado={estado} presencia={presencia} motor={motor} />
           {/* Con el debate cerrado ya no hay fase que controlar ni marcador en vivo: solo queda el
               informe y el ranking final (abajo). */}
           {!estado.sesion.cerrada && (

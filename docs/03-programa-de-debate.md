@@ -32,10 +32,10 @@ posturas: [
   // opcional: postura "Matizada / condicional", marcada con esMatizada: true — el validador
   // no le contradice la postura aunque el argumento suene a uno de los polos
 ]
-asignacionPostura: "libre" | "aleatoria" | "por_grupo"
-                                // "aleatoria" reparte por turnos entre quienes están en la sala
-                                // (la postura menos representada), no sortea a ciegas: con 8
-                                // ingresando a la vez los bandos quedan con 1 de diferencia como máximo
+asignacionPostura: "libre" | "aleatoria" | "por_argumento"
+                                // "aleatoria" reparte por turnos entre quienes están en la sala (modo rolplay)
+                                // "libre" el estudiante elige postura de botones preexistentes
+                                // "por_argumento" el estudiante escribe su postura/argumento y Groq clasifica su bando autocomprobando la razón
 permiteCambioPostura: boolean   // habilita mecánica "defiende lo contrario" (fase futura)
 ```
 

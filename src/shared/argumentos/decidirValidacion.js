@@ -25,6 +25,7 @@ export function decidirValidacion({
   // a la que Groq detectó — el ejercicio es justo defender la que le tocó. Sin esto, el
   // mensaje ofrecía un botón de cambio que en ese modo no existe en pantalla.
   permiteCambioDePostura = true,
+  asignacionPostura = 'libre',
 }) {
   if (!resultadoDeGroq.aprobado) {
     return {
@@ -49,6 +50,23 @@ export function decidirValidacion({
       mensaje: `Tu argumento defiende ${posturaSugerida}, y este debate solo admite las posturas de la lista.`,
       sugerencia: 'Reescribe tu argumento defendiendo una de las posturas disponibles.',
       posturaSugerida: resultadoDeGroq.posturaSugerida || '',
+    };
+  }
+
+  // En asignación por_argumento, Groq clasifica automáticamente la postura del participante.
+  if (asignacionPostura === 'por_argumento') {
+    const posturaDetectada = resultadoDeGroq.posturaDetectada || stanceElegido || posturas[0]?.id || null;
+    const etiquetaDetectada =
+      posturas.find((postura) => postura.id === posturaDetectada)?.etiqueta ?? posturaDetectada;
+    const esConfianzaBaja = resultadoDeGroq.confianza !== null && resultadoDeGroq.confianza < CONFIANZA_MINIMA_PARA_CONTRADECIR;
+
+    return {
+      decision: DECISIONES.APROBADO,
+      mensaje: esConfianzaBaja
+        ? `Groq detectó que tu posición se aproxima a "${etiquetaDetectada}" (con matices).`
+        : `Groq determinó que tu postura es: "${etiquetaDetectada}".`,
+      sugerencia: esConfianzaBaja ? 'Puedes confirmar tu ingreso con esta postura o ajustar tu texto.' : '',
+      posturaDetectada,
     };
   }
 

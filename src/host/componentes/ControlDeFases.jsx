@@ -28,6 +28,9 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
   const [permitirPosturasNuevas, setPermitirPosturasNuevas] = useState(
     Boolean(programa.permitirPosturasNuevas)
   );
+  const [asignacionPostura, setAsignacionPostura] = useState(
+    () => programa.asignacionPostura ?? 'aleatoria'
+  );
 
   // Una postura propuesta por un estudiante y aceptada por el moderador entra al Programa por
   // el canal (ver PanelDePosturasPropuestas): se suma a la lista y queda tildada. Sin esto, la
@@ -79,6 +82,7 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
     perfilDePuntaje,
     permitirPosturasNuevas,
     idioma: idiomaDelDebate,
+    asignacionPostura,
   };
   const temporizadorDePublicacionRef = useRef(null);
 
@@ -115,6 +119,11 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
 
   function cambiarPermitirPosturasNuevas(permitido) {
     setPermitirPosturasNuevas(permitido);
+    programarPublicacionDeConfiguracion();
+  }
+
+  function cambiarAsignacionPostura(modo) {
+    setAsignacionPostura(modo);
     programarPublicacionDeConfiguracion();
   }
 
@@ -158,6 +167,57 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
             </ul>
           </div>
         )}
+        <div className="bloque-de-configuracion">
+          <p className="texto-de-ayuda">Modo de asignación de postura</p>
+          <ul className="lista-de-perfiles">
+            <li>
+              <label>
+                <input
+                  type="radio"
+                  name="modo-asignacion-postura"
+                  checked={asignacionPostura === 'aleatoria'}
+                  onChange={() => cambiarAsignacionPostura('aleatoria')}
+                />
+                <span>
+                  <strong>🎲 Modo Rolplay (Asignación Aleatoria)</strong>
+                  <br />
+                  <span className="texto-de-ayuda">El programa asigna la postura a cada estudiante para balancear bandos de entrada.</span>
+                </span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input
+                  type="radio"
+                  name="modo-asignacion-postura"
+                  checked={asignacionPostura === 'por_argumento'}
+                  onChange={() => cambiarAsignacionPostura('por_argumento')}
+                />
+                <span>
+                  <strong>✍️ Modo Postura Propia (Auto-detectada por Groq)</strong>
+                  <br />
+                  <span className="texto-de-ayuda">El estudiante escribe su postura/argumento libremente y Groq determina su bando.</span>
+                </span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input
+                  type="radio"
+                  name="modo-asignacion-postura"
+                  checked={asignacionPostura === 'libre'}
+                  onChange={() => cambiarAsignacionPostura('libre')}
+                />
+                <span>
+                  <strong>🖐️ Modo Elección Libre (Por botones)</strong>
+                  <br />
+                  <span className="texto-de-ayuda">El estudiante elige su postura manualmente antes de redactar. Groq valida la concordancia.</span>
+                </span>
+              </label>
+            </li>
+          </ul>
+        </div>
+
         <div className="bloque-de-configuracion">
           <p className="texto-de-ayuda">Modo de calificación</p>
           <ul className="lista-de-perfiles">

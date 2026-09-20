@@ -685,3 +685,26 @@ describe('argumento publicado al aprobarse y evaluación de su exposición', () 
     expect(ajustesAAna).toHaveLength(1);
   });
 });
+
+describe('reasignarRolplayEquilibrado', () => {
+  it('reasigna posturas 50/50 a los participantes confirmados', () => {
+    const presencia = [
+      { participantId: 'ana', nombre: 'Ana', conectado: true },
+      { participantId: 'luis', nombre: 'Luis', conectado: true },
+    ];
+    const estado = estadoEnDebate([
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'ana', stanceId: 'izquierda' }),
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'luis', stanceId: 'izquierda' }),
+    ]);
+
+    const { publicar, motor } = sincronizarCon(estado);
+    publicar.mockClear();
+
+    motor.reasignarRolplayEquilibrado();
+
+    const asignaciones = eventosPublicados(publicar, EVENTOS.POSTURA_ASIGNADA);
+    expect(asignaciones).toHaveLength(2);
+    expect(asignaciones[0].stanceId).toBe(PROGRAMA.posturas[0].id);
+    expect(asignaciones[1].stanceId).toBe(PROGRAMA.posturas[1].id);
+  });
+});

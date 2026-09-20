@@ -2,7 +2,7 @@ import { calcularAvisosParaElModerador, GRAVEDAD } from '../../shared/instruccio
 
 // Avisos automáticos para que el docente no tenga que vigilar cinco paneles a la vez: quién no
 // preparó argumento, quién no ha hablado todavía, qué queda sin revisar.
-export function PanelDeAvisos({ estado, presencia }) {
+export function PanelDeAvisos({ estado, presencia, motor }) {
   const avisos = calcularAvisosParaElModerador(estado, presencia);
 
   if (avisos.length === 0) {
@@ -17,6 +17,17 @@ export function PanelDeAvisos({ estado, presencia }) {
           <li key={aviso.id} className={aviso.gravedad === GRAVEDAD.ALTA ? 'aviso-alto' : ''}>
             <strong>{aviso.texto}</strong>
             <p className="texto-de-ayuda">{aviso.detalle}</p>
+            {aviso.id === 'desbalance-extremo-posturas' && motor?.reasignarRolplayEquilibrado && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="boton-cambiar-programa"
+                  onClick={() => motor.reasignarRolplayEquilibrado()}
+                >
+                  🎲 Reasignar a Rolplay (balancear 50/50)
+                </button>
+              </div>
+            )}
           </li>
         ))}
       </ul>

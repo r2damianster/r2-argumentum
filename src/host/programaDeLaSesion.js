@@ -16,6 +16,7 @@ export function armarProgramaDeLaSesion({
   perfilDePuntaje,
   permitirPosturasNuevas,
   idioma,
+  asignacionPostura,
 }) {
   const posturasElegidas = posturasDelPrograma.filter((postura) => idsDePosturasSeleccionadas.has(postura.id));
   if (posturasElegidas.length < MINIMO_DE_POSTURAS) {
@@ -27,5 +28,6 @@ export function armarProgramaDeLaSesion({
     perfilDePuntaje,
     permitirPosturasNuevas: Boolean(permitirPosturasNuevas),
     idioma,
+    asignacionPostura: asignacionPostura ?? programaBase.asignacionPostura ?? 'aleatoria',
   };
 }

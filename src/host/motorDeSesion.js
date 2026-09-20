@@ -915,6 +915,28 @@ export function crearMotorDeSesion({ programa }) {
     });
   }
 
+  // Reasigna las posturas de los participantes confirmados de forma intercalada 50/50 entre las
+  // posturas activas del Programa (para equilibrar un desbalance monopostura 100%).
+  function reasignarRolplayEquilibrado() {
+    const confirmados = (contexto.presencia ?? [])
+      .filter((p) => p.conectado !== false)
+      .filter((p) => contexto.estado?.participantes[p.participantId]?.ingresoConfirmado);
+
+    const posturasActivas = programa.posturas ?? [];
+    if (confirmados.length === 0 || posturasActivas.length < 2) {
+      return;
+    }
+
+    confirmados.forEach((c, index) => {
+      const stanceId = posturasActivas[index % posturasActivas.length].id;
+      contexto.publicar(EVENTOS.POSTURA_ASIGNADA, {
+        participantId: c.participantId,
+        stanceId,
+        metodo: 'rolplay_rebalanceo',
+      });
+    });
+  }
+
   function destruir() {
     for (const timeoutId of temporizadoresDeOferta.values()) clearTimeout(timeoutId);
     for (const timeoutId of temporizadoresDeBid.values()) clearTimeout(timeoutId);
@@ -933,6 +955,7 @@ export function crearMotorDeSesion({ programa }) {
     decidirBid,
     cerrarSesion,
     terminarTurnoEnCurso,
+    reasignarRolplayEquilibrado,
     destruir,
   };
 }

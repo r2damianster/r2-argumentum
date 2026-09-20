@@ -17,7 +17,9 @@ function generarId(prefijo) {
 // las veces que haga falta no gasta cuota de Ably. Recién al confirmar se publican los eventos.
 export function IngresoConArgumento({ estado, programa, presencia, participantId, nombre, emoji, publicar }) {
   const posturas = programa.posturas;
-  const asignacionEsLibre = programa.asignacionPostura === 'libre';
+  const modoAsignacion = programa.asignacionPostura ?? 'aleatoria';
+  const asignacionEsLibre = modoAsignacion === 'libre';
+  const asignacionPorArgumento = modoAsignacion === 'por_argumento';
   // Quiénes están en la sala ahora mismo: con eso el reparto de posturas se hace por turnos
   // entre los presentes en vez de sortear cada cliente por su cuenta (ver reglasDeIngreso).
   const participantesEnLaSala = (presencia ?? [])
@@ -27,7 +29,9 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
   // Con asignación aleatoria el Programa quiere que defiendas una postura que no elegiste: se
   // resuelve acá, balanceando bandos contra quienes ya confirmaron su ingreso.
   const [stanceElegido, setStanceElegido] = useState(() =>
-    asignacionEsLibre ? '' : elegirPosturaMenosRepresentada(estado, posturas, { participantId, participantesEnLaSala })
+    asignacionEsLibre || asignacionPorArgumento
+      ? ''
+      : elegirPosturaMenosRepresentada(estado, posturas, { participantId, participantesEnLaSala })
   );
   const [texto, setTexto] = useState('');
   const [revisando, setRevisando] = useState(false);
@@ -42,7 +46,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
   // primeros en abrir la pantalla la veían vacía y todos sorteaban contra el mismo conteo en
   // cero. En cuanto empiezas a escribir queda fija, para no cambiarte el pie a mitad de frase.
   useEffect(() => {
-    if (asignacionEsLibre || texto.trim() !== '') {
+    if (asignacionEsLibre || asignacionPorArgumento || texto.trim() !== '') {
       return;
     }
     const posturaAlDia = elegirPosturaMenosRepresentada(estado, posturas, {
@@ -53,7 +57,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
       setStanceElegido(posturaAlDia);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [asignacionEsLibre, texto, estado.participantes, posturas, participantesEnLaSala.join(',')]);
+  }, [asignacionEsLibre, asignacionPorArgumento, texto, estado.participantes, posturas, participantesEnLaSala.join(',')]);
 
   // Respuesta del moderador a la postura propuesta. Sin esto la pantalla se quedaba en "espera
   // su respuesta" para siempre y, aunque la postura se sumaba a la lista, nunca se le asignaba a
@@ -80,11 +84,11 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
   }, [decisionDelModerador]);
 
   const posturaElegida = posturas.find((postura) => postura.id === stanceElegido);
-  const estaAprobado = resultado?.decision === DECISIONES.APROBADO;
+  const estaAprobado = resultado?.decision === DECISIONES.APROBADO && Boolean(stanceElegido);
   const puedeProponerPostura = resultado?.decision === DECISIONES.POSTURA_NUEVA_PROPUESTA;
 
   async function revisarConGroq() {
-    if (!texto.trim() || !stanceElegido) {
+    if (!texto.trim() || (!stanceElegido && !asignacionPorArgumento)) {
       return;
     }
     // Filtro local, sin gastar una llamada a Groq: repetir casi lo mismo que otro estudiante ya
@@ -120,15 +124,19 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
     }
 
     setUltimaRespuestaDeGroq(respuesta);
-    setResultado(
-      decidirValidacion({
-        resultadoDeGroq: respuesta,
-        stanceElegido,
-        permitirPosturasNuevas: Boolean(programa.permitirPosturasNuevas),
-        posturas,
-        permiteCambioDePostura: asignacionEsLibre,
-      })
-    );
+    const decisionCalculada = decidirValidacion({
+      resultadoDeGroq: respuesta,
+      stanceElegido,
+      permitirPosturasNuevas: Boolean(programa.permitirPosturasNuevas),
+      posturas,
+      permiteCambioDePostura: asignacionEsLibre,
+      asignacionPostura: modoAsignacion,
+    });
+
+    setResultado(decisionCalculada);
+    if (decisionCalculada.decision === DECISIONES.APROBADO && decisionCalculada.posturaDetectada) {
+      setStanceElegido(decisionCalculada.posturaDetectada);
+    }
     setRevisando(false);
   }
 
@@ -156,7 +164,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
     publicar(EVENTOS.POSTURA_ASIGNADA, {
       participantId,
       stanceId: stanceElegido,
-      metodo: asignacionEsLibre ? 'libre' : 'aleatoria',
+      metodo: modoAsignacion,
     });
     publicar(EVENTOS.ARGUMENTO_PUBLICADO, {
       argumentId,
@@ -171,7 +179,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
       viaCoModerador: false,
       // El argumento de ingreso es el boleto de entrada, no una intervención en el debate: se
       // escribe antes de que empiece y nadie lo escuchó. Sin esta marca el reducer lo contaba
-      // como "ya tomó la palabra" y el turno hablado de respaldo no se le ofrecía nunca a
+      // como "ya tomó la palabra" y el turno hablado de respaldo no se le offeredía nunca a
       // nadie (ver reducirEventos.js y participantesSinIntervenir en reglasDeIngreso.js).
       esArgumentoDeIngreso: true,
     });
@@ -206,37 +214,41 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
         Necesitas una postura y un argumento que la defienda. Hasta que lo confirmes, nadie te ve en la sala.
       </p>
 
-      <div className="paso-de-ingreso">
-        <h3>1 · Tu postura</h3>
-        {asignacionEsLibre ? (
-          <ul className="lista-de-posturas-para-elegir">
-            {posturas.map((postura) => (
-              <li key={postura.id}>
-                <button
-                  type="button"
-                  style={{ borderColor: stanceElegido === postura.id ? postura.color : undefined }}
-                  onClick={() => setStanceElegido(postura.id)}
-                >
-                  {postura.etiqueta}
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>
-            Te toca defender: <strong style={{ color: posturaElegida?.color }}>{posturaElegida?.etiqueta}</strong>
-            <br />
-            <span className="texto-de-ayuda">
-              La asignación es al azar a propósito: defender una postura que no elegiste es parte del ejercicio.
-            </span>
-          </p>
-        )}
-      </div>
+      {!asignacionPorArgumento && (
+        <div className="paso-de-ingreso">
+          <h3>1 · Tu postura</h3>
+          {asignacionEsLibre ? (
+            <ul className="lista-de-posturas-para-elegir">
+              {posturas.map((postura) => (
+                <li key={postura.id}>
+                  <button
+                    type="button"
+                    style={{ borderColor: stanceElegido === postura.id ? postura.color : undefined }}
+                    onClick={() => setStanceElegido(postura.id)}
+                  >
+                    {postura.etiqueta}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>
+              Te toca defender: <strong style={{ color: posturaElegida?.color }}>{posturaElegida?.etiqueta}</strong>
+              <br />
+              <span className="texto-de-ayuda">
+                La asignación es al azar a propósito: defender una postura que no elegiste es parte del ejercicio (modo Rolplay).
+              </span>
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="paso-de-ingreso">
-        <h3>2 · Tu argumento</h3>
+        <h3>{asignacionPorArgumento ? '1 · Tu postura y argumento' : '2 · Tu argumento'}</h3>
         <p className="texto-de-ayuda">
-          No alcanza con afirmar algo: tiene que incluir la razón, la evidencia o el ejemplo que lo sostiene.
+          {asignacionPorArgumento
+            ? 'Escribe libremente tu postura y la razón que la sostiene. Groq analizará tu argumento para ubicarte en el bando correspondiente.'
+            : 'No alcanza con afirmar algo: tiene que incluir la razón, la evidencia o el ejemplo que lo sostiene.'}
         </p>
         <textarea
           value={texto}
@@ -281,11 +293,28 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
         )}
 
         {estaAprobado && (
-          <p className="mensaje-de-exito">Tu argumento está listo. Ya puedes confirmar tu ingreso.</p>
+          <div className="mensaje-de-exito">
+            <p>
+              {resultado?.mensaje || 'Tu argumento está listo.'}
+              {posturaElegida && (
+                <>
+                  <br />
+                  <span>
+                    Postura asignada: <strong style={{ color: posturaElegida.color }}>{posturaElegida.etiqueta}</strong>
+                  </span>
+                </>
+              )}
+            </p>
+            <p className="texto-de-ayuda">Ya puedes confirmar tu ingreso al debate.</p>
+          </div>
         )}
 
         {!estaAprobado && (
-          <button type="button" disabled={revisando || !texto.trim() || !stanceElegido} onClick={revisarConGroq}>
+          <button
+            type="button"
+            disabled={revisando || !texto.trim() || (!stanceElegido && !asignacionPorArgumento)}
+            onClick={revisarConGroq}
+          >
             {revisando ? 'Revisando…' : 'Revisar mi argumento'}
           </button>
         )}
@@ -293,7 +322,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
 
       {estaAprobado && (
         <div className="paso-de-ingreso">
-          <h3>3 · Confirmar</h3>
+          <h3>{asignacionPorArgumento ? '2 · Confirmar' : '3 · Confirmar'}</h3>
           <button type="submit" disabled={confirmando} onClick={confirmarIngreso}>
             {confirmando ? 'Entrando…' : 'Confirmar mi ingreso al debate'}
           </button>

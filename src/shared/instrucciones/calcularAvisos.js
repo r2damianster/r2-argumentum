@@ -6,7 +6,7 @@
 // por una razón pedagógica: que nadie quede fuera del debate sin que el docente se entere.
 
 import { TIPOS_DE_FASE } from '../eventos/nombresDeEventos.js';
-import { ingresoEstaCerrado } from '../ingreso/reglasDeIngreso.js';
+import { ingresoEstaCerrado, analizarBalanceDePosturas } from '../ingreso/reglasDeIngreso.js';
 import { resolverParametrosDePuntaje } from '../puntaje/perfilesDePuntaje.js';
 import {
   obtenerArgumentosSinValidar,
@@ -38,6 +38,16 @@ export function calcularAvisosParaElModerador(estado, presencia, ahora = Date.no
   const conectados = presencia.filter((presente) => presente.conectado !== false);
   const nombreDe = (participantId) =>
     conectados.find((presente) => presente.participantId === participantId)?.nombre ?? participantId;
+
+  const balance = analizarBalanceDePosturas(estado, presencia, estado.programa?.posturas ?? []);
+  if (balance.hayDesbalanceExtremo) {
+    avisos.push({
+      id: 'desbalance-extremo-posturas',
+      gravedad: GRAVEDAD.ALTA,
+      texto: `Alerta de desbalance: los ${balance.totalConfirmados} participantes confirmados se han situado en "${balance.posturaDominanteEtiqueta}".`,
+      detalle: 'No hay participantes en la(s) postura(s) opuesta(s). Puedes continuar con posturas similares o reasignar a Rolplay 50/50.',
+    });
+  }
 
   if (!ingresoEstaCerrado(estado)) {
     const sinConfirmar = conectados.filter(

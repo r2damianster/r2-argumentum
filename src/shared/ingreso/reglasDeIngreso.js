@@ -96,3 +96,37 @@ export function participantesSinIntervenir(estado, presencia) {
 export function seAlcanzoElMinimoDeParticipacion(estado, presencia) {
   return participantesSinIntervenir(estado, presencia).length === 0;
 }
+
+// Analiza la distribución de posturas entre los participantes con ingreso confirmado para
+// detectar si todos se ubican en una misma postura (desbalance monopostura 100%).
+export function analizarBalanceDePosturas(estado, presencia, posturas = []) {
+  const confirmados = participantesConIngresoConfirmado(estado, presencia);
+  const totalConfirmados = confirmados.length;
+  const conteoMap = new Map((posturas ?? []).map((p) => [p.id, 0]));
+
+  for (const c of confirmados) {
+    const stanceId = estado.participantes[c.participantId]?.stanceId;
+    if (stanceId) {
+      conteoMap.set(stanceId, (conteoMap.get(stanceId) ?? 0) + 1);
+    }
+  }
+
+  const posturasConConteo = [...conteoMap.entries()].filter(([, count]) => count > 0);
+  const hayDesbalanceExtremo = totalConfirmados >= 2 && posturasConConteo.length === 1;
+
+  let posturaDominanteId = null;
+  let posturaDominanteEtiqueta = '';
+  if (posturasConConteo.length === 1) {
+    posturaDominanteId = posturasConConteo[0][0];
+    posturaDominanteEtiqueta =
+      (posturas ?? []).find((p) => p.id === posturaDominanteId)?.etiqueta ?? posturaDominanteId;
+  }
+
+  return {
+    hayDesbalanceExtremo,
+    totalConfirmados,
+    posturaDominanteId,
+    posturaDominanteEtiqueta,
+    conteoPorPostura: Object.fromEntries(conteoMap),
+  };
+}
