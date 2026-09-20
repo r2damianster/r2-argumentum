@@ -22,6 +22,7 @@ import { PanelDeCoModerador } from './componentes/PanelDeCoModerador.jsx';
 import { IngresoConArgumento } from './componentes/IngresoConArgumento.jsx';
 import { PrepararArgumento } from './componentes/PrepararArgumento.jsx';
 import { IntervencionVerbal } from './componentes/IntervencionVerbal.jsx';
+import { AvisoPreparateParaHablar } from './componentes/AvisoPreparateParaHablar.jsx';
 import { resolverIdiomaDelDebate } from '../shared/programa/idiomaDelDebate.js';
 import { ingresoEstaCerrado } from '../shared/ingreso/reglasDeIngreso.js';
 
@@ -272,6 +273,7 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
   const yaEscribiMiApertura = (estado.participantes[participantId]?.posicionesCompletadas ?? 0) >= 1;
   const sinArgumentoDeApertura = Boolean(estado.participantes[participantId]?.sinArgumentoDeApertura);
   const ingresoConfirmado = Boolean(estado.participantes[participantId]?.ingresoConfirmado);
+  const tieneArgumentoListo = Boolean(estado.participantes[participantId]?.argumentoListo);
   const ingresoCerrado = ingresoEstaCerrado(estado);
 
   // Requisito de ingreso: sin argumento aprobado no se entra al roster (docs/09). Si el debate
@@ -330,6 +332,9 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
         <CapaInstruccional estado={estado} presencia={presencia} participantId={participantId} />
 
         <div className="columna-de-trabajo">
+          <AvisoPreparateParaHablar
+            visible={!sesionCerrada && !soyComoderador && ingresoConfirmado && tieneArgumentoListo && !oferta && !tengoElTurno}
+          />
       {sesionCerrada && <PantallaDeResultadoDelParticipante estado={estado} programa={programa} participantId={participantId} />}
 
       {!sesionCerrada && !ingresoConfirmado && (

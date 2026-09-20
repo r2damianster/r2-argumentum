@@ -221,4 +221,22 @@ describe('exposición de un argumento ya publicado', () => {
 
     expect(estado.exposiciones).toEqual({});
   });
+
+  it('el argumento de ingreso con pendienteDeExposicion marca argumentoListo: true y conserva intervenciones: 0', () => {
+    const estado = reducirTodos([
+      evento(EVENTOS.ARGUMENTO_PUBLICADO, {
+        argumentId: 'ingreso-ana',
+        participantId: 'ana',
+        posicionEnRonda: 1,
+        ronda: 1,
+        esArgumentoDeIngreso: true,
+        pendienteDeExposicion: true,
+      }),
+    ]);
+
+    expect(estado.participantes.ana.argumentoListo).toBe(true);
+    expect(estado.participantes.ana.argumentoPendienteId).toBe('ingreso-ana');
+    expect(estado.participantes.ana.intervenciones).toBe(0);
+  });
 });
+

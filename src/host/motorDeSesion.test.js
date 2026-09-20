@@ -707,4 +707,31 @@ describe('reasignarRolplayEquilibrado', () => {
     expect(asignaciones[0].stanceId).toBe(PROGRAMA.posturas[0].id);
     expect(asignaciones[1].stanceId).toBe(PROGRAMA.posturas[1].id);
   });
+
+  it('ofrece turno inmediatamente a quien ingresó con su argumento de apertura pendienteDeExposicion', () => {
+    const estado = construirEstado([
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'ana', stanceId: 'izquierda' }),
+      evento(EVENTOS.POSTURA_ASIGNADA, { participantId: 'ana', stanceId: 'izquierda' }),
+      evento(EVENTOS.ARGUMENTO_PUBLICADO, {
+        argumentId: 'ingreso-ana',
+        participantId: 'ana',
+        posicionEnRonda: 1,
+        ronda: 1,
+        esArgumentoDeIngreso: true,
+        pendienteDeExposicion: true,
+      }),
+      {
+        name: EVENTOS.FASE_INICIADA,
+        data: { timestamp: Date.now(), phaseType: 'escritura_argumentos', ronda: 1 },
+      },
+    ]);
+
+    const { publicar } = sincronizarCon(estado);
+    const ofertas = eventosPublicados(publicar, EVENTOS.TURNO_OFRECIDO);
+
+    expect(ofertas).toHaveLength(1);
+    expect(ofertas[0].candidateId).toBe('ana');
+    expect(ofertas[0].modo).toBe('argumento');
+  });
 });
+

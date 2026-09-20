@@ -881,3 +881,74 @@ input {
   padding: 14px 18px;
   margin: 0 0 16px;
 }
+
+/* Aviso visual «Prepárate para hablar» */
+.aviso-preparate-para-hablar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 2px solid #f59e0b;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin: 12px 0 16px;
+  animation: pulsoAvisoPreparate 2.5s infinite ease-in-out;
+}
+
+@keyframes pulsoAvisoPreparate {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+    border-color: #f59e0b;
+  }
+  50% {
+    box-shadow: 0 6px 18px rgba(245, 158, 11, 0.4);
+    border-color: #d97706;
+  }
+}
+
+.aviso-preparate-contenido {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.aviso-preparate-icono {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.aviso-preparate-texto strong {
+  display: block;
+  font-size: 0.95rem;
+  color: #92400e;
+  letter-spacing: 0.02em;
+}
+
+.aviso-preparate-texto p {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  color: #b45309;
+}
+
+.boton-descartar-aviso {
+  background: transparent;
+  border: none;
+  color: #92400e;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 8px;
+  min-height: auto !important;
+  border-radius: 6px;
+  opacity: 0.75;
+  transition: opacity 0.2s ease;
+}
+
+.boton-descartar-aviso:hover {
+  opacity: 1;
+  background: rgba(245, 158, 11, 0.15);
+}
+

@@ -182,6 +182,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
       // como "ya tomó la palabra" y el turno hablado de respaldo no se le offeredía nunca a
       // nadie (ver reducirEventos.js y participantesSinIntervenir en reglasDeIngreso.js).
       esArgumentoDeIngreso: true,
+      pendienteDeExposicion: true,
     });
     publicar(EVENTOS.INGRESO_CONFIRMADO, { participantId, stanceId: stanceElegido, argumentId, nombre, emoji });
     // No hace falta esperar nada más: el participante ya está en presencia desde que se
