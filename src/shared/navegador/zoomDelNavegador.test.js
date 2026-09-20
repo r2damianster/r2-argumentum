@@ -32,6 +32,13 @@ describe('zoom del navegador', () => {
     expect(calcularZoomDelNavegador({ outerWidth: 1000, innerWidth: undefined })).toBe(1);
   });
 
+  it('un outerWidth absurdo (ventana minimizada) no se toma por zoom: sería menos de 25 %', () => {
+    const zoom = calcularZoomDelNavegador({ outerWidth: 160, innerWidth: 1143 });
+
+    expect(zoom).toBe(1);
+    expect(zoomEstaMuyReducido(zoom)).toBe(false);
+  });
+
   it('el aviso se agranda al revés del zoom, con tope', () => {
     expect(factorParaLeerElAviso(1)).toBe(1);
     expect(factorParaLeerElAviso(0.5)).toBe(2);

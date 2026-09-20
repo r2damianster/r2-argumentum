@@ -11,11 +11,18 @@
 // panel de DevTools acoplado, bordes de ventana) y no se molesta a nadie.
 const ZOOM_MINIMO_SIN_AVISAR = 0.8;
 
+// Chrome y Edge no bajan de 25 % de zoom (Firefox, de 30 %). Un cociente menor no es un zoom: es
+// una ventana que reporta un `outerWidth` absurdo (minimizada, en segundo plano o controlada por
+// automatización: se vio 160 × 28 con zoom real de 100 %), y ampliar la interfaz ×4 por eso sería
+// un falso positivo.
+const ZOOM_MINIMO_POSIBLE = 0.25;
+
 export function calcularZoomDelNavegador({ outerWidth, innerWidth }) {
   if (!outerWidth || !innerWidth || outerWidth <= 0 || innerWidth <= 0) {
     return 1;
   }
-  return outerWidth / innerWidth;
+  const zoom = outerWidth / innerWidth;
+  return zoom < ZOOM_MINIMO_POSIBLE ? 1 : zoom;
 }
 
 export function zoomEstaMuyReducido(zoom) {
