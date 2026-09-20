@@ -18,7 +18,9 @@ El profesor puede fijar un tope máximo para grupos grandes. Los co-moderadores 
 
 ## Flujo de turno — exponer un argumento ya publicado
 
-**El argumento se publica y puntúa apenas Groq lo aprueba; el turno sirve para exponerlo en voz alta, no para escribirlo contra reloj.** Mientras escucha a los demás, cada participante prepara su próximo argumento; en cuanto queda aprobado entra al mapa, suma sus puntos y su autor entra a la ruleta.
+**El argumento se publica y puntúa apenas Groq lo aprueba; el turno sirve para exponerlo en voz alta, no para escribirlo contra reloj.** Tanto el argumento redactado obligatoriamente al confirmar el ingreso (`IngresoConArgumento.jsx`) como los preparados durante el debate se publican marcados con `pendienteDeExposicion: true`. Por ello, desde el primer instante en que se inicia la sesión de debate, todos los participantes inscritos están habilitados en la ruleta de turnos aleatorios para exponer su argumento inicial en voz alta. Mientras esperan, reciben un aviso visual en pantalla (**«⚡ ¡PREPÁRATE PARA HABLAR!»**) alertándoles que en cualquier momento pueden recibir la palabra.
+
+Mientras escucha a los demás, cada participante prepara sus siguientes argumentos; en cuanto quedan aprobados entran al mapa, suman sus puntos y su autor entra nuevamente a la ruleta.
 
 ```
 Participante prepara su argumento (tipo + objetivo si corresponde + texto)
