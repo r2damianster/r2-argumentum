@@ -5,6 +5,8 @@ import { PROGRAMAS_DE_EJEMPLO, agruparProgramasPorCategoria } from '../shared/pr
 import { useEstadoDeSesion } from '../shared/estado/useEstadoDeSesion.js';
 import { EVENTOS, TIPOS_DE_FASE } from '../shared/eventos/nombresDeEventos.js';
 import { useMotorDeSesion } from './useMotorDeSesion.js';
+import { PantallaDeConfiguracionInicial } from './componentes/PantallaDeConfiguracionInicial.jsx';
+import { PanelDeGuiaPedagogica } from './componentes/PanelDeGuiaPedagogica.jsx';
 import { ControlDeFases } from './componentes/ControlDeFases.jsx';
 import { PanelDeEvaluacionDeExposiciones } from './componentes/PanelDeEvaluacionDeExposiciones.jsx';
 import { ListaDeParticipantes } from './componentes/ListaDeParticipantes.jsx';
@@ -21,6 +23,8 @@ import { GrafoDeArgumentos } from '../shared/componentes/GrafoDeArgumentos.jsx';
 import { AvisoDeConexion } from '../shared/componentes/AvisoDeConexion.jsx';
 import { FeedDeActividad } from '../shared/componentes/FeedDeActividad.jsx';
 import { DestacadoDelTurno } from '../shared/componentes/DestacadoDelTurno.jsx';
+import { PERFILES_DE_PUNTAJE, PERFIL_POR_DEFECTO } from '../shared/puntaje/formulaDePuntaje.js';
+import { IDIOMAS_DEL_DEBATE } from '../shared/programa/idiomaDelDebate.js';
 
 // Credencial hardcodeada a propósito, mismo criterio que R2 Quiz (ver docs/07-acceso-y-paginas.md):
 // esta consola no maneja información sensible, así que no requiere autenticación real.
@@ -30,9 +34,6 @@ const CLAVE_VALIDA = 'R2ironmaiden';
 const CLAVE_DE_SESION_ACTIVA = 'r2-argumentum-sesion-activa';
 const CLAVE_DE_LOGIN_RECORDADO = 'r2-argumentum-host-autenticado';
 
-// Recordar el login en localStorage (no sessionStorage) — sobrevive cerrar el navegador.
-// Mismo criterio que la credencial hardcodeada: esta consola no maneja información
-// sensible, así que no hay costo real en no pedirla cada vez (docs/07-acceso-y-paginas.md).
 function leerLoginRecordado() {
   try {
     return localStorage.getItem(CLAVE_DE_LOGIN_RECORDADO) === 'true';
@@ -49,7 +50,7 @@ function guardarLoginRecordado(recordar) {
       localStorage.removeItem(CLAVE_DE_LOGIN_RECORDADO);
     }
   } catch {
-    // Sin localStorage disponible, simplemente vuelve a pedir usuario/clave cada vez.
+    // Sin localStorage disponible
   }
 }
 
@@ -109,11 +110,6 @@ export default function App() {
   );
 }
 
-// "Cerrar sesión" desconecta al host del canal — con el debate en curso eso apaga la
-// proyección y, si pasan más de ~2 minutos antes de volver a entrar, el historial de Ably ya
-// expiró y la vista en vivo no se puede reconstruir (queda como sala de configuración vacía).
-// Antes no avisaba nada, mismo botón con el mismo riesgo silencioso estuviera el debate
-// arrancado o no. Bug real reportado en prueba en vivo.
 function cerrarSesionConAviso(sesionIniciada, onCerrarSesion) {
   if (
     !sesionIniciada ||
@@ -129,11 +125,6 @@ function generarCodigoDeSala() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 
-// El código de sala de 4 dígitos se puede repetir entre debates (son 10.000 combinaciones y
-// no hay control de colisión), y el canal de Ably se llama solo con ese código. Sin una marca
-// propia por sesión, un debate nuevo hereda del historial del canal los argumentos y el
-// comod.selected del debate anterior — bug real: unos participantes veían 4 nodos en el grafo
-// y otros 2, y el rol de co-moderador quedaba asignado a gente que ya no estaba.
 function generarIdentificadorDeSesion() {
   return `sesion-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -151,7 +142,7 @@ function guardarSesionActiva(sesion) {
   try {
     sessionStorage.setItem(CLAVE_DE_SESION_ACTIVA, JSON.stringify(sesion));
   } catch {
-    // Sin sessionStorage disponible, simplemente no persiste entre refrescos.
+    // Sin sessionStorage disponible
   }
 }
 
@@ -163,14 +154,8 @@ function borrarSesionActivaGuardada() {
   }
 }
 
-// Solo vale la pena restaurar automáticamente una sesión guardada si ya estaba iniciada
-// (evita perder progreso real de un debate en curso ante un refresh accidental). Si quedó
-// parada en "sala de configuración previa" sin iniciar, se descarta — cada login nuevo debe
-// mostrar la lista de Programas, no reabrir directo el último que se estaba configurando.
 function resolverSesionInicial() {
   const guardada = leerSesionActivaGuardada();
-  // Sin identificadorDeSesion no se puede separar esta sesión de las anteriores en el mismo
-  // código de sala, así que una sesión guardada en el formato viejo se descarta.
   if (guardada?.iniciada && guardada.identificadorDeSesion) {
     return guardada;
   }
@@ -182,19 +167,25 @@ function resolverSesionInicial() {
 
 function ConsolaDelHost({ onCerrarSesion }) {
   const [sesionRestaurada] = useState(resolverSesionInicial);
+  const [programaBaseSeleccionado, setProgramaBaseSeleccionado] = useState(null);
   const [programaActivo, setProgramaActivo] = useState(sesionRestaurada?.programa ?? null);
   const [codigoDeSala, setCodigoDeSala] = useState(sesionRestaurada?.codigoDeSala ?? null);
   const [identificadorDeSesion, setIdentificadorDeSesion] = useState(sesionRestaurada?.identificadorDeSesion ?? null);
   const [errorDeCarga, setErrorDeCarga] = useState('');
 
-  function activarPrograma(programa) {
+  function seleccionarProgramaBase(programa) {
+    setProgramaBaseSeleccionado(programa);
+    setErrorDeCarga('');
+  }
+
+  function activarProgramaConfigurado(programaConfigurado) {
     const nuevoCodigoDeSala = generarCodigoDeSala();
     const nuevoIdentificadorDeSesion = generarIdentificadorDeSesion();
-    setProgramaActivo(programa);
+    setProgramaActivo(programaConfigurado);
     setCodigoDeSala(nuevoCodigoDeSala);
     setIdentificadorDeSesion(nuevoIdentificadorDeSesion);
     guardarSesionActiva({
-      programa,
+      programa: programaConfigurado,
       codigoDeSala: nuevoCodigoDeSala,
       identificadorDeSesion: nuevoIdentificadorDeSesion,
     });
@@ -209,7 +200,7 @@ function ConsolaDelHost({ onCerrarSesion }) {
     const lector = new FileReader();
     lector.onload = () => {
       try {
-        activarPrograma(cargarPrograma(lector.result));
+        seleccionarProgramaBase(cargarPrograma(lector.result));
       } catch (error) {
         setErrorDeCarga(error.message);
       }
@@ -220,20 +211,33 @@ function ConsolaDelHost({ onCerrarSesion }) {
 
   function usarProgramaDeEjemplo(programaDeEjemplo) {
     try {
-      activarPrograma(cargarPrograma(JSON.stringify(programaDeEjemplo)));
+      seleccionarProgramaBase(cargarPrograma(JSON.stringify(programaDeEjemplo)));
     } catch (error) {
       setErrorDeCarga(error.message);
     }
   }
 
   function cambiarPrograma() {
+    setProgramaBaseSeleccionado(null);
     setProgramaActivo(null);
     setCodigoDeSala(null);
     setIdentificadorDeSesion(null);
     borrarSesionActivaGuardada();
   }
 
-  if (!programaActivo || !codigoDeSala) {
+  function modificarConfiguracion() {
+    const baseActual = programaActivo ?? programaBaseSeleccionado;
+    setProgramaActivo(null);
+    setCodigoDeSala(null);
+    setIdentificadorDeSesion(null);
+    borrarSesionActivaGuardada();
+    if (baseActual) {
+      setProgramaBaseSeleccionado(baseActual);
+    }
+  }
+
+  // Etapa 1.1: Si aún no se selecciona ningún programa base ni hay sesión activa
+  if (!programaActivo && !programaBaseSeleccionado) {
     const categoriasDeEjemplos = agruparProgramasPorCategoria(PROGRAMAS_DE_EJEMPLO);
 
     return (
@@ -276,20 +280,39 @@ function ConsolaDelHost({ onCerrarSesion }) {
     );
   }
 
+  // Etapa 1.2: El programa fue seleccionado pero la sala AÚN no se abre (Pantalla de Configuración Inicial)
+  if (programaBaseSeleccionado && (!programaActivo || !codigoDeSala)) {
+    return (
+      <main>
+        <div className="barra-superior">
+          <h1>Consola del host</h1>
+          <button type="button" className="boton-cerrar-sesion" onClick={onCerrarSesion}>
+            Cerrar sesión
+          </button>
+        </div>
+        <PantallaDeConfiguracionInicial
+          programaBase={programaBaseSeleccionado}
+          onConfirmarConfiguracion={activarProgramaConfigurado}
+          onCambiarPrograma={cambiarPrograma}
+        />
+      </main>
+    );
+  }
+
+  // Etapa 2 y 3: Sala de espera con QR ya generado o debate en vivo
   return (
     <ConsolaDeSesion
       programa={programaActivo}
       codigoDeSala={codigoDeSala}
       identificadorDeSesion={identificadorDeSesion}
       onCambiarPrograma={cambiarPrograma}
+      onModificarConfiguracion={modificarConfiguracion}
       onCerrarSesion={onCerrarSesion}
     />
   );
 }
 
-function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCambiarPrograma, onCerrarSesion }) {
-  // Link corto para compartir (WhatsApp, etc.) — la raíz con ?sala= redirige a
-  // /player.html?sala= vía vercel.json (solo en el deploy, no en `npm run dev` local).
+function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCambiarPrograma, onModificarConfiguracion, onCerrarSesion }) {
   const urlDeIngreso = `${window.location.origin}/?sala=${codigoDeSala}`;
   const { estado, eventos, presencia, publicar, cargando, conexion } = useEstadoDeSesion({
     clientId: 'host',
@@ -301,25 +324,18 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
   const [rankingParcialVisible, setRankingParcialVisible] = useState(false);
   const [avisoDeVentanaBloqueada, setAvisoDeVentanaBloqueada] = useState(false);
   const programaYaPublicadoRef = useRef(false);
+
   useEffect(() => {
     if (cargando || programaYaPublicadoRef.current) {
       return;
     }
     programaYaPublicadoRef.current = true;
-    // Una sesión que ya estaba iniciada y cuyo historial ya no trae su Programa (expiró en
-    // Ably) no se puede reconstruir: republicarlo la dejaba como una sala de configuración
-    // nueva con el MISMO código, y cualquier pestaña vieja de participantes se mezclaba con
-    // ella. Se vuelve a la lista de Programas, que emite un código nuevo.
     const sesionGuardadaEstabaIniciada = Boolean(leerSesionActivaGuardada()?.iniciada);
     const historialSinEstaSesion = !estado.programa || estado.sesion.identificador !== identificadorDeSesion;
     if (sesionGuardadaEstabaIniciada && historialSinEstaSesion) {
       onCambiarPrograma();
       return;
     }
-    // Si el canal ya trae el Programa de ESTA sesión, no se republica. El host guarda el
-    // Programa tal como lo cargó, sin las posturas filtradas ni el perfil de puntaje que
-    // eligió después: republicarlo al refrescar la pestaña le pisaba al debate en curso su
-    // propia configuración y devolvía al tablero las posturas que el moderador había sacado.
     if (estado.programa && estado.sesion.identificador === identificadorDeSesion) {
       return;
     }
@@ -329,13 +345,8 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
 
   const sesionIniciada = estado.fase.actual !== null || estado.fase.historial.length > 0;
 
-  // Recién aquí se marca la sesión guardada como "iniciada" — antes de esto (sala de
-  // configuración previa) un refresh de la pestaña debe volver a la lista de Programas,
-  // no reabrir directo esta configuración a medio hacer (ver resolverSesionInicial arriba).
   useEffect(() => {
     if (sesionIniciada) {
-      // Se guarda el Programa VIGENTE (el del canal, con las posturas y el perfil que eligió
-      // el moderador), no el archivo original: es el que hay que reabrir si refresca.
       guardarSesionActiva({
         programa: estado.programa ?? programa,
         codigoDeSala,
@@ -345,19 +356,13 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sesionIniciada, estado.programa]);
+
   const mostrarRanking =
     estado.fase.actual?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING || estado.sesion.cerrada || rankingParcialVisible;
-  // Una vez que el Programa se publicó al canal (ver efecto arriba), estado.programa es la
-  // fuente de verdad — puede diferir del prop `programa` original si el moderador filtró
-  // posturas al iniciar sesión (ver ControlDeFases). Antes de eso, cae al prop cargado.
   const programaVisible = estado.programa ?? programa;
 
-  // La ventana de proyección aparte (ver proyeccion/canalDeProyeccion.js) es solo una pantalla:
-  // recibe de aquí el estado ya calculado, así el motor de turnos corre únicamente en esta pestaña.
   useEmisorDeProyeccion({ codigoDeSala, estado, presencia, programa: programaVisible, conexion });
 
-  // El ranking se dibuja al final de una consola larga: al abrirlo se baja hasta él, si no el
-  // botón parecía no hacer nada.
   function alternarRankingParcial() {
     const seVaAMostrar = !rankingParcialVisible;
     setRankingParcialVisible(seVaAMostrar);
@@ -366,8 +371,6 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
     }
   }
 
-  // Al cerrar el debate (no al reabrir una consola ya cerrada) se baja solo hasta el ranking
-  // final: quedaba al pie de una consola larga y parecía que el cierre no había hecho nada.
   const sesionYaEstabaCerrada = useRef(estado.sesion.cerrada);
   useEffect(() => {
     if (estado.sesion.cerrada && !sesionYaEstabaCerrada.current) {
@@ -380,9 +383,6 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
     setAvisoDeVentanaBloqueada(abrirVentanaDeProyeccion(codigoDeSala) === null);
   }
 
-  // Modo proyección: la consola se usa casi siempre desde una laptop conectada al proyector,
-  // y los controles del moderador no tienen por qué leerse desde el fondo del aula. Este modo
-  // agranda todo y deja solo lo que la clase necesita ver.
   if (modoProyeccion) {
     return (
       <VistaDeProyeccion
@@ -450,25 +450,34 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
       {cargando ? (
         <p className="texto-de-ayuda">Conectando al canal de la sesión…</p>
       ) : !sesionIniciada ? (
-        // Sala de configuración previa: se comparte el código/QR para que los estudiantes
-        // ya se vayan conectando mientras el moderador elige posturas y decide cuándo
-        // arrancar — recién ahí pasa a la vista "en vivo" de abajo.
+        // Sala de espera (Etapa 2): con QR, guía pedagógica y lista de participantes incorporándose
         <section className="tarjeta-de-sala-de-configuracion">
-          <h3>Sala de configuración previa</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <h3>Etapa 2: Sala de espera y recepción de participantes</h3>
+            {onModificarConfiguracion && (
+              <button type="button" className="boton-cambiar-programa" onClick={onModificarConfiguracion}>
+                ✏️ Volver a configuración
+              </button>
+            )}
+          </div>
           <p className="texto-de-ayuda">
-            Comparte el código o el QR para que se vayan conectando. Cuando estés listo, elige las posturas de
-            esta sesión y comienza — recién ahí empieza el debate para todos.
+            Comparte el código o el QR con la clase para que se vayan conectando. Cuando todos estén dentro, presiona «Iniciar debate».
           </p>
           <div className="tarjeta-de-sala">
             <p className="texto-de-ayuda">Código de sala</p>
             <p className="codigo-de-sala">{codigoDeSala}</p>
-            <QRCodeSVG value={urlDeIngreso} size={180} bgColor="#ffffff" fgColor="#0f172a" />
+            <QRCodeSVG value={urlDeIngreso} size={200} bgColor="#ffffff" fgColor="#0f172a" />
             <p className="texto-de-ayuda">
               Los estudiantes escanean el QR, o entran a <code>{urlDeIngreso}</code>, o entran a{' '}
               <code>/player.html</code> e ingresan el código a mano.
             </p>
             <BotonCopiarLink url={urlDeIngreso} />
           </div>
+
+          <PanelDeGuiaPedagogica />
+
+          <TarjetaResumenDeConfiguracion programa={programaVisible} onModificarConfiguracion={onModificarConfiguracion} />
+
           <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
           <PanelDeAvisos estado={estado} presencia={presencia} motor={motor} />
           <PanelDePosturasPropuestas
@@ -486,10 +495,9 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
           />
         </section>
       ) : (
+        // Debate en vivo (Etapa 3)
         <>
           <PanelDeAvisos estado={estado} presencia={presencia} motor={motor} />
-          {/* Con el debate cerrado ya no hay fase que controlar ni marcador en vivo: solo queda el
-              informe y el ranking final (abajo). */}
           {!estado.sesion.cerrada && (
             <ControlDeFases
               estado={estado}
@@ -539,10 +547,40 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
   );
 }
 
+function TarjetaResumenDeConfiguracion({ programa, onModificarConfiguracion }) {
+  const perfilObj = PERFILES_DE_PUNTAJE[programa.perfilDePuntaje] ?? PERFILES_DE_PUNTAJE[PERFIL_POR_DEFECTO];
+  const idiomaObj = IDIOMAS_DEL_DEBATE[programa.idioma] ?? IDIOMAS_DEL_DEBATE.es;
+
+  const NOMBRES_MODO_ASIGNACION = {
+    aleatoria: '🎲 Rolplay (Asignación Aleatoria)',
+    por_argumento: '✍️ Postura Propia (Auto-detectada)',
+    libre: '🖐️ Elección Libre (Por botones)',
+  };
+
+  return (
+    <div className="tarjeta-resumen-configuracion" style={{ marginTop: '1rem', padding: '1rem', background: '#f1f5f9', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <p className="texto-de-ayuda" style={{ fontWeight: 'bold', color: '#334155', margin: 0 }}>
+          ⚙️ Configuración activa del debate
+        </p>
+        {onModificarConfiguracion && (
+          <button type="button" className="boton-cambiar-programa" onClick={onModificarConfiguracion}>
+            ✏️ Modificar configuración
+          </button>
+        )}
+      </div>
+      <ul className="texto-de-ayuda" style={{ marginTop: '0.5rem', paddingLeft: '1.2rem', marginBottom: 0 }}>
+        <li><strong>Posturas ({programa.posturas.length}):</strong> {programa.posturas.map((p) => p.etiqueta).join(', ')}</li>
+        <li><strong>Modo de asignación:</strong> {NOMBRES_MODO_ASIGNACION[programa.asignacionPostura] ?? programa.asignacionPostura}</li>
+        <li><strong>Modo de calificación:</strong> {perfilObj.etiqueta} ({perfilObj.valoresBasePosicion.join(' / ')} pts)</li>
+        <li><strong>Idioma:</strong> {idiomaObj.etiqueta}</li>
+        <li><strong>Posturas nuevas propuestas:</strong> {programa.permitirPosturasNuevas ? 'Permitidas' : 'No permitidas'}</li>
+      </ul>
+    </div>
+  );
+}
+
 function BotonCopiarLink({ url }) {
-  // `navigator.clipboard` no existe fuera de contexto seguro y puede fallar por permisos. Antes
-  // ese caso se tragaba en silencio y el botón no cambiaba nunca — el docente no sabía si había
-  // copiado o no. Ahora el fallo muestra el link seleccionable para copiarlo a mano.
   const [resultado, setResultado] = useState(null);
 
   async function copiar() {
