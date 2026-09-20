@@ -43,7 +43,9 @@ export function PantallaDeTurnoOfrecido({ oferta, estado, programa, participantI
         </p>
       ) : (
         <p className="texto-de-ayuda">
-          Acepta para defender en voz alta el argumento que ya preparaste. No tienes que escribir nada ahora.
+          Acepta para exponer en voz alta tu argumento, que ya está en el mapa y ya te dio puntos. Los
+          co-moderadores califican cómo lo expones: exponerlo bien puede sumarte más. No tienes que escribir nada
+          ahora.
         </p>
       )}
       <div className="botonera-de-turno">
@@ -54,7 +56,11 @@ export function PantallaDeTurnoOfrecido({ oferta, estado, programa, participantI
           Rechazar ({penalidad} pts)
         </button>
       </div>
-      <p className="texto-de-ayuda">Si rechazas, pierdes {Math.abs(penalidad)} puntos.</p>
+      <p className="texto-de-ayuda">
+        {esVerbal
+          ? `Si rechazas, pierdes ${Math.abs(penalidad)} puntos.`
+          : `Si rechazas, pierdes ${Math.abs(penalidad)} puntos de los que ya ganaste con ese argumento.`}
+      </p>
     </section>
   );
 }

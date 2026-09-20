@@ -7,9 +7,11 @@
 
 import { TIPOS_DE_FASE } from '../eventos/nombresDeEventos.js';
 import { ingresoEstaCerrado } from '../ingreso/reglasDeIngreso.js';
+import { resolverParametrosDePuntaje } from '../puntaje/perfilesDePuntaje.js';
 import {
   obtenerArgumentosSinValidar,
   obtenerBidsAbiertos,
+  obtenerExposicionesSinCalificar,
   obtenerIntervencionesSinCalificar,
 } from '../estado/seleccionesDerivadas.js';
 
@@ -75,8 +77,12 @@ export function calcularAvisosParaElModerador(estado, presencia, ahora = Date.no
       estado.participantes[presente.participantId]?.rol !== 'co_moderador'
   );
 
+  // Quien ya publicó todas sus posiciones no tiene nada más que preparar.
+  const posicionesDelPerfil = resolverParametrosDePuntaje(estado.programa).valoresBasePosicion.length;
   const sinArgumentoListo = argumentadores.filter(
-    (presente) => !estado.participantes[presente.participantId]?.argumentoListo
+    (presente) =>
+      !estado.participantes[presente.participantId]?.argumentoListo &&
+      (estado.participantes[presente.participantId]?.posicionesCompletadas ?? 0) < posicionesDelPerfil
   );
   // En Conexión libre no hay ruleta ni turnos (solo se conectan argumentos ya publicados), así
   // que "la ruleta no puede ofrecerles la palabra" no aplica. Reporte de prueba en vivo.
@@ -110,7 +116,8 @@ export function calcularAvisosParaElModerador(estado, presencia, ahora = Date.no
   const pendientesDeCoModeracion =
     obtenerArgumentosSinValidar(estado).length +
     obtenerBidsAbiertos(estado).length +
-    obtenerIntervencionesSinCalificar(estado).length;
+    obtenerIntervencionesSinCalificar(estado).length +
+    obtenerExposicionesSinCalificar(estado).length;
   const hayCoModeradores = (estado.coModeradores?.participantIds.length ?? 0) > 0;
 
   if (pendientesDeCoModeracion > 0 && hayCoModeradores) {

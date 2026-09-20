@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TIPOS_DE_FASE, EVENTOS } from '../../shared/eventos/nombresDeEventos.js';
+import { armarProgramaDeLaSesion } from '../programaDeLaSesion.js';
 import { PERFILES_DE_PUNTAJE, PERFIL_POR_DEFECTO } from '../../shared/puntaje/formulaDePuntaje.js';
 import { IDIOMAS_DEL_DEBATE, resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.js';
 
@@ -54,16 +55,7 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
       }
       return siguientes;
     });
-  }
-
-  function configuracionDeEstaSesion() {
-    return {
-      ...programa,
-      posturas: posturasDelPrograma.filter((postura) => posturasSeleccionadas.has(postura.id)),
-      perfilDePuntaje,
-      permitirPosturasNuevas,
-      idioma: idiomaDelDebate,
-    };
+    programarPublicacionDeConfiguracion();
   }
 
   // La configuración se republica mientras la sala está en espera, no solo al iniciar. Los
@@ -72,40 +64,71 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
   // tarde: validaban su ingreso con la configuración por defecto. Bug real reportado en
   // prueba en vivo — con "Permitir posturas nuevas" tildado, a los estudiantes se les seguía
   // diciendo que el debate solo admite las posturas de la lista.
-  useEffect(() => {
-    if (sesionIniciada || !estado.programa) {
-      return undefined;
-    }
-    const publicado = estado.programa;
-    const yaEstaPublicado =
-      Boolean(publicado.permitirPosturasNuevas) === permitirPosturasNuevas &&
-      (publicado.perfilDePuntaje ?? PERFIL_POR_DEFECTO) === perfilDePuntaje &&
-      resolverIdiomaDelDebate(publicado) === idiomaDelDebate &&
-      publicado.posturas.length === posturasSeleccionadas.size &&
-      publicado.posturas.every((postura) => posturasSeleccionadas.has(postura.id));
-    if (yaEstaPublicado || posturasSeleccionadas.size < 2) {
-      return undefined;
-    }
-    // Pequeña espera para no publicar una vez por cada clic mientras el moderador tilda.
-    const temporizador = setTimeout(() => {
-      publicar(EVENTOS.PROGRAMA_PUBLICADO, { programa: configuracionDeEstaSesion(), identificadorDeSesion });
-    }, 500);
-    return () => clearTimeout(temporizador);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sesionIniciada, estado.programa, perfilDePuntaje, permitirPosturasNuevas, posturasSeleccionadas, idiomaDelDebate]);
+  //
+  // Se publica SOLO desde los manejadores de los controles (lo que el moderador hizo con la
+  // mano), nunca desde un efecto que compare el canal con el estado local. Ese efecto pisaba el
+  // canal con el estado local cada vez que difería, y en la prueba del 19 de septiembre el modo
+  // de calificación elegido (Estándar) volvió a Liviano a mitad de la espera y otra vez al
+  // iniciar. Como cada publicación lleva la configuración completa, una publicación nunca
+  // deshace lo que otra dejó.
+  const configuracionActualRef = useRef(null);
+  configuracionActualRef.current = {
+    programaBase: programa,
+    posturasDelPrograma,
+    idsDePosturasSeleccionadas: posturasSeleccionadas,
+    perfilDePuntaje,
+    permitirPosturasNuevas,
+    idioma: idiomaDelDebate,
+  };
+  const temporizadorDePublicacionRef = useRef(null);
 
-  function confirmarEIniciarSesion() {
-    const posturasElegidas = posturasDelPrograma.filter((postura) => posturasSeleccionadas.has(postura.id));
-    if (posturasElegidas.length < 2) {
+  function publicarConfiguracion(origen) {
+    temporizadorDePublicacionRef.current = null;
+    const programaDeLaSesion = armarProgramaDeLaSesion(configuracionActualRef.current);
+    if (!programaDeLaSesion) {
       return;
     }
-    // Republica el Programa con la configuración de esta sesión — así el resto de la UI
-    // (grafo, ranking, chips) ya no vuelve a ver las posturas que el moderador destildó, y el
-    // motor toma el perfil de puntaje elegido desde el canal (ver parametrosDePuntajeVigentes).
-    publicar(EVENTOS.PROGRAMA_PUBLICADO, {
-      programa: configuracionDeEstaSesion(),
-      identificadorDeSesion,
-    });
+    // `origen` no lo usa el reducer: queda en el log de eventos para saber quién publicó cada
+    // versión del Programa cuando algo se ve raro.
+    publicar(EVENTOS.PROGRAMA_PUBLICADO, { programa: programaDeLaSesion, identificadorDeSesion, origen });
+  }
+
+  // Pequeña espera para no publicar una vez por cada clic mientras el moderador tilda; siempre
+  // publica la configuración más reciente, no la del momento del clic.
+  function programarPublicacionDeConfiguracion() {
+    clearTimeout(temporizadorDePublicacionRef.current);
+    temporizadorDePublicacionRef.current = setTimeout(() => publicarConfiguracion('configuracion'), 500);
+  }
+
+  useEffect(() => () => clearTimeout(temporizadorDePublicacionRef.current), []);
+
+  function cambiarPerfilDePuntaje(clave) {
+    setPerfilDePuntaje(clave);
+    // El ref se actualiza en el siguiente render: el temporizador lo lee 500 ms después.
+    programarPublicacionDeConfiguracion();
+  }
+
+  function cambiarIdiomaDelDebate(clave) {
+    setIdiomaDelDebate(clave);
+    programarPublicacionDeConfiguracion();
+  }
+
+  function cambiarPermitirPosturasNuevas(permitido) {
+    setPermitirPosturasNuevas(permitido);
+    programarPublicacionDeConfiguracion();
+  }
+
+  function confirmarEIniciarSesion() {
+    if (posturasSeleccionadas.size < 2) {
+      return;
+    }
+    // Ya no se republica el Programa al iniciar (los controles lo hicieron en vivo): así el
+    // inicio nunca puede pisar la configuración del canal con un estado local viejo. Solo se
+    // adelanta lo que haya quedado esperando el pequeño retraso de arriba.
+    if (temporizadorDePublicacionRef.current) {
+      clearTimeout(temporizadorDePublicacionRef.current);
+      publicarConfiguracion('inicio');
+    }
     motor.iniciarSesion();
   }
 
@@ -145,7 +168,7 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
                     type="radio"
                     name="perfil-de-puntaje"
                     checked={perfilDePuntaje === clave}
-                    onChange={() => setPerfilDePuntaje(clave)}
+                    onChange={() => cambiarPerfilDePuntaje(clave)}
                   />
                   <span>
                     <strong>{perfil.etiqueta}</strong> ({perfil.valoresBasePosicion.join(' / ')} pts)
@@ -168,7 +191,7 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
                     type="radio"
                     name="idioma-del-debate"
                     checked={idiomaDelDebate === clave}
-                    onChange={() => setIdiomaDelDebate(clave)}
+                    onChange={() => cambiarIdiomaDelDebate(clave)}
                   />
                   <strong>{idioma.etiqueta}</strong>
                 </label>
@@ -186,7 +209,7 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
             <input
               type="checkbox"
               checked={permitirPosturasNuevas}
-              onChange={(evento) => setPermitirPosturasNuevas(evento.target.checked)}
+              onChange={(evento) => cambiarPermitirPosturasNuevas(evento.target.checked)}
             />
             Permitir que los estudiantes propongan posturas nuevas
           </label>

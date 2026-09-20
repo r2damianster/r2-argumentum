@@ -96,6 +96,26 @@ export function obtenerIntervencionesSinCalificar(estado, { excluirParticipantId
   );
 }
 
+// Exposiciones de argumentos que el co-moderador todavía no calificó: la que se está diciendo
+// ahora primero (es la que se califica «mientras habla») y después las ya terminadas. Nadie se
+// califica a sí mismo. Sin `coModeradorId` devuelve las que ningún co-moderador calificó.
+export function obtenerExposicionesSinCalificar(estado, { coModeradorId = null, excluirParticipantId = null } = {}) {
+  const ordenDeEstado = { en_curso: 0, terminada: 1 };
+  return Object.values(estado.exposiciones ?? {})
+    .filter((exposicion) => {
+      if (!(exposicion.estado in ordenDeEstado) || exposicion.participantId === excluirParticipantId) {
+        return false;
+      }
+      if (!hayQuienPuedaRevisar(estado, exposicion.participantId)) {
+        return false;
+      }
+      return coModeradorId
+        ? !exposicion.calificaciones[coModeradorId]
+        : Object.keys(exposicion.calificaciones).length === 0;
+    })
+    .sort((una, otra) => ordenDeEstado[una.estado] - ordenDeEstado[otra.estado]);
+}
+
 // Presence solo conoce a quienes están (o estuvieron, en esta pestaña) conectados. Un host que
 // refresca la pestaña pierde a todos los que ya se habían ido, y con ellos sus nombres: el
 // marcador los borraba y el mapa y el informe mostraban el ID técnico. El log sí los conserva

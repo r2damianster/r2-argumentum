@@ -562,3 +562,126 @@ describe('sorteo de co-moderadores al iniciar la sesión', () => {
     expect(seleccion.participantIds).not.toContain('marta');
   });
 });
+
+describe('argumento publicado al aprobarse y evaluación de su exposición', () => {
+  const ARGUMENTO_PENDIENTE_DE_ANA = {
+    argumentId: 'a1',
+    participantId: 'ana',
+    posicionEnRonda: 1,
+    ronda: 1,
+    tipoDeclarado: 'nuevo',
+    pendienteDeExposicion: true,
+  };
+
+  const CO_MODERADORES = evento(EVENTOS.COMODERADORES_SELECCIONADOS, { participantIds: ['carla', 'diego'] });
+
+  function estadoConExposicionTerminada(eventosExtra = []) {
+    return estadoEnDebate([
+      CO_MODERADORES,
+      evento(EVENTOS.ARGUMENTO_PUBLICADO, ARGUMENTO_PENDIENTE_DE_ANA),
+      evento(EVENTOS.TURNO_OFRECIDO, { turnId: 't1', candidateId: 'ana', expiraEn: Date.now() + 1000 }),
+      evento(EVENTOS.TURNO_ACEPTADO, { turnId: 't1', participantId: 'ana' }),
+      evento(EVENTOS.ARGUMENTO_EN_EXPOSICION, { turnId: 't1', participantId: 'ana', argumentId: 'a1', texto: 'x' }),
+      evento(EVENTOS.EXPOSICION_TERMINADA, { turnId: 't1', participantId: 'ana', argumentId: 'a1' }),
+      ...eventosExtra,
+    ]);
+  }
+
+  it('el argumento puntúa apenas se publica, sin esperar a exponerlo', () => {
+    const estado = estadoEnDebate([evento(EVENTOS.ARGUMENTO_PUBLICADO, ARGUMENTO_PENDIENTE_DE_ANA)]);
+
+    const { publicar } = sincronizarCon(estado);
+    const puntajesDeAna = eventosPublicados(publicar, EVENTOS.PUNTAJE_ACTUALIZADO).filter(
+      (puntaje) => puntaje.participantId === 'ana'
+    );
+
+    expect(puntajesDeAna[0].delta).toBe(100);
+  });
+
+  it('quien ya publicó su tercera posición sigue en la ruleta para defenderla', () => {
+    const estado = estadoEnDebate([
+      evento(EVENTOS.ARGUMENTO_PUBLICADO, { ...ARGUMENTO_PENDIENTE_DE_ANA, posicionEnRonda: 3 }),
+    ]);
+
+    const { publicar } = sincronizarCon(estado);
+    const ofertas = eventosPublicados(publicar, EVENTOS.TURNO_OFRECIDO);
+
+    expect(ofertas[0].candidateId).toBe('ana');
+    expect(ofertas[0].modo).toBe('argumento');
+  });
+
+  it('rechazar el turno resta sobre los puntos que el argumento ya había dado', () => {
+    // Primero el argumento se publica y puntúa; el rechazo llega después, como en vivo.
+    const { estado: estadoConArgumentoPuntuado } = correrMotorYRealimentar(
+      estadoEnDebate([evento(EVENTOS.ARGUMENTO_PUBLICADO, ARGUMENTO_PENDIENTE_DE_ANA)])
+    );
+    const estadoConRechazo = [
+      evento(EVENTOS.TURNO_OFRECIDO, { turnId: 't1', candidateId: 'ana', expiraEn: Date.now() + 1000 }),
+      evento(EVENTOS.TURNO_RECHAZADO, { turnId: 't1', participantId: 'ana', totalRechazosDelParticipante: 1 }),
+    ].reduce((estado, siguiente) => reducirEventos(estado, siguiente), estadoConArgumentoPuntuado);
+
+    const { estado } = correrMotorYRealimentar(estadoConRechazo);
+
+    expect(estado.participantes.ana.puntajeTotal).toBe(80);
+    expect(estado.argumentos.a1).toBeDefined();
+  });
+
+  it('las calificaciones no cambian el puntaje mientras el debate sigue', () => {
+    const estado = estadoConExposicionTerminada([
+      evento(EVENTOS.EXPOSICION_CALIFICADA, { argumentId: 'a1', coModeradorId: 'carla', calidad: 'buena' }),
+      evento(EVENTOS.EXPOSICION_CALIFICADA, { argumentId: 'a1', coModeradorId: 'diego', calidad: 'buena' }),
+    ]);
+
+    const { estado: estadoFinal } = correrMotorYRealimentar(estado);
+
+    expect(estadoFinal.participantes.ana.puntajeTotal).toBe(100);
+  });
+
+  it('al cerrar la sesión aplica el ajuste al expositor y los bonos, antes de session.closed', () => {
+    const estado = estadoConExposicionTerminada([
+      evento(EVENTOS.EXPOSICION_CALIFICADA, { argumentId: 'a1', coModeradorId: 'carla', calidad: 'buena' }),
+      evento(EVENTOS.EXPOSICION_CALIFICADA, { argumentId: 'a1', coModeradorId: 'diego', calidad: 'buena' }),
+    ]);
+    const { publicar, motor } = correrMotorYRealimentar(estado);
+    publicar.mockClear();
+
+    motor.cerrarSesion();
+
+    const nombres = publicar.mock.calls.map(([nombre]) => nombre);
+    const puntajes = eventosPublicados(publicar, EVENTOS.PUNTAJE_ACTUALIZADO);
+    expect(nombres[nombres.length - 1]).toBe(EVENTOS.SESION_CERRADA);
+    expect(puntajes.find((puntaje) => puntaje.participantId === 'ana')).toMatchObject({ delta: 100, nuevoTotal: 200 });
+    // Coinciden entre sí: bono de revisión cruzada (3 × 10 en Estándar) para cada uno.
+    expect(puntajes.filter((puntaje) => puntaje.categoria === 'co_moderacion').map((p) => p.delta)).toEqual([30, 30]);
+  });
+
+  it('si el moderador descarta las calificaciones, cerrar no ajusta nada', () => {
+    const estado = estadoConExposicionTerminada([
+      evento(EVENTOS.EXPOSICION_CALIFICADA, { argumentId: 'a1', coModeradorId: 'carla', calidad: 'buena' }),
+      evento(EVENTOS.EXPOSICION_EVALUADA_POR_MODERADOR, { argumentId: 'a1', decision: 'descartada' }),
+    ]);
+    const { publicar, motor } = correrMotorYRealimentar(estado);
+    publicar.mockClear();
+
+    motor.cerrarSesion();
+
+    expect(eventosPublicados(publicar, EVENTOS.PUNTAJE_ACTUALIZADO)).toHaveLength(0);
+    expect(eventosPublicados(publicar, EVENTOS.SESION_CERRADA)).toHaveLength(1);
+  });
+
+  it('cerrar dos veces no aplica los ajustes dos veces', () => {
+    const estado = estadoConExposicionTerminada([
+      evento(EVENTOS.EXPOSICION_CALIFICADA, { argumentId: 'a1', coModeradorId: 'carla', calidad: 'buena' }),
+    ]);
+    const { publicar, motor } = correrMotorYRealimentar(estado);
+    publicar.mockClear();
+
+    motor.cerrarSesion();
+    motor.cerrarSesion();
+
+    const ajustesAAna = eventosPublicados(publicar, EVENTOS.PUNTAJE_ACTUALIZADO).filter(
+      (puntaje) => puntaje.participantId === 'ana'
+    );
+    expect(ajustesAAna).toHaveLength(1);
+  });
+});

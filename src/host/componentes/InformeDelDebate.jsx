@@ -1,4 +1,19 @@
 import { calcularRankingPorPostura, nombreDeParticipante } from '../../shared/estado/seleccionesDerivadas.js';
+import { calcularNivelPromedioDeExposicion } from '../../shared/puntaje/evaluacionDeExposiciones.js';
+import {
+  ETIQUETA_DE_CALIDAD_DE_EXPOSICION,
+  describirNivelPromedio,
+} from '../../shared/puntaje/etiquetasDeExposicion.js';
+
+function describirDecisionParaElInforme(decisionModerador) {
+  if (!decisionModerador) {
+    return 'El moderador no la evaluó: rige el promedio de los co-moderadores.';
+  }
+  if (decisionModerador.decision === 'descartada') {
+    return 'El moderador descartó las calificaciones: no ajustó puntos.';
+  }
+  return `El moderador la evaluó como «${ETIQUETA_DE_CALIDAD_DE_EXPOSICION[decisionModerador.calidad]}».`;
+}
 
 // Informe imprimible para evaluar el debate.
 //
@@ -12,6 +27,9 @@ export function InformeDelDebate({ estado, programa, presencia, eventos }) {
   const argumentos = Object.values(estado.argumentos).sort((a, b) => a.timestamp - b.timestamp);
   const conexiones = Object.values(estado.conexiones);
   const intervencionesVerbales = Object.values(estado.intervencionesVerbales);
+  const exposiciones = Object.values(estado.exposiciones ?? {}).filter(
+    (exposicion) => exposicion.estado === 'terminada'
+  );
   const posturaPorId = Object.fromEntries(programa.posturas.map((postura) => [postura.id, postura]));
 
   const faltas = argumentos
@@ -96,6 +114,22 @@ export function InformeDelDebate({ estado, programa, presencia, eventos }) {
                 <li key={conexion.linkId}>
                   <strong>{nombreDeParticipante(presencia, conexion.porParticipanteId)}</strong> marcó un{' '}
                   {conexion.tipoDeRelacion} entre dos argumentos del mapa.
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {exposiciones.length > 0 && (
+          <>
+            <h2>Exposiciones orales de los argumentos</h2>
+            <ul className="lista-del-informe">
+              {exposiciones.map((exposicion) => (
+                <li key={exposicion.argumentId}>
+                  <strong>{nombreDeParticipante(presencia, exposicion.participantId)}</strong> · calificaron{' '}
+                  {Object.keys(exposicion.calificaciones).length} co-moderador(es) — promedio:{' '}
+                  {describirNivelPromedio(calcularNivelPromedioDeExposicion(exposicion.calificaciones))}
+                  <p>{describirDecisionParaElInforme(exposicion.decisionModerador)}</p>
                 </li>
               ))}
             </ul>

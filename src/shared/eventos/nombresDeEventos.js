@@ -43,6 +43,14 @@ export const EVENTOS = {
   // se sigue publicando al terminar (`argument.submitted`).
   ARGUMENTO_EN_EXPOSICION: 'argument.presenting',
 
+  // El argumento aprobado ya está publicado (y puntuando) desde que Groq lo aprobó; el turno
+  // es para exponerlo en voz alta. Quien lo expuso avisa que terminó, y mientras habla los
+  // co-moderadores lo califican. El moderador puede evaluar (opcional) y revisa todo al cierre;
+  // los ajustes de puntaje se aplican al cerrar la sesión (ver docs/04, docs/05 y docs/09).
+  EXPOSICION_TERMINADA: 'exposicion.terminada',
+  EXPOSICION_CALIFICADA: 'exposicion.calificada',
+  EXPOSICION_EVALUADA_POR_MODERADOR: 'exposicion.evaluada_moderador',
+
   // Intervención hablada sin argumento escrito, para quienes no alcanzaron a preparar uno y
   // todavía no tomaron la palabra. La califica un co-moderador después.
   INTERVENCION_VERBAL_REGISTRADA: 'intervencion_verbal.registrada',
@@ -66,6 +74,22 @@ export const EVENTOS = {
   PUNTAJE_ACTUALIZADO: 'score.updated',
 
   SESION_CERRADA: 'session.closed',
+};
+
+// Cómo se califica la exposición oral de un argumento ya publicado. "sin_exposicion" es la
+// respuesta a «¿está hablando?»: si no habló, cuenta como la peor calificación.
+export const CALIDADES_DE_EXPOSICION = {
+  BUENA: 'buena',
+  ACEPTABLE: 'aceptable',
+  INSUFICIENTE: 'insuficiente',
+  SIN_EXPOSICION: 'sin_exposicion',
+};
+
+// Qué hizo el moderador con las calificaciones de los co-moderadores de una exposición.
+export const DECISIONES_DEL_MODERADOR_SOBRE_EXPOSICION = {
+  EVALUADA: 'evaluada',
+  DESCARTADA: 'descartada',
+  SIN_EVALUAR: 'sin_evaluar',
 };
 
 export const TIPOS_DE_BID = {

@@ -12,6 +12,7 @@ import {
   calcularPenalidadPorRechazoDeTurno,
   resolverParametrosDePuntaje,
 } from '../shared/puntaje/formulaDePuntaje.js';
+import { calcularAjustesDeExposiciones } from '../shared/puntaje/evaluacionDeExposiciones.js';
 import { participantesSinIntervenir } from '../shared/ingreso/reglasDeIngreso.js';
 
 // Una intervención hablada arranca valiendo el puntaje base de turno verbal; la calificación
@@ -71,8 +72,13 @@ function elegirCandidatoParaTurno(estado, presencia, limiteDePosiciones) {
     // El turno es para DEFENDER algo ya escrito, no una invitación a ponerse a escribir contra
     // reloj (docs/04): solo entra a la ruleta quien ya tiene un argumento listo esperando.
     .filter((participantId) => estado.participantes[participantId]?.argumentoListo)
+    // Con el argumento publicado al aprobarse, quien ya tiene sus 3 posiciones puede tener la
+    // tercera esperando exposición: ese sí debe poder defenderla. El tope solo deja fuera a quien
+    // no tiene nada pendiente y ya completó todas sus posiciones.
     .filter(
-      (participantId) => (estado.participantes[participantId]?.posicionesCompletadas ?? 0) < limiteDePosiciones
+      (participantId) =>
+        Boolean(estado.participantes[participantId]?.argumentoPendienteId) ||
+        (estado.participantes[participantId]?.posicionesCompletadas ?? 0) < limiteDePosiciones
     );
 
   if (candidatosPosibles.length === 0) {
@@ -864,7 +870,35 @@ export function crearMotorDeSesion({ programa }) {
     contexto.publicar(EVENTOS.BID_DECISION_MODERADOR, { bidId, decisionFinal });
   }
 
+  // Las calificaciones de las exposiciones (co-moderadores y moderador) ajustan el puntaje una
+  // sola vez, al cerrar: para entonces el moderador ya pudo revisarlas o descartarlas (docs/05).
+  // Se publican ANTES de `session.closed`, porque el motor deja de sincronizar apenas la sesión
+  // queda cerrada y los ajustes se perderían. Hasta aquí el marcador es provisional.
+  function aplicarEvaluacionesDeExposiciones() {
+    const { estado } = contexto;
+    const clave = 'evaluaciones-finales';
+    if (!estado || yaSeHizo(clave)) {
+      return;
+    }
+    const ajustes = calcularAjustesDeExposiciones({ estado, parametros: parametrosDePuntajeVigentes() });
+    if (ajustes.length === 0) {
+      return;
+    }
+    const publicar = comenzarAccion(clave);
+    const aplicarDelta = crearAcumuladorDePuntaje(estado);
+    for (const ajuste of ajustes) {
+      publicar(EVENTOS.PUNTAJE_ACTUALIZADO, {
+        participantId: ajuste.participantId,
+        delta: ajuste.delta,
+        categoria: ajuste.categoria,
+        motivo: ajuste.motivo,
+        nuevoTotal: aplicarDelta(ajuste.participantId, ajuste.delta),
+      });
+    }
+  }
+
   function cerrarSesion() {
+    aplicarEvaluacionesDeExposiciones();
     contexto.publicar(EVENTOS.SESION_CERRADA, {});
   }
 

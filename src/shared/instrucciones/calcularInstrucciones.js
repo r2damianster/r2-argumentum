@@ -11,6 +11,7 @@ import { calcularPenalidadPorRechazoDeTurno, resolverParametrosDePuntaje } from 
 import {
   obtenerArgumentosSinValidar,
   obtenerIntervencionesSinCalificar,
+  obtenerExposicionesSinCalificar,
   obtenerBidsAbiertos,
   obtenerSugerenciasVisiblesParaParticipante,
   misArgumentosSinConexionSaliente,
@@ -101,7 +102,10 @@ function accionObligatoria(estado, participantId, esCoModerador, ingresoConfirma
         oferta.modo === 'verbal'
           ? 'Te ofrecieron la palabra para intervenir hablando. Acepta o rechaza.'
           : 'Te ofrecieron la palabra para defender tu argumento. Acepta o rechaza.',
-      consecuencia: `Rechazar cuesta ${Math.abs(penalidad)} puntos.`,
+      consecuencia:
+        oferta.modo === 'verbal'
+          ? `Rechazar cuesta ${Math.abs(penalidad)} puntos.`
+          : `Rechazar te resta ${Math.abs(penalidad)} puntos de los que ya ganaste con tu argumento.`,
       urgencia: URGENCIA.OBLIGATORIO,
     };
   }
@@ -115,8 +119,8 @@ function accionObligatoria(estado, participantId, esCoModerador, ingresoConfirma
           urgencia: URGENCIA.OBLIGATORIO,
         }
       : {
-          texto: 'Tienes la palabra: defiende en voz alta el argumento que preparaste.',
-          consecuencia: 'Al terminar, publícalo para que quede en el mapa.',
+          texto: 'Tienes la palabra: defiende en voz alta tu argumento, que ya está en el mapa.',
+          consecuencia: 'Los co-moderadores califican cómo lo expones; al terminar, pulsa «Ya lo expuse».',
           urgencia: URGENCIA.OBLIGATORIO,
         };
   }
@@ -125,7 +129,9 @@ function accionObligatoria(estado, participantId, esCoModerador, ingresoConfirma
     const pendientes =
       obtenerArgumentosSinValidar(estado, { excluirParticipantId: participantId }).length +
       obtenerBidsAbiertos(estado).filter((bid) => bid.participantId !== participantId).length +
-      obtenerIntervencionesSinCalificar(estado, { excluirParticipantId: participantId }).length;
+      obtenerIntervencionesSinCalificar(estado, { excluirParticipantId: participantId }).length +
+      obtenerExposicionesSinCalificar(estado, { coModeradorId: participantId, excluirParticipantId: participantId })
+        .length;
     if (pendientes > 0) {
       return {
         texto: `Tienes ${pendientes} caso(s) esperando tu revisión en el panel de co-moderador.`,
@@ -137,6 +143,11 @@ function accionObligatoria(estado, participantId, esCoModerador, ingresoConfirma
   }
 
   if (!estado.participantes[participantId]?.argumentoListo) {
+    // Con las posiciones completas ya no queda nada que preparar: no se le pide.
+    const posicionesDelPerfil = resolverParametrosDePuntaje(estado.programa).valoresBasePosicion.length;
+    if ((estado.participantes[participantId]?.posicionesCompletadas ?? 0) >= posicionesDelPerfil) {
+      return null;
+    }
     return {
       texto: 'Prepara un argumento para entrar a la ruleta de turnos.',
       consecuencia: 'Sin un argumento preparado no se te ofrece la palabra.',
@@ -155,7 +166,7 @@ function accionesOpcionales(estado, participantId, esCoModerador, ingresoConfirm
   const opciones = [];
 
   if (esCoModerador) {
-    opciones.push('Revisar argumentos y votar las intervenciones pedidas');
+    opciones.push('Revisar argumentos, calificar las exposiciones y votar las intervenciones pedidas');
     return opciones;
   }
 

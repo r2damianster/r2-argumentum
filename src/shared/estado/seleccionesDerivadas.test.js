@@ -5,6 +5,7 @@ import {
   combinarParticipantesConPresencia,
   completarPresenciaConParticipantes,
   nombreDeParticipante,
+  obtenerExposicionesSinCalificar,
 } from './seleccionesDerivadas.js';
 
 function evento(name, data = {}) {
@@ -136,5 +137,46 @@ describe('argumento en exposición (énfasis al recibir la palabra)', () => {
       }),
     ]);
     expect(estado.turnos.turnoEnCurso).toBeNull();
+  });
+});
+
+describe('exposiciones por calificar de un co-moderador', () => {
+  const estadoConDosExposiciones = () =>
+    reducir([
+      evento(EVENTOS.COMODERADORES_SELECCIONADOS, { participantIds: ['carla', 'diego'] }),
+      evento(EVENTOS.ARGUMENTO_PUBLICADO, { argumentId: 'a1', participantId: 'ana', posicionEnRonda: 1, ronda: 1 }),
+      evento(EVENTOS.ARGUMENTO_PUBLICADO, { argumentId: 'a2', participantId: 'luis', posicionEnRonda: 1, ronda: 1 }),
+      evento(EVENTOS.TURNO_OFRECIDO, { turnId: 't1', candidateId: 'ana' }),
+      evento(EVENTOS.TURNO_ACEPTADO, { turnId: 't1', participantId: 'ana' }),
+      evento(EVENTOS.ARGUMENTO_EN_EXPOSICION, { turnId: 't1', participantId: 'ana', argumentId: 'a1', texto: 'x' }),
+      evento(EVENTOS.EXPOSICION_TERMINADA, { turnId: 't1', participantId: 'ana', argumentId: 'a1' }),
+      evento(EVENTOS.TURNO_OFRECIDO, { turnId: 't2', candidateId: 'luis' }),
+      evento(EVENTOS.TURNO_ACEPTADO, { turnId: 't2', participantId: 'luis' }),
+      evento(EVENTOS.ARGUMENTO_EN_EXPOSICION, { turnId: 't2', participantId: 'luis', argumentId: 'a2', texto: 'y' }),
+    ]);
+
+  it('ofrece primero la que se está diciendo ahora y después las ya terminadas', () => {
+    const pendientes = obtenerExposicionesSinCalificar(estadoConDosExposiciones(), { coModeradorId: 'carla' });
+
+    expect(pendientes.map((exposicion) => exposicion.argumentId)).toEqual(['a2', 'a1']);
+  });
+
+  it('no vuelve a ofrecer la que este co-moderador ya calificó, pero sí al otro', () => {
+    const estado = reducirEventos(
+      estadoConDosExposiciones(),
+      evento(EVENTOS.EXPOSICION_CALIFICADA, { argumentId: 'a1', coModeradorId: 'carla', calidad: 'buena' })
+    );
+
+    expect(obtenerExposicionesSinCalificar(estado, { coModeradorId: 'carla' }).map((e) => e.argumentId)).toEqual(['a2']);
+    expect(obtenerExposicionesSinCalificar(estado, { coModeradorId: 'diego' })).toHaveLength(2);
+  });
+
+  it('nadie califica su propia exposición', () => {
+    const pendientes = obtenerExposicionesSinCalificar(estadoConDosExposiciones(), {
+      coModeradorId: 'carla',
+      excluirParticipantId: 'luis',
+    });
+
+    expect(pendientes.map((exposicion) => exposicion.argumentId)).toEqual(['a1']);
   });
 });

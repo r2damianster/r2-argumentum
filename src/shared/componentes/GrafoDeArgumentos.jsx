@@ -192,10 +192,16 @@ export function GrafoDeArgumentos({ estado, programa, presencia, modoProyeccion 
           proOptions={{ hideAttribution: true }}
         >
           <Background />
-          <Controls showInteractive={false} />
+          {/* El botón ⛶ usa el mismo encuadre que el inicial: por defecto React Flow usaría otro
+              (más padding y sin tope de ampliación) y dejaba el mapa distinto al de la carga. */}
+          <Controls showInteractive={false} fitViewOptions={AJUSTE_DEL_ENCUADRE} />
           {/* El minimapa solo aporta cuando hay bastante mapa; en una caja chica estorba. */}
           {nodos.length >= 6 && <MiniMap pannable zoomable />}
-          <ReencuadrarAlCrecerElMapa cantidadDeNodos={nodos.length} altoDelContenedor={altoDelGrafo} />
+          <ReencuadrarAlCrecerElMapa
+            cantidadDeNodos={nodos.length}
+            altoDelContenedor={altoDelGrafo}
+            anchoDelContenedor={anchoDelContenedor}
+          />
         </ReactFlow>
       </div>
     </section>
@@ -204,25 +210,30 @@ export function GrafoDeArgumentos({ estado, programa, presencia, modoProyeccion 
 
 // `fitView` del prop solo encuadra al montar. Cuando se publica un argumento nuevo con el
 // mapa ya abierto, el nodo aparecía cortado contra el borde (reportado en prueba en vivo).
-// Este ayudante vuelve a encuadrar cada vez que el mapa crece.
-function ReencuadrarAlCrecerElMapa({ cantidadDeNodos, altoDelContenedor }) {
+// Este ayudante vuelve a encuadrar cada vez que el mapa crece o que la caja cambia de tamaño (alto
+// o ancho): un encuadre calculado contra una caja que después se midió distinta deja nodos
+// cortados contra el borde (prueba del 19 de septiembre: un nodo 115 px fuera del mapa).
+function ReencuadrarAlCrecerElMapa({ cantidadDeNodos, altoDelContenedor, anchoDelContenedor }) {
   const { fitView } = useReactFlow();
   const cantidadPrevia = useRef(cantidadDeNodos);
   const altoPrevio = useRef(altoDelContenedor);
+  const anchoPrevio = useRef(anchoDelContenedor);
 
   useEffect(() => {
     const crecioElMapa = cantidadDeNodos > cantidadPrevia.current;
-    const cambioElAlto = altoDelContenedor !== altoPrevio.current;
+    const cambioElTamano =
+      altoDelContenedor !== altoPrevio.current || anchoDelContenedor !== anchoPrevio.current;
     cantidadPrevia.current = cantidadDeNodos;
     altoPrevio.current = altoDelContenedor;
-    if (!crecioElMapa && !cambioElAlto) {
+    anchoPrevio.current = anchoDelContenedor;
+    if (!crecioElMapa && !cambioElTamano) {
       return undefined;
     }
-    // Si cambió el alto de la caja, se espera al siguiente cuadro: React Flow tiene que medir
+    // Si cambió el tamaño de la caja, se espera al siguiente cuadro: React Flow tiene que medir
     // el contenedor nuevo antes de poder encuadrar contra él.
     const cuadro = requestAnimationFrame(() => fitView({ duration: 300, ...AJUSTE_DEL_ENCUADRE }));
     return () => cancelAnimationFrame(cuadro);
-  }, [cantidadDeNodos, altoDelContenedor, fitView]);
+  }, [cantidadDeNodos, altoDelContenedor, anchoDelContenedor, fitView]);
 
   return null;
 }

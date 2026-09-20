@@ -6,6 +6,9 @@ export function PantallaDeRanking({ estado, eventos, programa, presencia, motor,
   const ranking = calcularRankingPorPostura(estado, programa, presencia);
   const posturaPorId = Object.fromEntries(programa.posturas.map((postura) => [postura.id, postura]));
   const sesionCerrada = estado.sesion.cerrada;
+  const hayExposicionesPorAplicar = Object.values(estado.exposiciones ?? {}).some(
+    (exposicion) => exposicion.estado === 'terminada'
+  );
 
   function manejarDescargaDeJSON() {
     const sesionExportada = exportarSesion({ eventos, estado, programa, presencia });
@@ -25,6 +28,12 @@ export function PantallaDeRanking({ estado, eventos, programa, presencia, motor,
   return (
     <section className="tarjeta-de-ranking" id="ranking-del-debate">
       <h3>{sesionCerrada ? 'Ranking final' : 'Ranking parcial (el debate sigue en curso)'}</h3>
+      {!sesionCerrada && hayExposicionesPorAplicar && (
+        <p className="texto-de-ayuda">
+          Este marcador es provisional: al cerrar el debate se aplican las evaluaciones de las exposiciones
+          (co-moderadores y tuyas). Revísalas antes en «Evaluación de exposiciones».
+        </p>
+      )}
       {Object.entries(ranking).map(([stanceId, participantes]) => (
         <div key={stanceId} className="columna-de-ranking">
           <h4 style={{ color: posturaPorId[stanceId]?.color }}>{posturaPorId[stanceId]?.etiqueta}</h4>

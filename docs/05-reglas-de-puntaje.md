@@ -20,6 +20,37 @@ Una intervención de viva voz sin argumento escrito vale como **la posición de 
 
 Ojo al comparar perfiles: el turno hablado **no** escala exactamente 10× de Estándar a Estricto. Con «buena» da 30 puntos en Estándar (30 × 0,5 = 15, más 15 de la calificación) y 180 en Estricto (300 × 0,3 = 90, más 90), o sea 6×. Es coherente con el diseño: Estricto tiene descuentos de vía más duros (0,3 frente a 0,5), y ese mismo descuento se aplica a los argumentos por vía co-moderador. Se decidió no igualarlo (19 de septiembre de 2026).
 
+## El argumento puntúa al aprobarse; la exposición lo ajusta al cerrar
+
+El argumento se publica (y puntúa, con la fórmula de más abajo) apenas Groq lo aprueba, no cuando se expone en un turno. Rechazar el turno resta la penalidad del perfil sobre esos puntos. Exponerlo abre una calificación que **ajusta** el puntaje del expositor:
+
+```
+nivel de una exposición (según quién manda):
+  el moderador la evaluó        → su nivel (autoritativo)
+  el moderador descartó         → sin ajuste y sin bonos
+  el moderador no intervino     → promedio de los niveles de los co-moderadores
+  nadie la calificó             → sin ajuste
+
+  nivel:  coherente con el punto +1 · aceptable 0 · fuera de tema o sin razón −1 · no está hablando −1
+
+ajuste al expositor = redondeo(nivel × puntaje base del argumento)
+```
+
+Es la misma semántica que el turno hablado: «coherente» duplica lo que ya valía el argumento, «aceptable» lo deja igual e «insuficiente» lo anula. Con dos co-moderadores, una «coherente» y una «aceptable» dan +50 % del puntaje base. El descuento de ronda y de vía del argumento ya está dentro del puntaje base, así que se respeta solo.
+
+Los ajustes se calculan **una sola vez, al cerrar la sesión** (`motor.cerrarSesion`, que los publica antes de `session.closed`), cuando el moderador ya pudo revisar y descartar. Hasta entonces el marcador y el ranking parcial son **provisionales**: no incluyen estos ajustes.
+
+### Consistencia de los co-moderadores
+
+Con el mismo cierre se puntúa qué tan consistentes fueron las calificaciones (bonos que escalan con el perfil, ver «Puntaje de co-moderadores»):
+
+| Situación | Bono |
+|---|---|
+| Su nivel coincide con el del moderador (si el moderador evaluó) | `VOTO_DE_BID_COINCIDENTE` (+5 base) |
+| Su nivel coincide con el de al menos otro co-moderador (revisión cruzada) | `CONSISTENCIA_EN_REVISION_CRUZADA` (+3 base) |
+
+Se suman si se dan las dos. Si el moderador descartó las calificaciones, no hay bonos: sin una referencia fiable nadie queda como consistente ni como inconsistente. Un único co-moderador sin moderador no puede coincidir con nadie. «Fuera de tema» y «no está hablando» valen lo mismo (−1), así que coinciden entre sí.
+
 ## El total nunca baja de cero
 
 Una penalidad (hoy solo la de rechazar un turno) puede consumir los puntos que la persona tenía, pero no dejarla en deuda: el acumulado se topa en 0. Proyectado en el aula, un número negativo se lee como un castigo desproporcionado, y no cambia el orden del ranking, que compara por percentiles dentro de cada postura.
@@ -96,7 +127,7 @@ Mismos órdenes de magnitud que el puntaje de estudiantes, para que el rol sea c
 | Falta detectada con justificación escrita, no revertida | +6 | la justificación es obligatoria |
 | Reclasificación correcta de un tipo de relación autodeclarado | +5 | — |
 | Feedback usado por el estudiante para reformular con éxito | +4 | mide impacto real, no cantidad de comentarios |
-| Coincide con otro revisor en una revisión cruzada aleatoria | +3 | bono pasivo anticorrupción/anti-sesgo |
+| Coincide con otro revisor en una revisión cruzada | +3 | hoy solo para las calificaciones de exposiciones orales, comparadas entre co-moderadores al cerrar (no es aleatoria: se cruzan todas las que calificaron la misma exposición) |
 | Falta marcada sin justificación, o revertida por el moderador | −5 | desincentiva farmear puntaje marcando de más |
 
 La "revisión cruzada aleatoria" consiste en que el sistema, ocasionalmente y sin avisar, hace que dos co-moderadores revisen el mismo caso — si coinciden, ambos ganan el bono de consistencia. Sirve como auditoría automática sin que el profesor tenga que revisar todo manualmente.

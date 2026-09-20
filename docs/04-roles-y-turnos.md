@@ -5,7 +5,7 @@
 | Rol | Quién | Qué hace |
 |---|---|---|
 | **Moderador** | El profesor | Crea el Programa, controla el avance de fases, proyecta el grafo en vivo, puede delegar y supervisar co-moderadores |
-| **Co-moderador** | Sorteado al azar entre los participantes (ver fórmula abajo) | Valora, anota, resuelve casos escalados por Groq, marca faltas, valida tipos de relación |
+| **Co-moderador** | Sorteado al azar entre los participantes (ver fórmula abajo) | Valora, anota, resuelve casos escalados por Groq, marca faltas, valida tipos de relación, califica las exposiciones orales |
 | **Participante** | El resto de estudiantes | Recibe turnos, escribe argumentos, conecta argumentos libremente |
 
 ### Selección de co-moderadores
@@ -16,46 +16,50 @@ n_co_moderadores = max(1, ceil(n_participantes * 0.10))
 
 El profesor puede fijar un tope máximo para grupos grandes. Los co-moderadores se sorprenden al azar entre los inscritos (mismo mecanismo de presence de Ably usado para la ruleta de turnos) y, por defecto, no participan también como argumentadores en la misma sesión (evita conflicto de interés al validar sus propios argumentos).
 
-## Flujo de turno — defender un argumento ya preparado
+## Flujo de turno — exponer un argumento ya publicado
 
-**El turno sirve para defender en voz alta un argumento ya escrito y aprobado, no para empezar a escribirlo contra reloj.** Mientras escucha a los demás, cada participante prepara su próximo argumento; solo quien lo tiene listo entra a la ruleta.
+**El argumento se publica y puntúa apenas Groq lo aprueba; el turno sirve para exponerlo en voz alta, no para escribirlo contra reloj.** Mientras escucha a los demás, cada participante prepara su próximo argumento; en cuanto queda aprobado entra al mapa, suma sus puntos y su autor entra a la ruleta.
 
 ```
 Participante prepara su argumento (tipo + objetivo si corresponde + texto)
-  └─ lo revisa con Groq por HTTP (sin gastar Ably) → aprobado → argument.ready
+  └─ lo revisa con Groq por HTTP (sin gastar Ably) → aprobado
+        └─ se publica argument.submitted (pendienteDeExposicion) y, si el tipo tiene
+           objetivo (contra / refuerzo / dilema / conexión), también link.created:
+           el nodo queda en el mapa debajo de aquel al que responde, y ya puntúa
                           │
                           ▼
-Ruleta ponderada → ofrece turno SOLO a quien tiene argumento listo
+Ruleta ponderada → ofrece turno SOLO a quien tiene un argumento pendiente de exponer
                           │
                 ┌─────────┴─────────┐
                 ▼                   ▼
             RECHAZA              ACEPTA
                 │                   │
-         reroll (excluye      ve su argumento ya escrito y lo
-         temporalmente        defiende en voz alta; al terminar
-         a quien rechazó,     pulsa "Ya lo expuse, publicarlo
-         cuesta puntos)       en el mapa"
-                                    │
-                          se publica argument.submitted y, si el
-                          tipo tiene objetivo (contra / refuerzo /
-                          dilema / conexión), también link.created
-                          hacia el argumento elegido: el nodo queda
-                          debajo de aquel al que responde
-                                    │
-                          el "listo" se consume: para volver a la
-                          ruleta hay que preparar otro
-                                    │
-                          co-moderador REVISA después (no bloquea)
-                          → valora, corrige el tipo si hace falta,
-                            asigna bonus o marca falta
+         reroll (excluye      expone en voz alta el argumento que ya
+         temporalmente        está en el mapa; los co-moderadores lo
+         a quien rechazó).    califican mientras habla; al terminar
+         Su argumento SIGUE   pulsa «Ya lo expuse» (exposicion.terminada)
+         en el mapa con sus           │
+         puntos, pero se le           ▼
+         resta la penalidad   el "pendiente" se consume: para volver
+         del perfil           a la ruleta hay que preparar otro
+                                      │
+                          los ajustes por la exposición se aplican
+                          al cerrar la sesión (ver abajo)
 ```
 
-Al preparar un argumento que responde a otro, la lista de objetivos solo ofrece argumentos **ajenos**. Los formularios avisan qué falta (objetivo o texto) en vez de no hacer nada.
+Al preparar un argumento que responde a otro, la lista de objetivos solo ofrece argumentos **ajenos**. Los formularios avisan qué falta (objetivo o texto) en vez de no hacer nada. Quien ya publicó todas las posiciones del perfil (3) no puede preparar más, pero si la tercera sigue pendiente de exposición, todavía puede recibir el turno para defenderla.
+
+### Evaluación de la exposición
+
+- **Co-moderadores.** Desde que quien tiene la palabra anuncia su argumento, cada co-moderador ve en su panel la exposición «en curso» (con el argumento y el punto al que responde) y responde a dos preguntas en una: ¿está hablando? ¿es coherente con el debate y con el punto? Cuatro botones: *Coherente con el punto*, *Aceptable*, *Fuera de tema o sin razón* y *No está hablando*. Cada uno califica una vez (si vuelve a calificar reemplaza su nota) y nadie califica su propia exposición. Las que ya terminaron siguen en su cola hasta que las califique.
+- **Se promedian.** *Coherente* vale +1, *aceptable* 0, *fuera de tema* y *no está hablando* −1. Sin moderador de por medio, rige el promedio.
+- **Moderador.** Ve las mismas exposiciones en su consola y puede evaluar cada una (opcional, incluso mientras se expone), **descartar** las calificaciones de los co-moderadores o dejarla sin evaluar. De los co-moderadores ve cuántos calificaron y el promedio, nunca quién puso qué. Puede cambiar de idea hasta cerrar. Su evaluación manda sobre el promedio; si descarta, esa exposición no ajusta puntos ni reparte bonos.
+- **Al cerrar la sesión** (fase de cierre o «Cerrar el debate ahora») el motor aplica, una sola vez, el ajuste al expositor y los bonos de consistencia a los co-moderadores (ver `05-reglas-de-puntaje.md`). Hasta ese momento el marcador y el ranking parcial son **provisionales**.
 
 ### Argumento destacado y turno que queda abierto
 
-- Al aceptar el turno, quien tiene la palabra anuncia su argumento (`argument.presenting`): la sala, la proyección y los celulares lo ven **en grande unos 12 segundos** y después en tamaño normal bajo «X está hablando ahora». Al terminar, publica el argumento como siempre.
-- El motor no ofrece otro turno mientras haya uno en curso. Si quien hablaba cierra la pestaña o no puede continuar, el panel de avisos del host lo señala («X tiene la palabra pero está sin conexión») y el moderador pulsa **«Terminar el turno de X»** (`turn.ended_by_host`): la ruleta sigue, no cuenta como intervención ni como rechazo, y esa persona conserva su argumento preparado.
+- Al aceptar el turno, quien tiene la palabra anuncia su argumento (`argument.presenting`): la sala, la proyección y los celulares lo ven **en grande unos 12 segundos** y después en tamaño normal bajo «X está hablando ahora». El anuncio también abre la exposición para que los co-moderadores la califiquen. Al terminar, pulsa «Ya lo expuse» (`exposicion.terminada`).
+- El motor no ofrece otro turno mientras haya uno en curso. Si quien hablaba cierra la pestaña o no puede continuar, el panel de avisos del host lo señala («X tiene la palabra pero está sin conexión») y el moderador pulsa **«Terminar el turno de X»** (`turn.ended_by_host`): la ruleta sigue, no cuenta como intervención ni como rechazo, y esa persona conserva su argumento pendiente de exposición.
 
 ### Turno hablado de respaldo
 
@@ -65,7 +69,7 @@ Reglas de seguridad del turno:
 
 - **Timeout de aceptación** (ej. 20 segundos) — si nadie responde, la oferta expira (`turn.timeout`) y se reoferta a otro participante automáticamente. Sin esto el debate se congela. Si quien no respondió es el **único elegible**, la ruleta se lo vuelve a ofrecer a esa misma persona con un `turnId` nuevo (mismo criterio que con un rechazo, para no bloquear la ruleta); en pantalla eso se lee como una oferta que se renueva cada 20 segundos.
 - **Tope de rechazos** — tras N rechazos consecutivos en la sesión, la siguiente oferta a esa persona ya no puede rechazarse (evita que todos rechacen para no participar). **Consecutivos** significa que tomar la palabra corta la racha: el contador vuelve a cero tanto al aceptar un turno como al recibir uno forzado. Sin ese reset, tres rechazos sueltos en toda la sesión dejaban a esa persona en modo forzado de forma permanente.
-- **Rechazar cuesta puntos**, y el botón lo avisa antes de confirmar. El descuento sale de la fórmula única y escala con el perfil elegido; el acumulado nunca baja de cero (ver `05-reglas-de-puntaje.md`).
+- **Rechazar cuesta puntos**, y el botón lo avisa antes de confirmar. Se restan **sobre los puntos que el argumento ya dio** (el argumento se queda en el mapa). El descuento sale de la fórmula única y escala con el perfil elegido; el acumulado nunca baja de cero (ver `05-reglas-de-puntaje.md`). Rechazar no abre la calificación de la exposición: solo exponer permite ganar más.
 - El tipo de relación que el estudiante autodeclara **puede ser corregido** por el co-moderador al validar. El puntaje final depende del tipo confirmado, no del autodeclarado — evita que se autoetiquete como "contraargumento" solo para ganar más puntos.
 
 ## Conexión libre (fuera de turno)

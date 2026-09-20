@@ -3,8 +3,13 @@ import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEvento
 import {
   obtenerArgumentosSinValidar,
   obtenerBidsAbiertos,
+  obtenerExposicionesSinCalificar,
   obtenerIntervencionesSinCalificar,
 } from '../../shared/estado/seleccionesDerivadas.js';
+import {
+  CALIDADES_EN_ORDEN_DE_BOTONES,
+  ETIQUETA_DE_CALIDAD_DE_EXPOSICION,
+} from '../../shared/puntaje/etiquetasDeExposicion.js';
 
 const ETIQUETA_DE_TIPO = {
   [TIPOS_DE_RELACION.NUEVO]: 'Argumento nuevo',
@@ -68,6 +73,15 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
     excluirParticipantId: participantId,
   });
 
+  const exposicionesSinCalificar = obtenerExposicionesSinCalificar(estado, {
+    coModeradorId: participantId,
+    excluirParticipantId: participantId,
+  });
+
+  function calificarExposicion(argumentId, calidad) {
+    publicar(EVENTOS.EXPOSICION_CALIFICADA, { argumentId, coModeradorId: participantId, calidad });
+  }
+
   function votar(bidId, voto) {
     publicar(EVENTOS.BID_VOTO_COMODERADOR, { bidId, coModeradorId: participantId, voto });
   }
@@ -83,6 +97,47 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
   return (
     <section className="tarjeta-de-co-moderador">
       <h3>Panel de co-moderador</h3>
+
+      {exposicionesSinCalificar.length > 0 && (
+        <div>
+          <p className="texto-de-ayuda">
+            Exposiciones por calificar — ¿está hablando? ¿Lo que dice es coherente con el debate y con el punto al
+            que responde? Juzga la exposición, no si estás de acuerdo. Tu nota se promedia con la de los demás
+            co-moderadores y el moderador la revisa al cierre.
+          </p>
+          <ul className="lista-de-validaciones-pendientes">
+            {exposicionesSinCalificar.map((exposicion) => {
+              const argumento = estado.argumentos[exposicion.argumentId];
+              const argumentoAlQueResponde = estado.argumentos[argumento?.argumentoObjetivoId];
+              return (
+                <li key={exposicion.argumentId}>
+                  <p>
+                    <strong>{nombreDe(exposicion.participantId)}</strong>{' '}
+                    {exposicion.estado === 'en_curso' ? '🎙️ está hablando ahora' : 'ya terminó de exponer'}
+                  </p>
+                  {argumento && <p className="texto-de-ayuda">“{argumento.texto}”</p>}
+                  {argumentoAlQueResponde && (
+                    <p className="texto-de-ayuda">
+                      Responde a: “{argumentoAlQueResponde.texto.slice(0, 90)}…”
+                    </p>
+                  )}
+                  <div className="botonera-de-bid">
+                    {CALIDADES_EN_ORDEN_DE_BOTONES.map((calidad) => (
+                      <button
+                        key={calidad}
+                        type="button"
+                        onClick={() => calificarExposicion(exposicion.argumentId, calidad)}
+                      >
+                        {ETIQUETA_DE_CALIDAD_DE_EXPOSICION[calidad]}
+                      </button>
+                    ))}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       {bidsAbiertos.length > 0 && (
         <div>
@@ -170,7 +225,10 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
         </div>
       )}
 
-      {argumentosSinValidar.length === 0 && bidsAbiertos.length === 0 && intervencionesSinCalificar.length === 0 && (
+      {argumentosSinValidar.length === 0 &&
+        bidsAbiertos.length === 0 &&
+        intervencionesSinCalificar.length === 0 &&
+        exposicionesSinCalificar.length === 0 && (
         <p className="texto-de-ayuda">Nada pendiente por ahora.</p>
       )}
     </section>

@@ -110,23 +110,40 @@ Publicado una vez por el Moderador al iniciar la sesión, tras aplicar `ceil(n *
 
 ## Turnos
 
-**El turno es para defender un argumento ya escrito, nunca una invitación a escribir contra reloj.** El estudiante prepara su argumento mientras escucha a los demás (revisándolo con Groq por HTTP, sin gastar Ably) y al aprobarse publica:
+**El turno es para exponer en voz alta un argumento ya publicado, nunca una invitación a escribir contra reloj.** El estudiante prepara su argumento mientras escucha a los demás (revisándolo con Groq por HTTP, sin gastar Ably) y, al aprobarse, lo publica de una vez, marcado como pendiente de exposición:
 
 ```
-argument.ready  { participantId, listoEn }
+argument.submitted { ..., pendienteDeExposicion: true }   // + link.created si tiene objetivo
 ```
 
-Solo quien publicó esto entra a la ruleta. Al exponer el argumento, el "listo" se consume: para volver a la ruleta hay que preparar otro.
+El reducer deja a esa persona con `argumentoListo: true` y `argumentoPendienteId`, no le suma intervención (todavía nadie lo escuchó) y el argumento ya puntúa (ver `05-reglas-de-puntaje.md`). Solo quien tiene un argumento pendiente entra a la ruleta. `argument.ready` (`{ participantId, listoEn }`) **ya no se emite**: el reducer lo sigue entendiendo por compatibilidad con historiales viejos.
 
-Cuando esa persona recibe la palabra, anuncia el texto que va a defender:
+Cuando esa persona recibe la palabra, anuncia el argumento que va a exponer:
 
 ```
-argument.presenting  { turnId, participantId, texto, tipoDeclarado, stanceId, argumentoObjetivoId }
+argument.presenting  { turnId, participantId, argumentId, texto, tipoDeclarado, stanceId, argumentoObjetivoId }
 ```
 
-El reducer lo adjunta al turno en curso (`turnos.turnoEnCurso.presentacion`) solo si `turnId` y `participantId` coinciden con ese turno. Con eso la sala (proyección incluida) muestra el argumento **en grande unos 12 segundos** (`DestacadoDelTurno`) y después en tamaño normal dentro del banner "X está hablando". El argumento como tal se sigue publicando al terminar con `argument.submitted`. Es un solo mensaje de Ably por turno.
+El reducer lo adjunta al turno en curso (`turnos.turnoEnCurso.presentacion`) solo si `turnId` y `participantId` coinciden con ese turno, y —si trae `argumentId`— abre `estado.exposiciones[argumentId]` en estado `en_curso`. Con eso la sala (proyección incluida) muestra el argumento **en grande unos 12 segundos** (`DestacadoDelTurno`) y después en tamaño normal dentro del banner "X está hablando", y los co-moderadores pueden calificarlo mientras habla. Es un solo mensaje de Ably por turno.
 
-Cuando **no queda ningún argumento preparado por exponer** y todavía hay alguien que no tomó la palabra ni una vez, se le ofrece un turno hablado (`modo: "verbal"`).
+Al terminar de exponer, quien hablaba publica:
+
+```
+exposicion.terminada  { turnId, participantId, argumentId }
+```
+
+Libera el turno, suma la intervención, apaga el «listo» y deja la exposición en `terminada` (un evento repetido no suma dos veces). Si el moderador termina el turno con `turn.ended_by_host`, la exposición queda `interrumpida` y el argumento sigue pendiente.
+
+### Calificación de la exposición
+
+```
+exposicion.calificada              { argumentId, coModeradorId, calidad: "buena" | "aceptable" | "insuficiente" | "sin_exposicion", nota? }
+exposicion.evaluada_moderador      { argumentId, decision: "evaluada" | "descartada" | "sin_evaluar", calidad? }
+```
+
+`exposicion.calificada`: cada co-moderador una vez por exposición (la última reemplaza a la anterior); una calidad desconocida o una exposición inexistente se ignora. `exposicion.evaluada_moderador`: `evaluada` exige `calidad`; `descartada` anula las calificaciones de esa exposición; `sin_evaluar` deshace la decisión. Ninguno de los dos cambia el puntaje al publicarse: los ajustes los calcula `calcularAjustesDeExposiciones` (`src/shared/puntaje/evaluacionDeExposiciones.js`) y los publica `motor.cerrarSesion()` como `score.updated` (categorías `argumento` y `co_moderacion`) **antes** de `session.closed`, con la clave de idempotencia `evaluaciones-finales`.
+
+Cuando **no queda ningún argumento pendiente de exposición** y todavía hay alguien que no tomó la palabra ni una vez, se le ofrece un turno hablado (`modo: "verbal"`).
 
 Dos precisiones que el código respeta y conviene no perder de vista:
 
@@ -294,6 +311,7 @@ validacion-comoderador:<argumentId>
 penalidad-rechazo:<turnId>
 puntaje-intervencion:<intervencionId>
 calificacion-intervencion:<intervencionId>
+evaluaciones-finales
 bid-resuelto:<bidId>
 topico-bids:<turnoPrincipalId>
 sugerencias-groq:<tipoDeFase>:<iniciadaEn>
@@ -308,6 +326,7 @@ Un motor nuevo consulta esas marcas antes de actuar. En la misma línea:
 - **El motor adopta la oferta de turno que encuentre huérfana**: el temporizador que la hace
   expirar vivía en la pestaña anterior, así que sin esto la oferta quedaba colgada para siempre
   y la ruleta no volvía a girar.
+- **`programa.publicado` lleva un campo `origen`** (`arranque`, `configuracion`, `inicio`, `postura-aceptada`) que el reducer ignora y sirve para saber quién publicó cada versión del Programa. La configuración de la sala de espera se publica solo desde los controles que el moderador toca (siempre completa), nunca desde un efecto que compare el canal con el estado local: eso llegó a pisar el perfil de puntaje elegido con el de por defecto (ver `06-pendientes.md`).
 - **El host no republica el Programa al reconectar** si el canal ya trae el de esta sesión: lo
   que tiene guardado es el archivo original, sin las posturas filtradas ni el perfil de puntaje
   que eligió, y republicarlo le pisaba al debate su propia configuración.

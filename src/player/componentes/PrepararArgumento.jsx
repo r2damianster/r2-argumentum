@@ -4,6 +4,10 @@ import { resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.j
 import { decidirValidacion, DECISIONES } from '../../shared/argumentos/decidirValidacion.js';
 import { buscarArgumentoParecido } from '../../shared/argumentos/buscarArgumentoParecido.js';
 import { nombreDeParticipante, siguientePosicionParaParticipante } from '../../shared/estado/seleccionesDerivadas.js';
+import {
+  calcularPenalidadPorRechazoDeTurno,
+  resolverParametrosDePuntaje,
+} from '../../shared/puntaje/formulaDePuntaje.js';
 
 const TIPOS_QUE_REQUIEREN_OBJETIVO = [
   TIPOS_DE_RELACION.CONTRAARGUMENTO,
@@ -58,7 +62,9 @@ function guardarBorrador(participantId, borrador) {
 // no para empezar a escribirlo contra reloj.
 //
 // El borrador vive en el cliente y se revisa con Groq por HTTP: no se publica nada al canal
-// hasta que el argumento queda aprobado, así corregirlo no cuesta cuota de Ably.
+// hasta que el argumento queda aprobado, así corregirlo no cuesta cuota de Ably. Al aprobarse SÍ se
+// publica: el argumento entra al mapa y puntúa desde ese momento; el turno solo sirve para
+// exponerlo en voz alta (los co-moderadores califican esa exposición, ver docs/04).
 export function PrepararArgumento({ estado, programa, presencia = [], participantId, publicar }) {
   const [borradorGuardado] = useState(() => leerBorrador(participantId));
   const [tipoDeclarado, setTipoDeclarado] = useState(borradorGuardado?.tipoDeclarado ?? TIPOS_DE_RELACION.NUEVO);
@@ -68,6 +74,9 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
   const [resultado, setResultado] = useState(null);
   const [avisoDeCampoFaltante, setAvisoDeCampoFaltante] = useState('');
   const [argumentoRepetido, setArgumentoRepetido] = useState(null);
+  // Entre publicar el argumento aprobado y que el canal lo devuelva pasa un instante en el que el
+  // botón seguiría activo: sin esto, un doble clic publicaba el mismo argumento dos veces.
+  const [publicando, setPublicando] = useState(false);
 
   const requiereObjetivo = TIPOS_QUE_REQUIEREN_OBJETIVO.includes(tipoDeclarado);
   // Se responde a argumentos ajenos: apuntar a uno propio no tiene sentido como réplica.
@@ -77,6 +86,12 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
   const posicionEnRonda = siguientePosicionParaParticipante(estado, participantId);
   const yaTengoUnoListo = Boolean(estado.participantes[participantId]?.argumentoListo);
   const stanceId = estado.participantes[participantId]?.stanceId ?? null;
+  // El argumento aprobado vive en el canal, no en este dispositivo: así sigue ahí aunque se cierre
+  // la pestaña o se abra la sala desde otro navegador.
+  const argumentoPendiente = estado.argumentos[estado.participantes[participantId]?.argumentoPendienteId] ?? null;
+  const parametrosDePuntaje = resolverParametrosDePuntaje(estado.programa ?? programa);
+  const yaCompleteTodasMisPosiciones = posicionEnRonda > parametrosDePuntaje.valoresBasePosicion.length;
+  const penalidadPorRechazar = Math.abs(calcularPenalidadPorRechazoDeTurno(parametrosDePuntaje));
 
   async function revisarYPreparar() {
     if (requiereObjetivo && !argumentoObjetivoId) {
@@ -137,20 +152,23 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
     setResultado(decision);
 
     if (decision.decision === DECISIONES.APROBADO) {
-      // Solo se anuncia que hay un argumento listo; el texto se publica al exponerlo.
-      publicar(EVENTOS.ARGUMENTO_LISTO, { participantId, listoEn: Date.now() });
+      publicarArgumentoAprobado();
     }
     setRevisando(false);
   }
 
-  // Al llegar el turno, el texto ya revisado se publica tal cual: no se vuelve a validar.
-  function exponerArgumento(turnId) {
+  // El argumento aprobado entra al mapa y puntúa desde ya (`pendienteDeExposicion`: falta
+  // exponerlo). Si tiene objetivo, la arista se publica de una vez, sin esperar una sugerencia de
+  // Groq ni que la persona conecte a mano (igual que en un bid aprobado): sin ella el nodo quedaba
+  // suelto en la fila raíz del grafo.
+  function publicarArgumentoAprobado() {
     const argumentId = generarId('argumento');
     const objetivoElegido = requiereObjetivo ? argumentoObjetivoId : null;
+    setPublicando(true);
     publicar(EVENTOS.ARGUMENTO_PUBLICADO, {
       argumentId,
       participantId,
-      turnId,
+      turnId: null,
       ronda: estado.fase.actual?.ronda ?? 1,
       posicionEnRonda,
       tipoDeclarado,
@@ -158,10 +176,8 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
       texto,
       stanceId,
       viaCoModerador: false,
+      pendienteDeExposicion: true,
     });
-    // El objetivo ya se eligió al preparar el argumento: se publica la arista de una vez, sin
-    // esperar una sugerencia de Groq ni que el participante conecte a mano (igual que en un bid
-    // aprobado). Sin esto el nodo quedaba suelto en la fila raíz del grafo.
     if (objetivoElegido) {
       publicar(EVENTOS.CONEXION_CREADA, {
         linkId: generarId('conexion'),
@@ -173,57 +189,56 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
     }
     setTexto('');
     setArgumentoObjetivoId('');
+    setTipoDeclarado(TIPOS_DE_RELACION.NUEVO);
     setResultado(null);
+  }
+
+  // Al terminar de exponerlo en voz alta, el argumento (que ya estaba en el mapa) queda como
+  // expuesto: libera el turno y abre la calificación de los co-moderadores.
+  function terminarExposicion(turnId) {
+    publicar(EVENTOS.EXPOSICION_TERMINADA, { turnId, participantId, argumentId: argumentoPendiente.argumentId });
+    setPublicando(false);
   }
 
   const turnoEnCurso = estado.turnos.turnoEnCurso;
   const tengoLaPalabra = turnoEnCurso?.participantId === participantId && turnoEnCurso?.modo !== 'verbal';
 
-  // Al recibir la palabra se anuncia el texto que se va a defender: el resto de la sala (y la
-  // proyección) lo ve destacado un momento mientras empiezas a hablar, y así todos saben de qué
-  // argumento se trata. Una sola vez por turno; el argumento se publica al terminar, como antes.
   useEffect(() => {
     guardarBorrador(participantId, { texto, tipoDeclarado, argumentoObjetivoId });
   }, [participantId, texto, tipoDeclarado, argumentoObjetivoId]);
 
+  // Al recibir la palabra se anuncia el texto que se va a defender: el resto de la sala (y la
+  // proyección) lo ve destacado un momento mientras empiezas a hablar, y así todos saben de qué
+  // argumento se trata. Una sola vez por turno. El anuncio también abre la exposición para que
+  // los co-moderadores puedan calificarla mientras hablas.
   const turnoYaAnunciadoRef = useRef(null);
   useEffect(() => {
-    if (!tengoLaPalabra || !yaTengoUnoListo || !texto.trim() || turnoYaAnunciadoRef.current === turnoEnCurso.turnId) {
+    if (!tengoLaPalabra || !argumentoPendiente || turnoYaAnunciadoRef.current === turnoEnCurso.turnId) {
       return;
     }
     turnoYaAnunciadoRef.current = turnoEnCurso.turnId;
     publicar(EVENTOS.ARGUMENTO_EN_EXPOSICION, {
       turnId: turnoEnCurso.turnId,
       participantId,
-      texto,
-      tipoDeclarado,
-      stanceId,
-      argumentoObjetivoId: requiereObjetivo ? argumentoObjetivoId : null,
+      argumentId: argumentoPendiente.argumentId,
+      texto: argumentoPendiente.texto,
+      tipoDeclarado: argumentoPendiente.tipoDeclarado,
+      stanceId: argumentoPendiente.stanceId ?? stanceId,
+      argumentoObjetivoId: argumentoPendiente.argumentoObjetivoId ?? null,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tengoLaPalabra, yaTengoUnoListo, turnoEnCurso?.turnId]);
+  }, [tengoLaPalabra, argumentoPendiente?.argumentId, turnoEnCurso?.turnId]);
 
-  if (tengoLaPalabra && yaTengoUnoListo && !texto.trim()) {
-    return (
-      <section className="tarjeta-de-formulario-de-argumento">
-        <p className="mensaje-de-error">
-          Tienes la palabra, pero el texto de tu argumento ya no está en este dispositivo (¿abriste la sala desde
-          otro navegador o se borró el almacenamiento?). Avísale al moderador para que termine tu turno.
-        </p>
-      </section>
-    );
-  }
-
-  if (tengoLaPalabra && yaTengoUnoListo) {
+  if (tengoLaPalabra && argumentoPendiente) {
     return (
       <section className="tarjeta-de-formulario-de-argumento">
         <p className="texto-de-ayuda">
-          Tienes la palabra. Defiende en voz alta el argumento que preparaste y, cuando termines, publícalo para
-          que quede en el mapa.
+          Tienes la palabra. Defiende en voz alta tu argumento, que ya está en el mapa; los co-moderadores
+          califican cómo lo expones. Cuando termines, pulsa el botón.
         </p>
-        <blockquote className="cita-de-argumento">{texto}</blockquote>
-        <button type="submit" onClick={() => exponerArgumento(turnoEnCurso.turnId)}>
-          Ya lo expuse, publicarlo en el mapa
+        <blockquote className="cita-de-argumento">{argumentoPendiente.texto}</blockquote>
+        <button type="button" onClick={() => terminarExposicion(turnoEnCurso.turnId)}>
+          Ya lo expuse
         </button>
       </section>
     );
@@ -232,10 +247,23 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
   if (yaTengoUnoListo) {
     return (
       <section className="tarjeta-de-formulario-de-argumento">
-        <p className="mensaje-de-exito">✅ Tu argumento está listo y esperando turno.</p>
-        <blockquote className="cita-de-argumento">{texto}</blockquote>
+        <p className="mensaje-de-exito">✅ Tu argumento ya está en el mapa y suma puntos.</p>
+        {argumentoPendiente && <blockquote className="cita-de-argumento">{argumentoPendiente.texto}</blockquote>}
         <p className="texto-de-ayuda">
-          Entraste a la ruleta: en cualquier momento te pueden dar la palabra para defenderlo.
+          Entraste a la ruleta: en cualquier momento te pueden dar la palabra para exponerlo en voz alta.
+          Rechazar ese turno te resta {penalidadPorRechazar} puntos de los que ya ganaste; exponerlo bien puede
+          sumarte más.
+        </p>
+      </section>
+    );
+  }
+
+  if (yaCompleteTodasMisPosiciones) {
+    return (
+      <section className="tarjeta-de-formulario-de-argumento">
+        <p className="mensaje-de-exito">
+          ✅ Ya publicaste todos tus argumentos ({parametrosDePuntaje.valoresBasePosicion.length}). Escucha a los
+          demás y conecta lo tuyo con el mapa.
         </p>
       </section>
     );
@@ -244,8 +272,9 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
   return (
     <section className="tarjeta-de-formulario-de-argumento">
       <p className="texto-de-ayuda">
-        Prepara tu próximo argumento mientras escuchas a los demás. Cuando quede aprobado entras a la ruleta, y
-        el turno será para defenderlo en voz alta. Sin argumento preparado no se te ofrece la palabra.
+        Prepara tu próximo argumento mientras escuchas a los demás. Cuando quede aprobado se publica en el mapa,
+        suma puntos y entras a la ruleta: el turno será para exponerlo en voz alta. Sin argumento preparado no se
+        te ofrece la palabra.
       </p>
       <p className="texto-de-ayuda">Sería tu posición {posicionEnRonda}</p>
 
@@ -329,8 +358,8 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
 
       {avisoDeCampoFaltante && <p className="mensaje-de-error">{avisoDeCampoFaltante}</p>}
 
-      <button type="button" disabled={revisando} onClick={revisarYPreparar}>
-        {revisando ? 'Revisando…' : 'Revisar y ponerme en la ruleta'}
+      <button type="button" disabled={revisando || publicando} onClick={revisarYPreparar}>
+        {revisando ? 'Revisando…' : 'Revisar y publicar en el mapa'}
       </button>
     </section>
   );

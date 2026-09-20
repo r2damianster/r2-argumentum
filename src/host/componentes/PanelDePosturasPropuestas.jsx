@@ -34,6 +34,7 @@ export function PanelDePosturasPropuestas({ estado, programa, identificadorDeSes
     publicar(EVENTOS.PROGRAMA_PUBLICADO, {
       programa: { ...programa, posturas: [...programa.posturas, posturaNueva] },
       identificadorDeSesion,
+      origen: 'postura-aceptada',
     });
     publicar(EVENTOS.POSTURA_DECISION_MODERADOR, {
       propuestaId: propuesta.propuestaId,

@@ -7,7 +7,11 @@
 // Como presence solo sabe quién está conectado ahora, `ingreso.confirmado` también los trae y el
 // reducer los guarda como respaldo para quien ya se desconectó.
 
-import { EVENTOS } from '../eventos/nombresDeEventos.js';
+import {
+  EVENTOS,
+  CALIDADES_DE_EXPOSICION,
+  DECISIONES_DEL_MODERADOR_SOBRE_EXPOSICION,
+} from '../eventos/nombresDeEventos.js';
 
 export function estadoInicial() {
   return {
@@ -16,6 +20,10 @@ export function estadoInicial() {
     apertura: null,
     posturasPropuestas: {},
     intervencionesVerbales: {},
+    // Exposición oral de un argumento ya publicado, por argumentId: quién la calificó (cada
+    // co-moderador una vez) y qué decidió el moderador. Se aplica al puntaje al cerrar la sesión
+    // (ver evaluacionDeExposiciones.js).
+    exposiciones: {},
     participantes: {},
     coModeradores: null,
     turnos: {
@@ -63,6 +71,8 @@ function crearParticipanteVacio(participantId) {
     // Tiene un argumento redactado y aprobado esperando turno. Solo a quien lo tiene se le
     // ofrece la palabra: el turno es para defender lo escrito, no para escribir (docs/04).
     argumentoListo: false,
+    // El argumento publicado (y ya puntuando) que esta persona todavía no expuso en un turno.
+    argumentoPendienteId: null,
     // true solo tras el cierre DEFINITIVO de la apertura (ver EVENTOS.APERTURA_RONDA_CERRADA
     // con esFinal:true) si esta persona nunca logró un argumento aprobado — excluida de la
     // ruleta de turnos del resto de la sesión (ver elegirCandidatoParaTurno en motorDeSesion.js).
@@ -84,7 +94,9 @@ function conParticipanteActualizado(estado, participantId, actualizar) {
 // Cualquier evento publicado por el motor puede traer una `claveDeIdempotencia`: queda
 // registrada en el estado para que un motor nuevo (host que refrescó) no repita esa acción.
 export function reducirEventos(estado, evento) {
-  const siguiente = aplicarEvento(estado, evento);
+  // Una copia local guardada antes de que existieran las exposiciones no trae ese campo.
+  const estadoCompleto = estado.exposiciones ? estado : { ...estado, exposiciones: {} };
+  const siguiente = aplicarEvento(estadoCompleto, evento);
   const clave = evento.data?.claveDeIdempotencia;
   if (!clave || siguiente.accionesDelMotor?.[clave]) {
     return siguiente;
@@ -142,8 +154,28 @@ function aplicarEvento(estado, evento) {
       if (!turnoEnCurso || turnoEnCurso.turnId !== data.turnId || turnoEnCurso.participantId !== data.participantId) {
         return estado;
       }
+      // Con argumentId, esta exposición pasa a ser calificable por los co-moderadores desde que
+      // empieza. Si ya se había expuesto (turno repetido tras una interrupción, ya terminada) no
+      // se reabre: conserva lo que ya le calificaron.
+      const exposicionPrevia = data.argumentId ? estado.exposiciones[data.argumentId] : null;
+      const exposiciones =
+        data.argumentId && exposicionPrevia?.estado !== 'terminada'
+          ? {
+              ...estado.exposiciones,
+              [data.argumentId]: {
+                calificaciones: {},
+                decisionModerador: null,
+                ...exposicionPrevia,
+                argumentId: data.argumentId,
+                turnId: data.turnId,
+                participantId: data.participantId,
+                estado: 'en_curso',
+              },
+            }
+          : estado.exposiciones;
       return {
         ...estado,
+        exposiciones,
         turnos: {
           ...estado.turnos,
           turnoEnCurso: {
@@ -346,8 +378,17 @@ function aplicarEvento(estado, evento) {
       }
       // El "argumento listo" de quien hablaba se conserva: si vuelve, puede recibir la palabra
       // otra vez para defenderlo. No se cuenta como intervención ni como rechazo.
+      const exposicionesActualizadas = Object.fromEntries(
+        Object.entries(estado.exposiciones).map(([argumentId, exposicion]) => [
+          argumentId,
+          exposicion.turnId === data.turnId && exposicion.estado === 'en_curso'
+            ? { ...exposicion, estado: 'interrumpida' }
+            : exposicion,
+        ])
+      );
       return {
         ...estado,
+        exposiciones: exposicionesActualizadas,
         turnos: {
           ...estado.turnos,
           turnoEnCurso: null,
@@ -431,20 +472,26 @@ function aplicarEvento(estado, evento) {
       // solo el turnId cerraba el turno de quien seguía hablando apenas se aprobaba el bid de
       // otro participante — su argumento preparado quedaba huérfano y se le volvía a ofrecer
       // el mismo turno. Bug real reportado en prueba en vivo.
-      const esQuienTieneLaPalabra = estado.turnos.turnoEnCurso?.participantId === data.participantId;
+      // Un argumento publicado al aprobarse (`pendienteDeExposicion`) ya puntúa y ya está en el
+      // mapa, pero todavía no se expuso: no cuenta como intervención, deja a su autor en la
+      // ruleta y queda anotado como el que tiene que defender.
+      const estaPendienteDeExposicion = Boolean(data.pendienteDeExposicion);
+      const esQuienTieneLaPalabra =
+        !estaPendienteDeExposicion && estado.turnos.turnoEnCurso?.participantId === data.participantId;
       const siguiente = conParticipanteActualizado(estado, data.participantId, (participante) => ({
         ...participante,
         posicionesCompletadas: Math.max(participante.posicionesCompletadas, data.posicionEnRonda),
+        argumentoPendienteId: estaPendienteDeExposicion ? data.argumentId : participante.argumentoPendienteId,
         // El argumento de ingreso NO cuenta como haber tomado la palabra: se escribe antes de
         // que arranque el debate y nadie lo escuchó (ver IngresoConArgumento.jsx). Contarlo
         // dejaba a todo el mundo con intervenciones >= 1 apenas entraba, así que
         // participantesSinIntervenir quedaba vacío y el turno hablado de respaldo no se
         // ofrecía nunca. Bug real reportado en prueba en vivo con 8 participantes.
-        intervenciones: participante.intervenciones + (data.esArgumentoDeIngreso ? 0 : 1),
+        intervenciones: participante.intervenciones + (data.esArgumentoDeIngreso || estaPendienteDeExposicion ? 0 : 1),
         // El argumento que esperaba turno ya se expuso: para volver a la ruleta hay que
         // preparar uno nuevo. Si esto vino de un bid aprobado de otro participante, no toca
         // el "listo" de nadie más.
-        argumentoListo: esQuienTieneLaPalabra ? false : participante.argumentoListo,
+        argumentoListo: estaPendienteDeExposicion ? true : esQuienTieneLaPalabra ? false : participante.argumentoListo,
       }));
       return {
         ...siguiente,
@@ -459,6 +506,86 @@ function aplicarEvento(estado, evento) {
           ...siguiente.argumentos,
           [data.argumentId]: { ...data, validacion: null, conexionSalienteId: null },
         },
+      };
+    }
+
+    // Quien tenía la palabra terminó de exponer el argumento que ya estaba publicado: ahí sí
+    // cuenta como haber tomado la palabra y el turno queda libre. Un evento repetido no suma dos
+    // veces.
+    case EVENTOS.EXPOSICION_TERMINADA: {
+      if (estado.exposiciones[data.argumentId]?.estado === 'terminada') {
+        return estado;
+      }
+      const siguiente = conParticipanteActualizado(estado, data.participantId, (participante) => ({
+        ...participante,
+        intervenciones: participante.intervenciones + 1,
+        argumentoListo: false,
+        argumentoPendienteId:
+          participante.argumentoPendienteId === data.argumentId ? null : participante.argumentoPendienteId,
+      }));
+      return {
+        ...siguiente,
+        exposiciones: {
+          ...siguiente.exposiciones,
+          [data.argumentId]: {
+            calificaciones: {},
+            decisionModerador: null,
+            ...siguiente.exposiciones[data.argumentId],
+            argumentId: data.argumentId,
+            turnId: data.turnId,
+            participantId: data.participantId,
+            estado: 'terminada',
+            terminadaEn: data.timestamp ?? null,
+          },
+        },
+        turnos: {
+          ...siguiente.turnos,
+          turnoEnCurso:
+            siguiente.turnos.turnoEnCurso?.turnId === data.turnId ? null : siguiente.turnos.turnoEnCurso,
+        },
+      };
+    }
+
+    // Cada co-moderador califica una vez cada exposición: si vuelve a calificar, reemplaza su nota
+    // (así el promedio nunca cuenta dos veces al mismo).
+    case EVENTOS.EXPOSICION_CALIFICADA: {
+      const exposicion = estado.exposiciones[data.argumentId];
+      if (!exposicion || !Object.values(CALIDADES_DE_EXPOSICION).includes(data.calidad)) {
+        return estado;
+      }
+      return {
+        ...estado,
+        exposiciones: {
+          ...estado.exposiciones,
+          [data.argumentId]: {
+            ...exposicion,
+            calificaciones: {
+              ...exposicion.calificaciones,
+              [data.coModeradorId]: { calidad: data.calidad, nota: data.nota ?? '' },
+            },
+          },
+        },
+      };
+    }
+
+    // El moderador puede cambiar su decisión hasta que cierre la sesión; "sin_evaluar" la deshace.
+    case EVENTOS.EXPOSICION_EVALUADA_POR_MODERADOR: {
+      const exposicion = estado.exposiciones[data.argumentId];
+      if (!exposicion) {
+        return estado;
+      }
+      let decisionModerador = null;
+      if (data.decision === DECISIONES_DEL_MODERADOR_SOBRE_EXPOSICION.DESCARTADA) {
+        decisionModerador = { decision: data.decision, calidad: null };
+      } else if (
+        data.decision === DECISIONES_DEL_MODERADOR_SOBRE_EXPOSICION.EVALUADA &&
+        Object.values(CALIDADES_DE_EXPOSICION).includes(data.calidad)
+      ) {
+        decisionModerador = { decision: data.decision, calidad: data.calidad };
+      }
+      return {
+        ...estado,
+        exposiciones: { ...estado.exposiciones, [data.argumentId]: { ...exposicion, decisionModerador } },
       };
     }
 

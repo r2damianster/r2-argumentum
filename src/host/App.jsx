@@ -6,6 +6,7 @@ import { useEstadoDeSesion } from '../shared/estado/useEstadoDeSesion.js';
 import { EVENTOS, TIPOS_DE_FASE } from '../shared/eventos/nombresDeEventos.js';
 import { useMotorDeSesion } from './useMotorDeSesion.js';
 import { ControlDeFases } from './componentes/ControlDeFases.jsx';
+import { PanelDeEvaluacionDeExposiciones } from './componentes/PanelDeEvaluacionDeExposiciones.jsx';
 import { ListaDeParticipantes } from './componentes/ListaDeParticipantes.jsx';
 import { PanelDeDecisionDeBids } from './componentes/PanelDeDecisionDeBids.jsx';
 import { PanelDePosturasPropuestas } from './componentes/PanelDePosturasPropuestas.jsx';
@@ -322,7 +323,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
     if (estado.programa && estado.sesion.identificador === identificadorDeSesion) {
       return;
     }
-    publicar(EVENTOS.PROGRAMA_PUBLICADO, { programa, identificadorDeSesion });
+    publicar(EVENTOS.PROGRAMA_PUBLICADO, { programa, identificadorDeSesion, origen: 'arranque' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargando]);
 
@@ -516,6 +517,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
             publicar={publicar}
           />
           <PanelDeDecisionDeBids estado={estado} motor={motor} />
+          <PanelDeEvaluacionDeExposiciones estado={estado} presencia={presencia} publicar={publicar} />
           <VistaEspejoDeParticipante estado={estado} presencia={presencia} programa={programaVisible} />
           <GrafoDeArgumentos estado={estado} programa={programaVisible} presencia={presencia} />
           {mostrarRanking && (

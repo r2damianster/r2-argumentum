@@ -1,0 +1,31 @@
+// Arma el Programa que se publica al canal con la configuración que el moderador eligió para
+// ESTA sesión (posturas tildadas, modo de calificación, idioma, posturas nuevas).
+//
+// Es una función pura para poder probar que ninguna pieza de la configuración se pierde al
+// fusionar: un Programa republicado con el perfil por defecto le pisa al debate el modo de
+// calificación que el docente eligió (bug reportado en la prueba del 19 de septiembre).
+//
+// Devuelve null si quedan menos de 2 posturas: un debate necesita al menos dos.
+
+const MINIMO_DE_POSTURAS = 2;
+
+export function armarProgramaDeLaSesion({
+  programaBase,
+  posturasDelPrograma,
+  idsDePosturasSeleccionadas,
+  perfilDePuntaje,
+  permitirPosturasNuevas,
+  idioma,
+}) {
+  const posturasElegidas = posturasDelPrograma.filter((postura) => idsDePosturasSeleccionadas.has(postura.id));
+  if (posturasElegidas.length < MINIMO_DE_POSTURAS) {
+    return null;
+  }
+  return {
+    ...programaBase,
+    posturas: posturasElegidas,
+    perfilDePuntaje,
+    permitirPosturasNuevas: Boolean(permitirPosturasNuevas),
+    idioma,
+  };
+}

@@ -36,6 +36,9 @@ export function exportarSesion({ eventos, estado, programa, presencia = [] }) {
     programa: { programId: programa.programId, titulo: programa.titulo, version: programa.version },
     eventLogCompleto: eventos,
     mapaArgumental,
+    // Calificaciones de las exposiciones orales (co-moderadores y decisión del moderador); los
+    // ajustes de puntaje que produjeron quedan en el log como score.updated al cerrar la sesión.
+    exposiciones: Object.values(estado.exposiciones ?? {}),
     rankingPorPostura: calcularRankingPorPostura(estado, programa, presencia),
     perfilPorEstudiante,
   };
