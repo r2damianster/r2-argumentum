@@ -62,6 +62,22 @@ export function elegirPosturaMenosRepresentada(
     }
   }
 
+  const sinConfirmarEnLaSala = [...new Set(participantesEnLaSala)]
+    .filter((id) => !estado.participantes[id]?.ingresoConfirmado)
+    .sort();
+
+  for (const idActual of sinConfirmarEnLaSala) {
+    const minimo = Math.min(...conteoPorPostura.values());
+    const candidatas = posturas.filter((postura) => conteoPorPostura.get(postura.id) === minimo);
+    const lugar = sinConfirmarEnLaSala.indexOf(idActual);
+    const posturaElegida = candidatas[lugar % candidatas.length].id;
+
+    if (idActual === participantId) {
+      return posturaElegida;
+    }
+    conteoPorPostura.set(posturaElegida, (conteoPorPostura.get(posturaElegida) ?? 0) + 1);
+  }
+
   const minimo = Math.min(...conteoPorPostura.values());
   const candidatas = posturas.filter((postura) => conteoPorPostura.get(postura.id) === minimo);
   return candidatas[lugarEnLaSala(participantId, participantesEnLaSala) % candidatas.length].id;

@@ -115,6 +115,7 @@ export function GrafoDeArgumentos({ estado, programa, presencia, modoProyeccion 
         height: ALTO_DE_NODO,
         handles: CONECTORES_DEL_NODO,
         data: {
+          color,
           label: (
             <div>
               <strong>{nombreDeParticipante(presencia, argumento.participantId)}</strong>
@@ -139,6 +140,7 @@ export function GrafoDeArgumentos({ estado, programa, presencia, modoProyeccion 
       source: conexion.sourceArgumentId,
       target: conexion.targetArgumentId,
       label: conexion.tipoDeRelacion,
+      type: 'smoothstep',
       style: { stroke: COLORES_SEMANTICOS_DEL_GRAFO[conexion.tipoDeRelacion] || '#94a3b8' },
       markerEnd: { type: MarkerType.ArrowClosed },
     }));
@@ -151,6 +153,7 @@ export function GrafoDeArgumentos({ estado, programa, presencia, modoProyeccion 
       source: sugerencia.sourceArgumentId,
       target: sugerencia.targetArgumentId,
       label: `${sugerencia.tipoDeRelacion} (sugerido)`,
+      type: 'smoothstep',
       style: { stroke: '#94a3b8', strokeDasharray: '4 4' },
       markerEnd: { type: MarkerType.ArrowClosed },
     }));
@@ -197,6 +200,9 @@ export function GrafoDeArgumentos({ estado, programa, presencia, modoProyeccion 
           <Controls showInteractive={false} fitViewOptions={AJUSTE_DEL_ENCUADRE} />
           {/* El minimapa solo aporta cuando hay bastante mapa; en una caja chica estorba. */}
           {nodos.length >= 6 && <MiniMap pannable zoomable />}
+          {nodos.length >= 6 && (
+            <MiniMap pannable zoomable nodeColor={(nodo) => nodo.data?.color || '#64748b'} />
+          )}
           <ReencuadrarAlCrecerElMapa
             cantidadDeNodos={nodos.length}
             altoDelContenedor={altoDelGrafo}
@@ -233,6 +239,18 @@ function ReencuadrarAlCrecerElMapa({ cantidadDeNodos, altoDelContenedor, anchoDe
     // el contenedor nuevo antes de poder encuadrar contra él.
     const cuadro = requestAnimationFrame(() => fitView({ duration: 300, ...AJUSTE_DEL_ENCUADRE }));
     return () => cancelAnimationFrame(cuadro);
+    const t1 = setTimeout(
+      () => fitView({ duration: 0, ...AJUSTE_DEL_ENCUADRE }),
+      cambioElTamano ? 120 : 60
+    );
+    const t2 = setTimeout(
+      () => fitView({ duration: 200, ...AJUSTE_DEL_ENCUADRE }),
+      cambioElTamano ? 350 : 250
+    );
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [cantidadDeNodos, altoDelContenedor, anchoDelContenedor, fitView]);
 
   return null;

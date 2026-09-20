@@ -20,8 +20,25 @@ export function PantallaDeTurnoOfrecido({ oferta, estado, programa, participantI
     return () => clearInterval(intervalo);
   }, [oferta.expiraEn]);
 
+  const tieneArgumentoPendiente = Boolean(estado.participantes[participantId]?.argumentoPendienteId);
+  const [retenida, setRetenida] = useState(false);
+
+  useEffect(() => {
+    if (oferta.modo === 'verbal' && tieneArgumentoPendiente) {
+      setRetenida(true);
+      const timeoutId = setTimeout(() => setRetenida(false), 1500);
+      return () => clearTimeout(timeoutId);
+    }
+    setRetenida(false);
+    return undefined;
+  }, [oferta.turnId, oferta.modo, tieneArgumentoPendiente]);
+
   const esVerbal = oferta.modo === 'verbal';
   const penalidad = calcularPenalidadPorRechazoDeTurno(resolverParametrosDePuntaje(programa));
+
+  if (retenida) {
+    return null;
+  }
 
   function aceptar() {
     publicar(EVENTOS.TURNO_ACEPTADO, { turnId: oferta.turnId, participantId });

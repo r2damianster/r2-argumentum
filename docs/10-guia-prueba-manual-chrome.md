@@ -79,6 +79,15 @@ El argumento es **requisito para entrar**. El flujo es: nombre + avatar → cone
 
 Si alguno reaparece es una **regresión real**, va primero en la tabla, severidad alta.
 
+**Arreglados en la ronda del 20 de septiembre de 2026, salas 1902 y 2151 (6 hallazgos de la ronda D1-D4):**
+
+E1. **Regresión D3. Nodos cortados en el host y ⛶ sin reencuadrar** (media): `fitView` se ejecutaba antes de que React Flow midiera los nodos. Se corrigió con dos temporizadores escalonados (`duration: 0` inicial + `duration: 200` de ajuste suave) con limpieza explícita.
+E2. **Posturas desparejas (1/1/3 en sala 2151 con 5 participantes)** (media): `elegirPosturaMenosRepresentada` sólo contaba confirmados y hacía colapsar a todos los no confirmados en la postura con conteo 0. Se refactorizó para simular una asignación virtual determinista entre los participantes no confirmados presentes en la sala (`participantesEnLaSala`).
+E3. **Dilema válido rechazado por Groq ("No contiene afirmación ni razón")** (baja-media): el prompt exigía claim + razón causal. Se incluyó en el prompt de Groq la validación explícita para estructuras de dilemas (dos consecuencias/efectos en tensión).
+E4. **Oferta verbal transitoria ("No queda ningún argumento")** (baja): carrera entre la oferta verbal y la llegada de `ARGUMENTO_PUBLICADO` al host. `PantallaDeTurnoOfrecido` retiene 1.5s las ofertas verbales transitorias mientras hay un argumento recién publicado pendiente de exposición.
+E5. **Minimapa con rectángulos blancos** (baja): rectángulos sin color visible. Se asigna `nodeColor={(n) => n.data?.color}` directamente.
+E6. **Aristas con tramos sobrantes** (baja): overshoot de curvas Bézier. Se configuró `type: 'smoothstep'` para trazar rutas ortogonales limpias.
+
 **Arreglados en la ronda del 19 de septiembre de 2026, sala 6274 (3 fallos, más el flujo nuevo de exposiciones; verificar que aguantan):**
 
 D1. **El modo de calificación volvía a Liviano** (alta). Con Estándar elegido, el log mostraba `programa.publicado` con `estandar` y ~66 s después otro con `liviano`, y el inicio publicó `liviano` de nuevo: el ingreso daba 10 puntos y el botón decía «Rechazar cuesta 2 puntos». La causa exacta del reinicio no se reprodujo; se eliminó el mecanismo que podía pisar el canal (ahora la configuración se publica solo desde los controles) y cada publicación lleva `origen`. **Cómo verificar**: elegir Estándar, entrar 3 personas, esperar más de 90 s, iniciar. En el log de eventos, **todos** los `programa.publicado` deben decir `estandar`; el ingreso da **100** y rechazar cuesta **20**. Si aparece uno con `liviano`, anota su campo `origen` y el instante: dice quién lo publicó. *(Si sigue pasando, es el hallazgo más valioso de la ronda.)*

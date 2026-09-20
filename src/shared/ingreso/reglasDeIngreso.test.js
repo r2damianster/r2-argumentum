@@ -95,6 +95,39 @@ describe('asignación balanceada de posturas', () => {
     expect(Math.max(...porPostura) - Math.min(...porPostura)).toBeLessThanOrEqual(1);
   });
 
+  it('reparte de forma pareja a los participantes no confirmados cuando hay 3 posturas y 2 ya confirmados', () => {
+    const TRES_POSTURAS = [
+      { id: 'izquierda', etiqueta: 'Más estado' },
+      { id: 'matizada', etiqueta: 'Matizada' },
+      { id: 'derecha', etiqueta: 'Más mercado' },
+    ];
+    // Ana (izquierda) y Luis (matizada) ya confirmaron
+    const estado = reducirTodos([
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'ana', stanceId: 'izquierda' }),
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'luis', stanceId: 'matizada' }),
+    ]);
+
+    const quienesOleada2 = ['marta', 'pedro', 'silvia'];
+    const todosEnLaSala = ['ana', 'luis', ...quienesOleada2];
+
+    const asignadasOleada2 = quienesOleada2.map((quien) =>
+      elegirPosturaMenosRepresentada(estado, TRES_POSTURAS, {
+        participantId: quien,
+        participantesEnLaSala: todosEnLaSala,
+      })
+    );
+
+    // Con el algoritmo previo, Marta, Pedro y Silvia obtenían todas 'derecha' (1/1/3).
+    // Con la distribución virtual, cada una recibe una postura diferente (2/2/1).
+    const conteosTotales = TRES_POSTURAS.map((p) => {
+      const confirmados = p.id === 'izquierda' || p.id === 'matizada' ? 1 : 0;
+      const asignadosNuevos = asignadasOleada2.filter((a) => a === p.id).length;
+      return confirmados + asignadosNuevos;
+    });
+
+    expect(Math.max(...conteosTotales) - Math.min(...conteosTotales)).toBeLessThanOrEqual(1);
+  });
+
   it('devuelve null si el Programa no tiene posturas activas', () => {
     expect(elegirPosturaMenosRepresentada(estadoInicial(), [])).toBeNull();
   });
