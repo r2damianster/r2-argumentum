@@ -305,9 +305,27 @@ export function ControlDeFases({ estado, motor, programa, identificadorDeSesion,
         <PanelDeAperturaDelHost estado={estado} motor={motor} />
       ) : (
         faseActual.tipo !== TIPOS_DE_FASE.CIERRE_Y_RANKING && (
-          <button type="button" onClick={motor.cerrarFaseActual}>
-            Cerrar fase actual
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+            {faseActual.tipo === TIPOS_DE_FASE.ESCRITURA_ARGUMENTOS && motor && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span className="texto-de-ayuda">
+                  Ruleta: {estado.turnos.ruletaPausada ? '⏸️ Pausada' : '▶️ Activa'}
+                </span>
+                {estado.turnos.ruletaPausada ? (
+                  <button type="button" onClick={() => motor.reanudarRuleta()}>
+                    ▶️ Reanudar ruleta
+                  </button>
+                ) : (
+                  <button type="button" className="boton-cambiar-programa" onClick={() => motor.pausarRuleta()}>
+                    ⏸️ Pausar ruleta
+                  </button>
+                )}
+              </div>
+            )}
+            <button type="button" onClick={motor.cerrarFaseActual}>
+              Cerrar fase actual
+            </button>
+          </div>
         )
       )}
     </section>

@@ -33,6 +33,8 @@ export const EVENTOS = {
   // desconectó o simplemente no publicó su argumento). Sin esto el turno en curso bloquea la
   // ruleta para siempre: el motor no ofrece otra palabra mientras haya un turno abierto.
   TURNO_TERMINADO_POR_HOST: 'turn.ended_by_host',
+  TURNO_RULETA_PAUSADA: 'turn.roulette_paused',
+  TURNO_RULETA_REANUDADA: 'turn.roulette_resumed',
 
   // "Tengo un argumento escrito y aprobado, esperando mi turno para defenderlo". El turno se
   // ofrece SOLO a quien publicó esto: no es una invitación a escribir (ver docs/04).

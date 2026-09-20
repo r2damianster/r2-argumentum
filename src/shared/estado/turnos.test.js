@@ -139,6 +139,41 @@ describe('rechazo del turno', () => {
   });
 });
 
+describe('cortacircuitos de ruleta y rechazos consecutivos', () => {
+  it('incrementa fallosConsecutivosDeOferta con rechazos y expiraciones', () => {
+    const estado = reducirTodos([
+      evento(EVENTOS.TURNO_RECHAZADO, { turnId: 't1', participantId: 'ana', totalRechazosDelParticipante: 1 }),
+      evento(EVENTOS.TURNO_EXPIRADO, { turnId: 't2', candidateId: 'luis' }),
+    ]);
+
+    expect(estado.turnos.fallosConsecutivosDeOferta).toBe(2);
+  });
+
+  it('reinicia fallosConsecutivosDeOferta a 0 cuando un turno es aceptado', () => {
+    const estado = reducirTodos([
+      evento(EVENTOS.TURNO_RECHAZADO, { turnId: 't1', participantId: 'ana', totalRechazosDelParticipante: 1 }),
+      evento(EVENTOS.TURNO_EXPIRADO, { turnId: 't2', candidateId: 'luis' }),
+      evento(EVENTOS.TURNO_ACEPTADO, { turnId: 't3', participantId: 'marta' }),
+    ]);
+
+    expect(estado.turnos.fallosConsecutivosDeOferta).toBe(0);
+  });
+
+  it('pausa y reanuda la ruleta con los eventos correspondientes', () => {
+    let estado = reducirTodos([
+      evento(EVENTOS.TURNO_RULETA_PAUSADA, { motivo: 'Cortacircuitos por 4 rechazos' }),
+    ]);
+
+    expect(estado.turnos.ruletaPausada).toBe(true);
+    expect(estado.turnos.motivoPausa).toBe('Cortacircuitos por 4 rechazos');
+
+    estado = reducirEventos(estado, evento(EVENTOS.TURNO_RULETA_REANUDADA));
+
+    expect(estado.turnos.ruletaPausada).toBe(false);
+    expect(estado.turnos.fallosConsecutivosDeOferta).toBe(0);
+  });
+});
+
 describe('intervención hablada', () => {
   it('cuenta como intervención y libera el turno', () => {
     const estado = reducirTodos([

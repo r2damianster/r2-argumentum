@@ -64,6 +64,24 @@ export function calcularAvisosParaElModerador(estado, presencia, ahora = Date.no
     return avisos;
   }
 
+  if (estado.turnos.ruletaPausada) {
+    avisos.push({
+      id: 'ruleta-pausada',
+      gravedad: GRAVEDAD.ALTA,
+      texto: 'Alerta: La ruleta de turnos está pausada.',
+      detalle:
+        estado.turnos.motivoPausa ||
+        'Se han rechazado/vencido turnos de forma continua o fue pausada manualmente. Puedes reanudarla o cerrar la fase.',
+    });
+  } else if ((estado.turnos.fallosConsecutivosDeOferta ?? 0) >= 3) {
+    avisos.push({
+      id: 'bucle-turnos-casi-pausado',
+      gravedad: GRAVEDAD.MEDIA,
+      texto: `Atención: ${estado.turnos.fallosConsecutivosDeOferta} turnos consecutivos han sido rechazados o vencieron.`,
+      detalle: 'Si continúa la abstención, la ruleta se pausará automáticamente para evitar un bucle infinito.',
+    });
+  }
+
   // Quien tiene la palabra se quedó sin conexión (cerró la pestaña por error, se le apagó el
   // celular). El motor no ofrece otro turno mientras haya uno abierto, así que sin este aviso el
   // debate parece colgado sin explicación.

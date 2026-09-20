@@ -38,6 +38,7 @@ function generarId(prefijo) {
 // nada (docs/04), no la forma normal de abrir una ronda: sin esta espera se ofrecería en el
 // mismo segundo en que empieza la fase, cuando todavía nadie pudo escribir.
 const ESPERA_ANTES_DEL_TURNO_HABLADO_MS = 60 * 1000;
+const MAX_FALLOS_CONSECUTIVOS_RULETA = 4;
 
 function sorteoPonderado(candidatos, pesos) {
   const pesoTotal = pesos.reduce((suma, peso) => suma + peso, 0);
@@ -223,6 +224,15 @@ export function crearMotorDeSesion({ programa }) {
       return;
     }
     if (estado.turnos.ofertaActiva || estado.turnos.turnoEnCurso) {
+      return;
+    }
+    if (estado.turnos.ruletaPausada) {
+      return;
+    }
+    if ((estado.turnos.fallosConsecutivosDeOferta ?? 0) >= MAX_FALLOS_CONSECUTIVOS_RULETA) {
+      publicar(EVENTOS.TURNO_RULETA_PAUSADA, {
+        motivo: `Se han rechazado o vencido ${MAX_FALLOS_CONSECUTIVOS_RULETA} turnos consecutivos. Ruleta pausada automáticamente para evitar bucle infinito.`,
+      });
       return;
     }
 
@@ -937,6 +947,22 @@ export function crearMotorDeSesion({ programa }) {
     });
   }
 
+  function pausarRuleta() {
+    if (!contexto.estado || estaCerrada()) {
+      return;
+    }
+    contexto.publicar(EVENTOS.TURNO_RULETA_PAUSADA, {
+      motivo: 'Pausada manualmente por el moderador',
+    });
+  }
+
+  function reanudarRuleta() {
+    if (!contexto.estado || estaCerrada()) {
+      return;
+    }
+    contexto.publicar(EVENTOS.TURNO_RULETA_REANUDADA, {});
+  }
+
   function destruir() {
     for (const timeoutId of temporizadoresDeOferta.values()) clearTimeout(timeoutId);
     for (const timeoutId of temporizadoresDeBid.values()) clearTimeout(timeoutId);
@@ -955,6 +981,8 @@ export function crearMotorDeSesion({ programa }) {
     decidirBid,
     cerrarSesion,
     terminarTurnoEnCurso,
+    pausarRuleta,
+    reanudarRuleta,
     reasignarRolplayEquilibrado,
     destruir,
   };

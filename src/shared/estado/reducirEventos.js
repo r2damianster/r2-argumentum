@@ -34,6 +34,9 @@ export function estadoInicial() {
       // Historial de rechazos, para que el motor pueda aplicar la penalidad una sola vez
       // por turno rechazado (ver procesarRechazosDeTurno).
       rechazos: [],
+      ruletaPausada: false,
+      fallosConsecutivosDeOferta: 0,
+      motivoPausa: null,
     },
     argumentos: {},
     intentosEnCurso: {},
@@ -122,6 +125,12 @@ function aplicarEvento(estado, evento) {
       return {
         ...estado,
         fase: { ...estado.fase, actual: { tipo: data.phaseType, ronda: data.ronda ?? null, iniciadaEn: data.timestamp } },
+        turnos: {
+          ...estado.turnos,
+          fallosConsecutivosDeOferta: 0,
+          ruletaPausada: false,
+          motivoPausa: null,
+        },
       };
 
     case EVENTOS.FASE_CERRADA: {
@@ -314,6 +323,7 @@ function aplicarEvento(estado, evento) {
           },
           excluidosTemporalmente: [],
           ultimoResultadoPorTurnId: { ...siguiente.turnos.ultimoResultadoPorTurnId, [data.turnId]: 'accepted' },
+          fallosConsecutivosDeOferta: 0,
         },
       };
     }
@@ -334,6 +344,7 @@ function aplicarEvento(estado, evento) {
           ),
           ultimoResultadoPorTurnId: { ...siguiente.turnos.ultimoResultadoPorTurnId, [data.turnId]: 'rejected' },
           rechazos: [...siguiente.turnos.rechazos, { turnId: data.turnId, participantId: data.participantId }],
+          fallosConsecutivosDeOferta: (siguiente.turnos.fallosConsecutivosDeOferta ?? 0) + 1,
         },
       };
     }
@@ -348,6 +359,7 @@ function aplicarEvento(estado, evento) {
             new Set([...estado.turnos.excluidosTemporalmente, data.candidateId])
           ),
           ultimoResultadoPorTurnId: { ...estado.turnos.ultimoResultadoPorTurnId, [data.turnId]: 'timeout' },
+          fallosConsecutivosDeOferta: (estado.turnos.fallosConsecutivosDeOferta ?? 0) + 1,
         },
       };
 
@@ -368,9 +380,31 @@ function aplicarEvento(estado, evento) {
           turnoEnCurso: { turnId: data.turnId, participantId: data.participantId },
           excluidosTemporalmente: [],
           ultimoResultadoPorTurnId: { ...siguiente.turnos.ultimoResultadoPorTurnId, [data.turnId]: 'forced' },
+          fallosConsecutivosDeOferta: 0,
         },
       };
     }
+
+    case EVENTOS.TURNO_RULETA_PAUSADA:
+      return {
+        ...estado,
+        turnos: {
+          ...estado.turnos,
+          ruletaPausada: true,
+          motivoPausa: data.motivo ?? 'Pausada por el moderador o por abstención de la sala',
+        },
+      };
+
+    case EVENTOS.TURNO_RULETA_REANUDADA:
+      return {
+        ...estado,
+        turnos: {
+          ...estado.turnos,
+          ruletaPausada: false,
+          fallosConsecutivosDeOferta: 0,
+          motivoPausa: null,
+        },
+      };
 
     case EVENTOS.TURNO_TERMINADO_POR_HOST: {
       if (estado.turnos.turnoEnCurso?.turnId !== data.turnId) {

@@ -62,4 +62,19 @@ describe('avisos operativos del moderador', () => {
 
     expect(avisos).toEqual([]);
   });
+
+  it('avisa al moderador cuando la ruleta se pausa o cuando hay fallos consecutivos de turnos', () => {
+    const estadoCasiPausado = [
+      evento(EVENTOS.TURNO_RECHAZADO, { turnId: 't1', participantId: 'ana', totalRechazosDelParticipante: 1 }),
+      evento(EVENTOS.TURNO_EXPIRADO, { turnId: 't2', candidateId: 'luis' }),
+      evento(EVENTOS.TURNO_RECHAZADO, { turnId: 't3', participantId: 'ana', totalRechazosDelParticipante: 2 }),
+    ].reduce((estado, siguiente) => reducirEventos(estado, siguiente), construirEstado('escritura_argumentos'));
+
+    const avisosCasiPausado = calcularAvisosParaElModerador(estadoCasiPausado, PRESENCIA);
+    expect(avisosCasiPausado.map((a) => a.id)).toContain('bucle-turnos-casi-pausado');
+
+    const estadoPausado = reducirEventos(estadoCasiPausado, evento(EVENTOS.TURNO_RULETA_PAUSADA, { motivo: 'Pausada' }));
+    const avisosPausado = calcularAvisosParaElModerador(estadoPausado, PRESENCIA);
+    expect(avisosPausado.map((a) => a.id)).toContain('ruleta-pausada');
+  });
 });

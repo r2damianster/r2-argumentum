@@ -28,6 +28,41 @@ export function PanelDeAvisos({ estado, presencia, motor }) {
                 </button>
               </div>
             )}
+            {aviso.id === 'ruleta-pausada' && motor && (
+              <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => motor.reanudarRuleta()}
+                >
+                  ▶️ Reanudar ruleta
+                </button>
+                <button
+                  type="button"
+                  className="boton-cambiar-programa"
+                  onClick={() => motor.cerrarFaseActual()}
+                >
+                  ⏩ Cerrar fase actual
+                </button>
+              </div>
+            )}
+            {aviso.id === 'bucle-turnos-casi-pausado' && motor && (
+              <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="boton-cambiar-programa"
+                  onClick={() => motor.pausarRuleta()}
+                >
+                  ⏸️ Pausar ruleta
+                </button>
+                <button
+                  type="button"
+                  className="boton-cambiar-programa"
+                  onClick={() => motor.cerrarFaseActual()}
+                >
+                  ⏩ Cerrar fase actual
+                </button>
+              </div>
+            )}
           </li>
         ))}
       </ul>

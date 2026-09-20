@@ -735,3 +735,52 @@ describe('reasignarRolplayEquilibrado', () => {
   });
 });
 
+describe('cortacircuitos de ruleta en el motor de sesión', () => {
+  it('pausa la ruleta automáticamente cuando fallosConsecutivosDeOferta alcanza 4', () => {
+    const estado = estadoEnDebate([
+      evento(EVENTOS.ARGUMENTO_PUBLICADO, { argumentId: 'a1', participantId: 'ana', posicionEnRonda: 1, ronda: 1, pendienteDeExposicion: true }),
+    ]);
+
+    const estadoPausado = {
+      ...estado,
+      turnos: {
+        ...estado.turnos,
+        fallosConsecutivosDeOferta: 4,
+      },
+    };
+
+    const { publicar } = sincronizarCon(estadoPausado);
+    const eventosPausa = eventosPublicados(publicar, EVENTOS.TURNO_RULETA_PAUSADA);
+
+    expect(eventosPausa).toHaveLength(1);
+    expect(eventosPausa[0].motivo).toContain('4 turnos consecutivos');
+  });
+
+  it('no ofrece turnos si la ruleta ya está pausada', () => {
+    const estado = estadoEnDebate([
+      evento(EVENTOS.ARGUMENTO_PUBLICADO, { argumentId: 'a1', participantId: 'ana', posicionEnRonda: 1, ronda: 1, pendienteDeExposicion: true }),
+      evento(EVENTOS.TURNO_RULETA_PAUSADA, { motivo: 'Pausada' }),
+    ]);
+
+    const { publicar } = sincronizarCon(estado);
+    const ofertas = eventosPublicados(publicar, EVENTOS.TURNO_OFRECIDO);
+
+    expect(ofertas).toHaveLength(0);
+  });
+
+  it('permite pausar y reanudar la ruleta manualmente desde el motor', () => {
+    const estado = estadoEnDebate();
+    const { publicar, motor } = sincronizarCon(estado);
+    publicar.mockClear();
+
+    motor.pausarRuleta();
+    let eventosPausa = eventosPublicados(publicar, EVENTOS.TURNO_RULETA_PAUSADA);
+    expect(eventosPausa).toHaveLength(1);
+
+    publicar.mockClear();
+    motor.reanudarRuleta();
+    let eventosReanudados = eventosPublicados(publicar, EVENTOS.TURNO_RULETA_REANUDADA);
+    expect(eventosReanudados).toHaveLength(1);
+  });
+});
+

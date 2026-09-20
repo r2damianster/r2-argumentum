@@ -168,7 +168,11 @@ turn.rejected  { turnId, participantId, totalRechazosDelParticipante }
 turn.timeout   { turnId, candidateId }
 turn.forced    { turnId, participantId }   // ya superó maxRechazosAntesDeForzar, no puede rechazar
 turn.ended_by_host { turnId, participantId }   // el moderador da por terminado un turno que quedó abierto
+turn.roulette_paused { motivo? }            // cortacircuitos (4 rechazos/timeouts seguidos) o pausa manual
+turn.roulette_resumed {}                    // reanudación manual de la ruleta por el moderador
 ```
+
+`turn.roulette_paused` se activa automáticamente cuando se acumulan 4 rechazos o timeouts consecutivos sin que ningún participante acepte el turno (o cuando el moderador la detiene manualmente desde su consola). Al estar pausada, el motor deja de emitir `turn.offered` para prevenir bucles infinitos de abstención. `turn.roulette_resumed` permite al moderador reiniciar el flujo cuando la sala está lista para continuar.
 
 `turn.ended_by_host` existe porque el motor no ofrece otro turno mientras haya uno en curso: si quien hablaba cerró la pestaña o se olvidó de publicar, la ruleta quedaba bloqueada para siempre. Libera `turnoEnCurso` sin contarlo como intervención ni como rechazo, y conserva el `argumentoListo` de esa persona (si vuelve, puede recibir la palabra otra vez).
 
