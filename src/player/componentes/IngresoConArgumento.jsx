@@ -177,17 +177,10 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
       texto,
       stanceId: stanceElegido,
       viaCoModerador: false,
-      // El argumento de ingreso es el boleto de entrada, no una intervención en el debate: se
-      // escribe antes de que empiece y nadie lo escuchó. Sin esta marca el reducer lo contaba
-      // como "ya tomó la palabra" y el turno hablado de respaldo no se le offeredía nunca a
-      // nadie (ver reducirEventos.js y participantesSinIntervenir en reglasDeIngreso.js).
       esArgumentoDeIngreso: true,
       pendienteDeExposicion: true,
     });
     publicar(EVENTOS.INGRESO_CONFIRMADO, { participantId, stanceId: stanceElegido, argumentId, nombre, emoji });
-    // No hace falta esperar nada más: el participante ya está en presencia desde que se
-    // conectó (ver useEstadoDeSesion.js). En cuanto este evento vuelva por el canal, App.jsx
-    // deja de mostrar esta pantalla porque `ingresoConfirmado` pasa a true.
   }
 
   function proponerPosturaNueva() {
@@ -207,6 +200,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
       sugerencia: '',
     });
   }
+
   const [ahora, setAhora] = useState(Date.now());
   const aperturaExpiraEn = estado.apertura?.expiraEn;
 
@@ -296,7 +290,6 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
             <p className="mensaje-de-error">{resultado.mensaje}</p>
             {resultado.sugerencia && <p className="texto-de-ayuda">{resultado.sugerencia}</p>}
             {puedeProponerPostura && (
-              <button type="button" className="boton-cambiar-programa" onClick={proponerPosturaNueva}>
               <button type="button" className="boton-secundario" onClick={proponerPosturaNueva}>
                 Proponer esta postura al moderador
               </button>
@@ -304,7 +297,6 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
             {resultado.decision === DECISIONES.POSTURA_DISTINTA && asignacionEsLibre && (
               <button
                 type="button"
-                className="boton-cambiar-programa"
                 className="boton-secundario"
                 onClick={() => {
                   setStanceElegido(resultado.posturaDetectada);
@@ -355,7 +347,6 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
       {estaAprobado && (
         <div className="paso-de-ingreso">
           <h3>{asignacionPorArgumento ? '2 · Confirmar' : '3 · Confirmar'}</h3>
-          <button type="submit" disabled={confirmando} onClick={confirmarIngreso}>
           <button type="submit" className="boton-exito" disabled={confirmando} onClick={confirmarIngreso}>
             {confirmando ? 'Entrando…' : 'Confirmar mi ingreso al debate'}
           </button>

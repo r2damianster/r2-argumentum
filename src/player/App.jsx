@@ -339,21 +339,23 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
       {sesionCerrada && <PantallaDeResultadoDelParticipante estado={estado} programa={programa} participantId={participantId} />}
 
       {!sesionCerrada && !ingresoConfirmado && (
-        <section className="tarjeta-de-turno-ofrecido">
-          <p className="mensaje-de-error">
-            Estás como oyente: el debate empezó antes de que confirmaras tu argumento de ingreso. Puedes seguir
-            todo lo que pasa, pero no recibes turnos ni puntaje.
-          </p>
-        </section>
-        <FormularioDeContraargumentoParaOyentes
-          estado={estado}
-          programa={programa}
-          presencia={presencia}
-          participantId={participantId}
-          nombre={nombre}
-          emoji={emoji}
-          publicar={publicar}
-        />
+        <>
+          <section className="tarjeta-de-turno-ofrecido">
+            <p className="mensaje-de-error">
+              Estás como oyente: el debate empezó antes de que confirmaras tu argumento de ingreso. Puedes seguir
+              todo lo que pasa, pero no recibes turnos ni puntaje.
+            </p>
+          </section>
+          <FormularioDeContraargumentoParaOyentes
+            estado={estado}
+            programa={programa}
+            presencia={presencia}
+            participantId={participantId}
+            nombre={nombre}
+            emoji={emoji}
+            publicar={publicar}
+          />
+        </>
       )}
 
       {!sesionCerrada && sinArgumentoDeApertura && (

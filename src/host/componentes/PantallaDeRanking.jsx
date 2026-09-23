@@ -1,4 +1,3 @@
-import { calcularRankingPorPostura } from '../../shared/estado/seleccionesDerivadas.js';
 import {
   calcularRankingPorPostura,
   calcularPodioDePosturas,
@@ -34,7 +33,6 @@ export function PantallaDeRanking({ estado, eventos, programa, presencia, motor,
 
   return (
     <section className="tarjeta-de-ranking" id="ranking-del-debate">
-      <h3>{sesionCerrada ? 'Ranking final' : 'Ranking parcial (el debate sigue en curso)'}</h3>
       <h3>{sesionCerrada ? '🏆 Marcador y Podios finales' : '📊 Marcador y Podios parciales (el debate sigue)'}</h3>
       {!sesionCerrada && hayExposicionesPorAplicar && (
         <p className="texto-de-ayuda">
@@ -42,17 +40,6 @@ export function PantallaDeRanking({ estado, eventos, programa, presencia, motor,
           (co-moderadores y tuyas). Revísalas antes en «Evaluación de exposiciones».
         </p>
       )}
-      {Object.entries(ranking).map(([stanceId, participantes]) => (
-        <div key={stanceId} className="columna-de-ranking">
-          <h4 style={{ color: posturaPorId[stanceId]?.color }}>{posturaPorId[stanceId]?.etiqueta}</h4>
-          <ol>
-            {participantes.map((participante) => (
-              <li key={participante.participantId}>
-                {participante.tier === 'Sólido' ? '🥇' : participante.tier === 'Consistente' ? '🥈' : '🥉'}{' '}
-                {participante.emoji} {participante.nombre} — {participante.puntajeTotal} pts ({participante.tier})
-              </li>
-            ))}
-          </ol>
 
       {/* 1. PODIO DE POSTURAS (Postura vs Postura con Argumentos Centrales) */}
       <div className="seccion-podio">
@@ -69,7 +56,7 @@ export function PantallaDeRanking({ estado, eventos, programa, presencia, motor,
                   <span style={{ color: postura.color, fontSize: '1.05rem' }}>
                     {medalla} {postura.etiqueta}
                   </span>
-                  <span style={{ color: var(--color-marca-oscuro), fontWeight: 'bold' }}>
+                  <span style={{ color: 'var(--color-marca-oscuro)', fontWeight: 'bold' }}>
                     {postura.puntajeTotalPostura} pts
                   </span>
                 </div>
@@ -95,7 +82,6 @@ export function PantallaDeRanking({ estado, eventos, programa, presencia, motor,
             );
           })}
         </div>
-      ))}
       </div>
 
       {/* 2. PODIO INDIVIDUAL DE ESTUDIANTES */}
@@ -147,22 +133,17 @@ export function PantallaDeRanking({ estado, eventos, programa, presencia, motor,
 
       <div className="acciones-del-ranking">
         {!sesionCerrada && (
-          <button type="button" onClick={motor.cerrarSesion}>
-            Cerrar debate
           <button type="button" className="boton-peligro" onClick={motor.cerrarSesion}>
             🛑 Cerrar debate
           </button>
         )}
-        <button type="button" onClick={() => imprimirInformeComoPDF(programa.titulo)}>
         <button type="button" className="boton-exito" onClick={() => imprimirInformeComoPDF(programa.titulo)}>
           📄 Descargar informe (PDF)
         </button>
-        <button type="button" onClick={manejarDescargaDeJSON}>
         <button type="button" className="boton-secundario" onClick={manejarDescargaDeJSON}>
           💾 Descargar sesión (.json)
         </button>
         {sesionCerrada && (
-          <button type="button" onClick={manejarNuevoDebate}>
           <button type="button" className="boton-primario" onClick={manejarNuevoDebate}>
             ➕ Iniciar un debate nuevo
           </button>

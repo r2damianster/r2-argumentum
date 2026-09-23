@@ -1,4 +1,3 @@
-import { calcularRankingPorPostura, nombreDeParticipante } from '../../shared/estado/seleccionesDerivadas.js';
 import {
   calcularRankingPorPostura,
   calcularPodioIndividual,
@@ -66,12 +65,6 @@ export function InformeDelDebate({ estado, programa, presencia, eventos }) {
           </p>
         </header>
 
-        <h2>Resultados por postura</h2>
-        {programa.posturas.map((postura) => {
-          const deEstaPostura = ranking[postura.id] ?? [];
-          if (deEstaPostura.length === 0) {
-            return null;
-          }
         {/* 1. PRIMERO EN PDF: LISTA INDIVIDUAL DE ESTUDIANTES (POR PERSONA, INCLUYENDO DE 0 PTS) */}
         <h2>1. Lista Individual de Estudiantes (Por persona)</h2>
         <table className="tabla-del-informe" style={{ marginBottom: '20px' }}>
@@ -111,8 +104,6 @@ export function InformeDelDebate({ estado, programa, presencia, eventos }) {
         {podioPosturas.map((postura, idx) => {
           const integrantesDePostura = ranking[postura.stanceId] ?? [];
           return (
-            <div key={postura.id} className="bloque-del-informe">
-              <h3>{postura.etiqueta}</h3>
             <div key={postura.stanceId} className="bloque-del-informe" style={{ marginBottom: '16px' }}>
               <h3 style={{ color: postura.color }}>
                 #{idx + 1} {postura.etiqueta} — Total: {postura.puntajeTotalPostura} pts (Promedio: {postura.promedioPuntaje} pts/integrante)
@@ -128,18 +119,14 @@ export function InformeDelDebate({ estado, programa, presencia, eventos }) {
                 <thead>
                   <tr>
                     <th>Estudiante</th>
-                    <th>Puntaje</th>
                     <th>Puntaje Individual</th>
                     <th>Nivel</th>
                     <th>Intervenciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {deEstaPostura.map((participante) => (
                   {integrantesDePostura.map((participante) => (
                     <tr key={participante.participantId}>
-                      <td>{participante.nombre}</td>
-                      <td>{participante.puntajeTotal}</td>
                       <td>
                         {participante.emoji} {participante.nombre}
                       </td>

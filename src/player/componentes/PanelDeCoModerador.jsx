@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
+import { EVENTOS, TIPOS_DE_RELACION, TIPOS_DE_BID } from '../../shared/eventos/nombresDeEventos.js';
 import {
   obtenerArgumentosSinValidar,
   obtenerBidsAbiertos,
@@ -58,7 +58,6 @@ function FilaDeValidacion({ argumento, participantId, publicar }) {
         <input type="checkbox" checked={faltaMarcada} onChange={(evento) => setFaltaMarcada(evento.target.checked)} />
         Marcar falta
       </label>
-      <button type="button" onClick={confirmar}>
       <button type="button" className="boton-exito" onClick={confirmar}>
         Confirmar validación
       </button>
@@ -116,7 +115,6 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
                     <strong>{nombreDe(exposicion.participantId)}</strong>{' '}
                     {exposicion.estado === 'en_curso' ? '🎙️ está hablando ahora' : 'ya terminó de exponer'}
                   </p>
-                  {argumento && <p className="texto-de-ayuda">“{argumento.texto}”</p>}
                   {argumento && (
                     <div className="vista-previa-argumento-completo">
                       <header>
@@ -126,15 +124,17 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
                     </div>
                   )}
                   {argumentoAlQueResponde && (
-                    <p className="texto-de-ayuda">
-                      Responde a: “{argumentoAlQueResponde.texto.slice(0, 90)}…”
-                    </p>
-                    <div className="vista-previa-argumento-completo">
-                      <header>
-                        <span>Responde al argumento</span>
-                      </header>
-                      <p className="vista-previa-argumento-texto">“{argumentoAlQueResponde.texto}”</p>
-                    </div>
+                    <>
+                      <p className="texto-de-ayuda">
+                        Responde a: “{argumentoAlQueResponde.texto.slice(0, 90)}…”
+                      </p>
+                      <div className="vista-previa-argumento-completo">
+                        <header>
+                          <span>Responde al argumento</span>
+                        </header>
+                        <p className="vista-previa-argumento-texto">“{argumentoAlQueResponde.texto}”</p>
+                      </div>
+                    </>
                   )}
                   <div className="botonera-de-bid">
                     {CALIDADES_EN_ORDEN_DE_BOTONES.map((calidad) => (
@@ -170,9 +170,6 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
           <ul className="lista-de-bids-pendientes">
             {bidsAbiertos.map((bid) => (
               <li key={bid.bidId}>
-                <p>
-                  {bid.tipoDeBid}: "{bid.texto.slice(0, 60)}…"
-                </p>
                 <div className="vista-previa-argumento-completo">
                   <header>
                     <span>{bid.tipoDeBid === TIPOS_DE_BID.DESMONTAR ? '💥 Bid: Desmontar' : '💪 Bid: Fortalecer'}</span>
@@ -180,11 +177,9 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
                   <p className="vista-previa-argumento-texto">"{bid.texto}"</p>
                 </div>
                 <div className="botonera-de-bid">
-                  <button type="button" onClick={() => votar(bid.bidId, 'aprueba')}>
                   <button type="button" className="boton-exito" onClick={() => votar(bid.bidId, 'aprueba')}>
                     Aprueba
                   </button>
-                  <button type="button" className="boton-cambiar-programa" onClick={() => votar(bid.bidId, 'rechaza')}>
                   <button type="button" className="boton-peligro" onClick={() => votar(bid.bidId, 'rechaza')}>
                     Rechaza
                   </button>
@@ -237,7 +232,6 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
                   </button>
                   <button
                     type="button"
-                    className="boton-cambiar-programa"
                     className="boton-secundario"
                     onClick={() => calificarIntervencion(intervencion.intervencionId, 'aceptable')}
                   >
@@ -245,7 +239,6 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
                   </button>
                   <button
                     type="button"
-                    className="boton-cambiar-programa"
                     className="boton-peligro"
                     onClick={() => calificarIntervencion(intervencion.intervencionId, 'insuficiente')}
                   >

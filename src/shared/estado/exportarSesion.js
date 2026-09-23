@@ -1,7 +1,6 @@
 // Export de sesión al cierre — ver campo `exportaJSON` del Programa (docs/03-programa-de-debate.md).
 // No requiere servidor: cada cliente ya tiene el log completo por haber estado suscrito al canal.
 
-import { calcularRankingPorPostura } from './seleccionesDerivadas.js';
 import {
   calcularRankingPorPostura,
   calcularPodioIndividual,
@@ -23,13 +22,10 @@ export function exportarSesion({ eventos, estado, programa, presencia = [] }) {
     const presente = presencia.find((p) => p.participantId === participante.participantId);
     return {
       participantId: participante.participantId,
-      nombre: presente?.nombre ?? null,
-      emoji: presente?.emoji ?? null,
       nombre: presente?.nombre ?? participante.nombre ?? null,
       emoji: presente?.emoji ?? participante.emoji ?? null,
       rol: participante.rol,
       stanceId: participante.stanceId,
-      puntajeTotal: participante.puntajeTotal,
       puntajeTotal: participante.puntajeTotal ?? 0,
       argumentosEscritos: Object.values(estado.argumentos).filter(
         (argumento) => argumento.participantId === participante.participantId

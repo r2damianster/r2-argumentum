@@ -116,22 +116,10 @@ function PanelDeAperturaDelHost({ estado, motor }) {
     ).length;
 
     return (
-      <div className="panel-de-apertura-host">
-        <p className="texto-de-ayuda">
-          {tiempoAgotado
-            ? 'Tiempo agotado.'
-            : `Tiempo restante: ${segundosRestantes}s`}{' '}
-          — pregunta a los estudiantes si ya todos ingresaron su argumento.
       <div className={`panel-cronometro-apertura ${claseSemaforo}`}>
         <p className="texto-de-ayuda" style={{ color: 'inherit', margin: 0 }}>
           {tiempoAgotado ? '⚠️ Tiempo agotado de la apertura' : '⏱️ Tiempo restante para redactar e ingresar'}
         </p>
-        <button type="button" onClick={() => motor.cerrarRondaDeApertura()}>
-          {tiempoAgotado ? 'Cerrar ronda ya' : 'Cerrar ronda ahora (ya terminaron)'}
-        </button>
-        {apertura.ronda === 1 && (
-          <button type="button" onClick={motor.extenderRondaDeApertura}>
-            Dar 1 minuto más
         <div className="reloj-gigante-apertura">{relojFormateado}</div>
         <p className="texto-de-ayuda" style={{ color: 'inherit', fontWeight: 'bold', marginBottom: '12px' }}>
           📝 {participantesConfirmados} de {participantesTotales} argumento(s) de ingreso confirmados
@@ -144,7 +132,6 @@ function PanelDeAperturaDelHost({ estado, motor }) {
           >
             {tiempoAgotado ? '🛑 Cerrar ronda ya' : '⏹️ Cerrar ronda ahora (ya terminaron)'}
           </button>
-        )}
           {apertura.ronda === 1 && (
             <button type="button" className="boton-exito" onClick={motor.extenderRondaDeApertura}>
               ➕ Dar 1 minuto más
@@ -158,19 +145,10 @@ function PanelDeAperturaDelHost({ estado, motor }) {
   if (apertura.esperandoSegundaOportunidad) {
     const pendientes = apertura.ultimoCierre?.pendientes ?? [];
     return (
-      <div className="panel-de-apertura-host">
-        <p className="texto-de-ayuda">
-          Faltan {pendientes.length} participante(s) sin argumento aprobado. ¿Das otra oportunidad de 1 minuto?
       <div className="panel-cronometro-apertura semaforo-amarillo">
         <p className="texto-de-ayuda" style={{ color: 'inherit' }}>
           Faltan <strong>{pendientes.length}</strong> participante(s) sin argumento aprobado. ¿Das otra oportunidad de 1 minuto?
         </p>
-        <button type="button" onClick={motor.abrirSegundaOportunidadDeApertura}>
-          Sí, dar 1 minuto más
-        </button>
-        <button type="button" onClick={() => motor.cerrarRondaDeApertura({ forzarFinal: true })}>
-          No, continuar sin ellos
-        </button>
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '10px' }}>
           <button type="button" className="boton-exito" onClick={motor.abrirSegundaOportunidadDeApertura}>
             Sí, dar 1 minuto más
