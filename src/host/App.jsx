@@ -574,6 +574,7 @@ function TarjetaResumenDeConfiguracion({ programa, onModificarConfiguracion }) {
         <li><strong>Modo de asignación:</strong> {NOMBRES_MODO_ASIGNACION[programa.asignacionPostura] ?? programa.asignacionPostura}</li>
         <li><strong>Modo de calificación:</strong> {perfilObj.etiqueta} ({perfilObj.valoresBasePosicion.join(' / ')} pts)</li>
         <li><strong>Idioma:</strong> {idiomaObj.etiqueta}</li>
+        <li><strong>Tiempo de apertura inicial:</strong> {programa.tiempoAperturaMinutos ?? 3} minutos</li>
         <li><strong>Posturas nuevas propuestas:</strong> {programa.permitirPosturasNuevas ? 'Permitidas' : 'No permitidas'}</li>
       </ul>
     </div>
