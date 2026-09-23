@@ -59,6 +59,7 @@ function FilaDeValidacion({ argumento, participantId, publicar }) {
         Marcar falta
       </label>
       <button type="button" onClick={confirmar}>
+      <button type="button" className="boton-exito" onClick={confirmar}>
         Confirmar validación
       </button>
     </li>
@@ -116,16 +117,37 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
                     {exposicion.estado === 'en_curso' ? '🎙️ está hablando ahora' : 'ya terminó de exponer'}
                   </p>
                   {argumento && <p className="texto-de-ayuda">“{argumento.texto}”</p>}
+                  {argumento && (
+                    <div className="vista-previa-argumento-completo">
+                      <header>
+                        <span>Argumento expuesto</span>
+                      </header>
+                      <p className="vista-previa-argumento-texto">“{argumento.texto}”</p>
+                    </div>
+                  )}
                   {argumentoAlQueResponde && (
                     <p className="texto-de-ayuda">
                       Responde a: “{argumentoAlQueResponde.texto.slice(0, 90)}…”
                     </p>
+                    <div className="vista-previa-argumento-completo">
+                      <header>
+                        <span>Responde al argumento</span>
+                      </header>
+                      <p className="vista-previa-argumento-texto">“{argumentoAlQueResponde.texto}”</p>
+                    </div>
                   )}
                   <div className="botonera-de-bid">
                     {CALIDADES_EN_ORDEN_DE_BOTONES.map((calidad) => (
                       <button
                         key={calidad}
                         type="button"
+                        className={
+                          calidad === 'excelente' || calidad === 'buena'
+                            ? 'boton-exito'
+                            : calidad === 'aceptable'
+                            ? 'boton-secundario'
+                            : 'boton-peligro'
+                        }
                         onClick={() => calificarExposicion(exposicion.argumentId, calidad)}
                       >
                         {ETIQUETA_DE_CALIDAD_DE_EXPOSICION[calidad]}
@@ -151,11 +173,19 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
                 <p>
                   {bid.tipoDeBid}: "{bid.texto.slice(0, 60)}…"
                 </p>
+                <div className="vista-previa-argumento-completo">
+                  <header>
+                    <span>{bid.tipoDeBid === TIPOS_DE_BID.DESMONTAR ? '💥 Bid: Desmontar' : '💪 Bid: Fortalecer'}</span>
+                  </header>
+                  <p className="vista-previa-argumento-texto">"{bid.texto}"</p>
+                </div>
                 <div className="botonera-de-bid">
                   <button type="button" onClick={() => votar(bid.bidId, 'aprueba')}>
+                  <button type="button" className="boton-exito" onClick={() => votar(bid.bidId, 'aprueba')}>
                     Aprueba
                   </button>
                   <button type="button" className="boton-cambiar-programa" onClick={() => votar(bid.bidId, 'rechaza')}>
+                  <button type="button" className="boton-peligro" onClick={() => votar(bid.bidId, 'rechaza')}>
                     Rechaza
                   </button>
                 </div>
@@ -200,6 +230,7 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
                 <div className="botonera-de-bid">
                   <button
                     type="button"
+                    className="boton-exito"
                     onClick={() => calificarIntervencion(intervencion.intervencionId, 'buena')}
                   >
                     Aportó una razón
@@ -207,6 +238,7 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
                   <button
                     type="button"
                     className="boton-cambiar-programa"
+                    className="boton-secundario"
                     onClick={() => calificarIntervencion(intervencion.intervencionId, 'aceptable')}
                   >
                     Aceptable
@@ -214,6 +246,7 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
                   <button
                     type="button"
                     className="boton-cambiar-programa"
+                    className="boton-peligro"
                     onClick={() => calificarIntervencion(intervencion.intervencionId, 'insuficiente')}
                   >
                     Solo opinión

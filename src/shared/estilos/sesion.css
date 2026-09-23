@@ -952,3 +952,167 @@ input {
   background: rgba(245, 158, 11, 0.15);
 }
 
+/* Vista previa completa de argumentos (para selects y co-moderación) */
+.vista-previa-argumento-completo {
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-left: 4px solid var(--color-marca);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 10px 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+.vista-previa-argumento-completo header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.82rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+.vista-previa-argumento-texto {
+  margin: 0;
+  color: #0f172a;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Temporizador con semáforo de apertura inicial */
+.panel-cronometro-apertura {
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin: 0 0 16px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.semaforo-verde {
+  background: #f0fdf4;
+  border: 2px solid #22c55e;
+  color: #15803d;
+}
+
+.semaforo-amarillo {
+  background: #fffbeb;
+  border: 2px solid #f59e0b;
+  color: #b45309;
+}
+
+.semaforo-rojo {
+  background: #fef2f2;
+  border: 2px solid #ef4444;
+  color: #b91c1c;
+  animation: pulsoSemaforoRojo 1.5s infinite ease-in-out;
+}
+
+@keyframes pulsoSemaforoRojo {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+}
+
+.reloj-gigante-apertura {
+  font-size: 2.8rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+  margin: 4px 0 8px;
+}
+
+.banner-cronometro-player {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin-bottom: 14px;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+/* Estilos de Doble Podio en vivo */
+.seccion-podio {
+  margin-bottom: 24px;
+}
+
+.seccion-podio h4 {
+  font-size: 1.15rem;
+  margin: 0 0 12px;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 6px;
+}
+
+.grilla-podio-posturas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.tarjeta-podio-postura {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tarjeta-podio-postura-1 {
+  border-color: #eab308;
+  background: linear-gradient(180deg, #fefce8 0%, #ffffff 100%);
+}
+
+.tarjeta-podio-postura-2 {
+  border-color: #94a3b8;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.tarjeta-podio-postura-3 {
+  border-color: #d97706;
+  background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+}
+
+.encabezado-podio-postura {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+}
+
+.argumentos-destacados-postura {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  color: #334155;
+}
+
+.argumentos-destacados-postura li {
+  background: rgba(241, 245, 249, 0.8);
+  border-left: 3px solid var(--color-marca);
+  padding: 6px 8px;
+  border-radius: 0 6px 6px 0;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+

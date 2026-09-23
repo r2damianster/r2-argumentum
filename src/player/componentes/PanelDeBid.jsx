@@ -41,6 +41,8 @@ export function PanelDeBid({ estado, participantId, turnoEnCurso, publicar }) {
     setArgumentoObjetivoId('');
   }
 
+  const argumentoObjetivoSeleccionado = estado.argumentos[argumentoObjetivoId];
+
   return (
     <section className="tarjeta-de-bid">
       <p className="texto-de-ayuda">
@@ -83,12 +85,25 @@ export function PanelDeBid({ estado, participantId, turnoEnCurso, publicar }) {
               ))}
             </select>
           </label>
+
+          {argumentoObjetivoSeleccionado && (
+            <div className="vista-previa-argumento-completo">
+              <header>
+                <span>Argumento objetivo completo</span>
+              </header>
+              <p className="vista-previa-argumento-texto">{argumentoObjetivoSeleccionado.texto}</p>
+            </div>
+          )}
+
           <label>
             Tu intervención (es el texto final si se aprueba)
             <textarea value={texto} onChange={(evento) => setTexto(evento.target.value)} rows={3} />
           </label>
           {avisoDeCampoFaltante && <p className="mensaje-de-error">{avisoDeCampoFaltante}</p>}
           <button type="submit">Lanzar bid</button>
+          <button type="submit" className="boton-primario">
+            Lanzar bid
+          </button>
         </form>
       )}
     </section>

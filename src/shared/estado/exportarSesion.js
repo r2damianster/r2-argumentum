@@ -2,6 +2,11 @@
 // No requiere servidor: cada cliente ya tiene el log completo por haber estado suscrito al canal.
 
 import { calcularRankingPorPostura } from './seleccionesDerivadas.js';
+import {
+  calcularRankingPorPostura,
+  calcularPodioIndividual,
+  calcularPodioDePosturas,
+} from './seleccionesDerivadas.js';
 
 export function exportarSesion({ eventos, estado, programa, presencia = [] }) {
   const mapaArgumental = Object.values(estado.argumentos).map((argumento) => ({
@@ -11,15 +16,21 @@ export function exportarSesion({ eventos, estado, programa, presencia = [] }) {
     ),
   }));
 
+  const podioIndividual = calcularPodioIndividual(estado, presencia);
+  const podioColaborativoPorPostura = calcularPodioDePosturas(estado, programa, presencia);
+
   const perfilPorEstudiante = Object.values(estado.participantes).map((participante) => {
     const presente = presencia.find((p) => p.participantId === participante.participantId);
     return {
       participantId: participante.participantId,
       nombre: presente?.nombre ?? null,
       emoji: presente?.emoji ?? null,
+      nombre: presente?.nombre ?? participante.nombre ?? null,
+      emoji: presente?.emoji ?? participante.emoji ?? null,
       rol: participante.rol,
       stanceId: participante.stanceId,
       puntajeTotal: participante.puntajeTotal,
+      puntajeTotal: participante.puntajeTotal ?? 0,
       argumentosEscritos: Object.values(estado.argumentos).filter(
         (argumento) => argumento.participantId === participante.participantId
       ).length,
@@ -39,6 +50,8 @@ export function exportarSesion({ eventos, estado, programa, presencia = [] }) {
     // Calificaciones de las exposiciones orales (co-moderadores y decisión del moderador); los
     // ajustes de puntaje que produjeron quedan en el log como score.updated al cerrar la sesión.
     exposiciones: Object.values(estado.exposiciones ?? {}),
+    podioIndividual,
+    podioColaborativoPorPostura,
     rankingPorPostura: calcularRankingPorPostura(estado, programa, presencia),
     perfilPorEstudiante,
   };

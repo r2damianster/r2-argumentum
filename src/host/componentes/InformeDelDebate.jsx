@@ -1,4 +1,10 @@
 import { calcularRankingPorPostura, nombreDeParticipante } from '../../shared/estado/seleccionesDerivadas.js';
+import {
+  calcularRankingPorPostura,
+  calcularPodioIndividual,
+  calcularPodioDePosturas,
+  nombreDeParticipante,
+} from '../../shared/estado/seleccionesDerivadas.js';
 import { calcularNivelPromedioDeExposicion } from '../../shared/puntaje/evaluacionDeExposiciones.js';
 import {
   ETIQUETA_DE_CALIDAD_DE_EXPOSICION,
@@ -23,6 +29,8 @@ function describirDecisionParaElInforme(decisionModerador) {
 // papel. Ver docs/03, campo `exportaPDF`. El botón para generarlo vive una sola vez, junto al
 // ranking (PantallaDeRanking), con el resto de las acciones de cierre.
 export function InformeDelDebate({ estado, programa, presencia, eventos }) {
+  const podioIndividual = calcularPodioIndividual(estado, presencia);
+  const podioPosturas = calcularPodioDePosturas(estado, programa, presencia);
   const ranking = calcularRankingPorPostura(estado, programa, presencia);
   const argumentos = Object.values(estado.argumentos).sort((a, b) => a.timestamp - b.timestamp);
   const conexiones = Object.values(estado.conexiones);
@@ -64,23 +72,78 @@ export function InformeDelDebate({ estado, programa, presencia, eventos }) {
           if (deEstaPostura.length === 0) {
             return null;
           }
+        {/* 1. PRIMERO EN PDF: LISTA INDIVIDUAL DE ESTUDIANTES (POR PERSONA, INCLUYENDO DE 0 PTS) */}
+        <h2>1. Lista Individual de Estudiantes (Por persona)</h2>
+        <table className="tabla-del-informe" style={{ marginBottom: '20px' }}>
+          <thead>
+            <tr>
+              <th>Posición</th>
+              <th>Estudiante</th>
+              <th>Postura</th>
+              <th>Puntaje Total</th>
+              <th>Nivel / Tier</th>
+              <th>Intervenciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {podioIndividual.map((participante) => {
+              const postura = posturaPorId[participante.stanceId];
+              return (
+                <tr key={participante.participantId}>
+                  <td>#{participante.posicion}</td>
+                  <td>
+                    {participante.emoji} {participante.nombre}
+                  </td>
+                  <td>{postura ? postura.etiqueta : 'Sin postura'}</td>
+                  <td>
+                    <strong>{participante.puntajeTotal} pts</strong>
+                  </td>
+                  <td>{participante.tier}</td>
+                  <td>{estado.participantes[participante.participantId]?.intervenciones ?? 0}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* 2. SEGUNDO EN PDF: LISTA COLABORATIVA POR POSTURA (POR POSTURA) */}
+        <h2>2. Lista Colaborativa por Postura (Por bando)</h2>
+        {podioPosturas.map((postura, idx) => {
+          const integrantesDePostura = ranking[postura.stanceId] ?? [];
           return (
             <div key={postura.id} className="bloque-del-informe">
               <h3>{postura.etiqueta}</h3>
+            <div key={postura.stanceId} className="bloque-del-informe" style={{ marginBottom: '16px' }}>
+              <h3 style={{ color: postura.color }}>
+                #{idx + 1} {postura.etiqueta} — Total: {postura.puntajeTotalPostura} pts (Promedio: {postura.promedioPuntaje} pts/integrante)
+              </h3>
+
+              {postura.argumentosCentrales.length > 0 && (
+                <p className="texto-de-ayuda" style={{ fontStyle: 'italic', margin: '4px 0 8px' }}>
+                  💬 Argumentos centrales: {postura.argumentosCentrales.map((a) => `"${a.texto}"`).join(' | ')}
+                </p>
+              )}
+
               <table className="tabla-del-informe">
                 <thead>
                   <tr>
                     <th>Estudiante</th>
                     <th>Puntaje</th>
+                    <th>Puntaje Individual</th>
                     <th>Nivel</th>
                     <th>Intervenciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {deEstaPostura.map((participante) => (
+                  {integrantesDePostura.map((participante) => (
                     <tr key={participante.participantId}>
                       <td>{participante.nombre}</td>
                       <td>{participante.puntajeTotal}</td>
+                      <td>
+                        {participante.emoji} {participante.nombre}
+                      </td>
+                      <td>{participante.puntajeTotal} pts</td>
                       <td>{participante.tier}</td>
                       <td>{estado.participantes[participante.participantId]?.intervenciones ?? 0}</td>
                     </tr>

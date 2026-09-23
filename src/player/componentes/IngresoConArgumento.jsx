@@ -207,9 +207,37 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
       sugerencia: '',
     });
   }
+  const [ahora, setAhora] = useState(Date.now());
+  const aperturaExpiraEn = estado.apertura?.expiraEn;
+
+  useEffect(() => {
+    if (!aperturaExpiraEn || estado.apertura?.cerrada) {
+      return undefined;
+    }
+    const intervalo = setInterval(() => setAhora(Date.now()), 1000);
+    return () => clearInterval(intervalo);
+  }, [aperturaExpiraEn, estado.apertura?.cerrada]);
+
+  const segundosRestantes = aperturaExpiraEn ? Math.max(0, Math.round((aperturaExpiraEn - ahora) / 1000)) : null;
+  const minutosPlayer = segundosRestantes !== null ? Math.floor(segundosRestantes / 60) : 0;
+  const segundosPlayer = segundosRestantes !== null ? segundosRestantes % 60 : 0;
+  const relojPlayer = segundosRestantes !== null ? `${String(minutosPlayer).padStart(2, '0')}:${String(segundosPlayer).padStart(2, '0')}` : null;
+  const claseSemaforoPlayer =
+    segundosRestantes !== null && segundosRestantes <= 30
+      ? 'semaforo-rojo'
+      : segundosRestantes !== null && segundosRestantes <= 60
+      ? 'semaforo-amarillo'
+      : 'semaforo-verde';
 
   return (
     <section className="tarjeta-de-ingreso">
+      {relojPlayer && (
+        <div className={`banner-cronometro-player ${claseSemaforoPlayer}`}>
+          <span>⏱️ Tiempo para confirmar ingreso:</span>
+          <span>{relojPlayer}</span>
+        </div>
+      )}
+
       <h2>Para entrar al debate</h2>
       <p className="texto-de-ayuda">
         Necesitas una postura y un argumento que la defienda. Hasta que lo confirmes, nadie te ve en la sala.
@@ -269,6 +297,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
             {resultado.sugerencia && <p className="texto-de-ayuda">{resultado.sugerencia}</p>}
             {puedeProponerPostura && (
               <button type="button" className="boton-cambiar-programa" onClick={proponerPosturaNueva}>
+              <button type="button" className="boton-secundario" onClick={proponerPosturaNueva}>
                 Proponer esta postura al moderador
               </button>
             )}
@@ -276,6 +305,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
               <button
                 type="button"
                 className="boton-cambiar-programa"
+                className="boton-secundario"
                 onClick={() => {
                   setStanceElegido(resultado.posturaDetectada);
                   setResultado(null);
@@ -313,6 +343,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
         {!estaAprobado && (
           <button
             type="button"
+            className="boton-primario"
             disabled={revisando || !texto.trim() || (!stanceElegido && !asignacionPorArgumento)}
             onClick={revisarConGroq}
           >
@@ -325,6 +356,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
         <div className="paso-de-ingreso">
           <h3>{asignacionPorArgumento ? '2 · Confirmar' : '3 · Confirmar'}</h3>
           <button type="submit" disabled={confirmando} onClick={confirmarIngreso}>
+          <button type="submit" className="boton-exito" disabled={confirmando} onClick={confirmarIngreso}>
             {confirmando ? 'Entrando…' : 'Confirmar mi ingreso al debate'}
           </button>
         </div>

@@ -6,6 +6,8 @@ import {
   completarPresenciaConParticipantes,
   nombreDeParticipante,
   obtenerExposicionesSinCalificar,
+  calcularPodioDePosturas,
+  calcularPodioIndividual,
 } from './seleccionesDerivadas.js';
 
 function evento(name, data = {}) {
@@ -178,5 +180,39 @@ describe('exposiciones por calificar de un co-moderador', () => {
     });
 
     expect(pendientes.map((exposicion) => exposicion.argumentId)).toEqual(['a1']);
+  });
+});
+
+describe('podios de posturas e individual', () => {
+  const programaSimulado = {
+    posturas: [
+      { id: 'izquierda', etiqueta: 'Izquierda', color: '#2563eb' },
+      { id: 'derecha', etiqueta: 'Derecha', color: '#dc2626' },
+    ],
+  };
+
+  const estadoSimulado = reducir([
+    evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'ana', stanceId: 'izquierda', nombre: 'Ana' }),
+    evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'luis', stanceId: 'derecha', nombre: 'Luis' }),
+    evento(EVENTOS.PUNTAJE_ACTUALIZADO, { participantId: 'ana', delta: 50, nuevoTotal: 50 }),
+    evento(EVENTOS.PUNTAJE_ACTUALIZADO, { participantId: 'luis', delta: 20, nuevoTotal: 20 }),
+    evento(EVENTOS.ARGUMENTO_PUBLICADO, { argumentId: 'a1', participantId: 'ana', stanceId: 'izquierda', texto: 'Premisa A' }),
+  ]);
+
+  it('calcularPodioDePosturas ordena las posturas por puntaje total acumulado', () => {
+    const podio = calcularPodioDePosturas(estadoSimulado, programaSimulado, []);
+    expect(podio[0].stanceId).toBe('izquierda');
+    expect(podio[0].puntajeTotalPostura).toBe(50);
+    expect(podio[1].stanceId).toBe('derecha');
+    expect(podio[1].puntajeTotalPostura).toBe(20);
+  });
+
+  it('calcularPodioIndividual incluye a todos los estudiantes ordenados por puntaje', () => {
+    const podio = calcularPodioIndividual(estadoSimulado, []);
+    expect(podio).toHaveLength(2);
+    expect(podio[0].participantId).toBe('ana');
+    expect(podio[0].posicion).toBe(1);
+    expect(podio[1].participantId).toBe('luis');
+    expect(podio[1].posicion).toBe(2);
   });
 });

@@ -132,7 +132,7 @@ Mismos órdenes de magnitud que el puntaje de estudiantes, para que el rol sea c
 
 La "revisión cruzada aleatoria" consiste en que el sistema, ocasionalmente y sin avisar, hace que dos co-moderadores revisen el mismo caso — si coinciden, ambos ganan el bono de consistencia. Sirve como auditoría automática sin que el profesor tenga que revisar todo manualmente.
 
-## Ranking visible — por postura, con tiers, no puntaje numérico
+## Ranking visible y estructura de doble podio
 
 ```
 tercio superior del grupo de esa postura   → 🥇 Sólido
@@ -141,3 +141,15 @@ tercio inferior                             → 🥉 En desarrollo
 ```
 
 Se usan **cortes por percentil dentro de cada postura**, no umbrales numéricos fijos. Esto evita que quien defiende la postura "más difícil" quede sistemáticamente peor ubicado, y hace que el ranking se adapte automáticamente a cualquier tabla de puntaje que un Programa distinto configure, sin tener que recalibrar los cortes cada vez.
+
+### Ordenamiento del doble podio: Pantalla en vivo vs. Exportación PDF/JSON
+
+El sistema implementa dos vistas diferenciadas para presentar los resultados del debate, estructuradas de forma inversa según el contexto pedagógico (`seleccionesDerivadas.js`):
+
+1. **Pantalla de Ranking en Vivo (`PantallaDeRanking.jsx`):**
+   - **1.º Podio de Posturas (Colaborativo):** Muestra primero el ranking de posturas ordenadas por puntaje acumulado total, acompañadas de tarjetas con **ejemplos de sus argumentos centrales o representativos**.
+   - **2.º Podio de Estudiantes (Individual):** A continuación presenta la tabla individual de participantes con su postura, puntos y tier alcanzado (Sólido / Consistente / En desarrollo).
+
+2. **Informe Exportable en PDF y JSON (`InformeDelDebate.jsx` y `exportarSesion.js`):**
+   - **1.º Lista Individual de Estudiantes:** Presenta en primer lugar la evaluación individual de **todos** los participantes inscritos, **incluyendo explícitamente a quienes hayan obtenido 0 puntos** o hayan quedado como oyentes.
+   - **2.º Lista Colaborativa por Posturas:** Presenta en segundo lugar la síntesis de resultados agregados por postura con su acumulado y sus argumentos centrales.

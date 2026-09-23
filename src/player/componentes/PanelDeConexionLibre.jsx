@@ -41,6 +41,9 @@ export function PanelDeConexionLibre({ estado, participantId, publicar }) {
     setArgumentoDestinoId('');
   }
 
+  const argumentoOrigenSeleccionado = estado.argumentos[argumentoOrigenId];
+  const argumentoDestinoSeleccionado = estado.argumentos[argumentoDestinoId];
+
   return (
     <section className="tarjeta-de-conexion-libre">
       <p className="texto-de-ayuda">Conectar uno de tus argumentos con el de otro participante</p>
@@ -56,6 +59,16 @@ export function PanelDeConexionLibre({ estado, participantId, publicar }) {
             ))}
           </select>
         </label>
+
+        {argumentoOrigenSeleccionado && (
+          <div className="vista-previa-argumento-completo">
+            <header>
+              <span>Tu argumento seleccionado</span>
+            </header>
+            <p className="vista-previa-argumento-texto">{argumentoOrigenSeleccionado.texto}</p>
+          </div>
+        )}
+
         <label>
           Se conecta con
           <select value={argumentoDestinoId} onChange={(evento) => setArgumentoDestinoId(evento.target.value)}>
@@ -67,6 +80,16 @@ export function PanelDeConexionLibre({ estado, participantId, publicar }) {
             ))}
           </select>
         </label>
+
+        {argumentoDestinoSeleccionado && (
+          <div className="vista-previa-argumento-completo">
+            <header>
+              <span>Argumento objetivo de otro participante</span>
+            </header>
+            <p className="vista-previa-argumento-texto">{argumentoDestinoSeleccionado.texto}</p>
+          </div>
+        )}
+
         <label>
           Tipo de relación
           <select value={tipoDeRelacion} onChange={(evento) => setTipoDeRelacion(evento.target.value)}>
@@ -77,6 +100,9 @@ export function PanelDeConexionLibre({ estado, participantId, publicar }) {
           </select>
         </label>
         <button type="submit">Conectar</button>
+        <button type="submit" className="boton-primario">
+          Conectar
+        </button>
       </form>
     </section>
   );

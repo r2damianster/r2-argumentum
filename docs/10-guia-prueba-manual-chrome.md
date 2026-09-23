@@ -31,49 +31,49 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 - **Solo se restaura automáticamente una sesión ya iniciada.** Si quedó a medio configurar sin iniciar, al recargar vuelve a la lista de Programas. Si estaba iniciada y la pestaña conserva su copia local, un F5 **reconstruye el debate** (también con el debate ya cerrado: el informe no se pierde por un refresco, es intencional). Solo si no hay copia local **y** el historial de Ably ya expiró vuelve a la lista de Programas, con código nuevo al elegir uno; nunca debe reabrir una sala de configuración con el código viejo. Para empezar otro debate está «➕ Iniciar un debate nuevo» en el ranking final.
 - **Sala de configuración previa**: código + QR + link corto, participantes conectados, y la configuración de la sesión.
 - **Selector de posturas** (si el Programa tiene más de 2): checklist, todas tildadas por defecto, mínimo 2.
-- **Modo de calificación** (nuevo): Liviano (10/8/3), Estándar (100/80/30) o Estricto (1000/800/300). Cambia la escala y qué tan caro sale demorarse o rechazar un turno, pero **la proporción entre posiciones se mantiene**.
-- **Idioma de los argumentos** (nuevo): Español (por defecto) o English. Cambia el corrector ortográfico de los campos de texto del participante y el idioma con que Groq valida y comenta el argumento (en inglés reconoce `because`, `since`, `due to`…). **La interfaz —botones, avisos, instrucciones— sigue en español**: no es una traducción. Se republica en vivo con el resto de la configuración de la sala.
-- **"Permitir posturas nuevas"** (nuevo): casilla, **desactivada por defecto**. La configuración (posturas, modo de calificación y esta casilla) se **republica en vivo mientras la sala está en espera**, no solo al iniciar: los estudiantes ingresan antes de que el moderador arranque, así que tiene que llegarles al toque.
+- **Temporizador de apertura inicial** (nuevo): selector de tiempo máximo para el argumento de ingreso (2, 3 [por defecto], 4 o 5 minutos). Se visualiza en vivo con semáforo semántico (Verde 🟢 $\rightarrow$ Amarillo 🟡 a 60s $\rightarrow$ Rojo 🔴 a 30s) y contador en vivo de confirmados (`X de Y inscritos`). El docente cuenta con botones de control directo: **"+1 minuto adicional"** y **"Cerrar ronda ahora"**.
+- **Modo de calificación**: Liviano (10/8/3), Estándar (100/80/30) o Estricto (1000/800/300). Cambia la escala y qué tan caro sale demorarse o rechazar un turno, pero **la proporción entre posiciones se mantiene**.
+- **Idioma de los argumentos**: Español (por defecto) o English. Cambia el corrector ortográfico de los campos de texto del participante y el idioma con que Groq valida y comenta el argumento (en inglés reconoce `because`, `since`, `due to`…). **La interfaz —botones, avisos, instrucciones— sigue en español**: no es una traducción. Se republica en vivo con el resto de la configuración de la sala.
+- **"Permitir posturas nuevas"**: casilla, **desactivada por defecto**. La configuración se republica en vivo mientras la sala está en espera.
 
-### Ingreso del estudiante — el cambio más grande
+### Ingreso del estudiante y Gestión de Oyentes
 
 El argumento es **requisito para entrar**. El flujo es: nombre + avatar → conecta al canal **sin aparecer en la sala** → elige postura → escribe argumento → lo revisa con Groq → confirma ingreso → **recién ahí aparece en el roster**.
 
-- Con `asignacionPostura: "libre"` el estudiante elige postura; con `"aleatoria"` se le asigna la menos representada, para que los bandos queden parejos. La asignación **se recalcula mientras el estudiante no haya escrito nada** y los empates se reparten por el lugar de cada quien en la sala, no al azar: entrando ocho a la vez los bandos deben quedar parejos.
-- Groq hace dos cosas: valida forma (claim + razón) **y clasifica a qué postura pertenece** el argumento. Ante un fallo transitorio la función reintenta sola hasta 3 veces. Quien eligió la postura **Matizada** nunca es contradicho por la clasificación.
+- **Banner de temporizador pegajoso** (nuevo): en el celular del estudiante (`IngresoConArgumento.jsx`), un banner superior sincronizado muestra la cuenta regresiva en vivo del tiempo de apertura.
+- **Transición a Oyente con Módulo de Contraargumentación** (nuevo): Si el tiempo de apertura vence y el participante no confirmó su argumento, pasa automáticamente a **Oyente** y se le despliega el aviso:
+  > *"⚠️ No pudiste ingresar tu argumento inicial a tiempo. Se agotó el plazo de la primera fase y perdiste la oportunidad de ingresar un argumento principal. Sin embargo, como estás conectado como oyente, tienes la oportunidad de formular un contraargumento para participar."*
+  Se le habilita el `FormularioDeContraargumentoParaOyentes`: selecciona un argumento expuesto del debate, redacta un contraargumento, pasa validación con Groq y lo publica en la sala.
+- Con `asignacionPostura: "libre"` el estudiante elige postura; con `"aleatoria"` se le asigna la menos representada, para que los bandos queden parejos. La asignación **se recalcula mientras el estudiante no haya escrito nada** y los empates se reparten por el lugar de cada quien en la sala, no al azar.
+- Groq hace dos cosas: valida forma (claim + razón) **y clasifica a qué postura pertenece** el argumento.
 - Si propone una **postura nueva**, ve la respuesta del moderador en su pantalla: al aceptarla se le asigna esa postura.
-- **Filtros previos a Groq** (nuevo): un texto de menos de 5 palabras, o con «porque»/«ya que»/«dado que»/«debido a»/«puesto que» sin razón detrás (p. ej. «Este texto no debería presentarse porque ....»), se rechaza al instante con su motivo, sin llamar a Groq. Un argumento **casi igual a otro ya publicado por otra persona** avisa «se parece mucho al de X» y pide reescribirlo con palabras propias (el aviso solo se evalúa con **5 o más palabras con contenido** y **nunca compara contra los argumentos propios**). La ortografía **no bloquea**: sin tildes ni mayúsculas debe aprobarse (el corrector del navegador subraya las faltas).
-- **Volver tras cerrar la pestaña** (nuevo): con el mismo link `/?sala=XXXX` aparece «Ya habías entrado… Continuar como X»; al continuar conserva puntos, rol y argumentos. Si elige ser otra persona, la identidad anterior no se recupera.
-- Quien no confirma antes de que el host inicie queda como **oyente**: ve todo, no recibe turnos, no puntúa.
-- **La fase de apertura simultánea ya no existe** en los Programas de ejemplo: el ingreso la reemplaza.
+- **Filtros previos a Groq**: texto de menos de 5 palabras o con conectores causales sin razón se rechazan al instante.
+- **Volver tras cerrar la pestaña**: con el mismo link `/?sala=XXXX` aparece «Ya habías entrado… Continuar como X»; al continuar conserva puntos, rol y argumentos.
 
 ### Durante el debate
 
-- **El argumento puntúa al aprobarse; el turno es para exponerlo.** El estudiante prepara su argumento mientras escucha («Revisar y publicar en el mapa»); al aprobarse **entra al mapa, suma sus puntos y entra a la ruleta**. **Sin argumento pendiente de exposición no se le ofrece la palabra.**
-- **Rechazar el turno cuesta puntos** y el botón muestra el costo antes de confirmar. Se restan **sobre los puntos que el argumento ya dio**; el argumento se queda en el mapa.
-- **Los co-moderadores califican la exposición mientras se habla** (nuevo): en su panel aparece «Exposiciones por calificar» con la exposición en curso, el argumento y el punto al que responde, y cuatro botones (*Coherente con el punto*, *Aceptable*, *Fuera de tema o sin razón*, *No está hablando*). Se promedian. El moderador ve las mismas exposiciones en «Evaluación de exposiciones» (evaluar es opcional; puede descartar las calificaciones) y los ajustes de puntaje **se aplican al cerrar el debate**: hasta entonces el marcador es provisional.
-- **Un argumento preparado con objetivo** (contraargumento, refuerzo, dilema o conexión) **sale conectado**: al exponerlo se publica también la arista hacia el argumento elegido. La lista de objetivos solo ofrece argumentos **ajenos**.
-- **Al preparar un argumento parecido a otro**: aviso «se parece mucho al de X» con el botón «Usarlo como refuerzo de ese argumento» (al aplicarlo, tipo y objetivo se rellenan y el aviso no vuelve a saltar). **El borrador se guarda en el navegador**: cerrar la pestaña o refrescar no lo pierde.
-- **Los formularios avisan qué falta**: "Revisar y publicar en el mapa" y "Lanzar bid" muestran un mensaje si falta el objetivo o el texto, en vez de no hacer nada.
-- **Turno hablado de respaldo**: si no queda ningún argumento preparado por exponer y alguien no ha hablado nunca, se le ofrece intervenir de viva voz. Vale poco, y un co-moderador la califica después. El **argumento de ingreso no cuenta** como haber tomado la palabra, y hay **un minuto de margen** desde el inicio de la fase antes de la primera oferta hablada.
-- **El co-moderador nunca se califica a sí mismo**: su propio argumento, su propia intervención hablada y sus propios bids no aparecen en su cola.
-- **Capa instruccional** (nueva): bloque siempre visible con AHORA / PUEDES / TIENES QUE. En vertical queda fijo arriba y se colapsa a una línea al scrollear **y al enfocar un campo de texto** (para no tapar lo que se escribe); desplegada tiene altura máxima con scroll interno.
-- **Bids, conexión libre, sugerencias de Groq y panel de co-moderador**: igual que antes.
-- **Vista espejo** (nueva, host): ver qué tiene en pantalla cualquier participante. Solo lectura. Muestra el **total** de turnos rechazados y, entre paréntesis, la racha si la hay.
-- **Avisos automáticos** (nuevo, host): quién no confirmó ingreso, quién no preparó argumento, quién no ha hablado. **En Cierre y ranking no hay avisos, y en Conexión libre no aparece el de la ruleta** (no hay turnos en esa fase; el de casos por revisar sí).
-- **Modo proyección** (host): dos botones. «📽️ Proyectar aquí» agranda todo y esconde los controles en la misma pestaña. «🪟 Proyectar en otra ventana» abre una ventana pensada para el proyector que se actualiza sola mientras la consola conserva los controles (la ventana no se conecta a Ably: recibe el estado de la pestaña del host por `BroadcastChannel`, así que **solo funciona en el mismo navegador** y la pestaña del host debe seguir abierta).
-- **Argumento destacado** (nuevo): cuando alguien recibe la palabra, el texto que va a defender aparece **en grande unos 12 s** en el host, la proyección y los celulares (no en el de quien habla), se cierra con un toque, y después queda en tamaño normal bajo «X está hablando ahora».
-- **Terminar el turno** (nuevo, host): botón «⏭️ Terminar el turno de X» para liberar la ruleta si quien tenía la palabra cerró la pestaña o no puede seguir; el panel de avisos lo advierte solo cuando esa persona queda sin conexión.
+- **Priorización por posturas en Fase 1** (nuevo): Durante la Ronda 1, el motor selecciona turnos priorizando a participantes pertenecientes a posturas que **aún no hayan intervenido**. Esto asegura la representación de todas las $N$ posturas (ej. 12 posturas) desde el inicio.
+- **Visualización completa de argumentos y posturas** (nuevo):
+  - En listas desplegables (`<select>` en Conexión Libre y Bids), al seleccionar un argumento se despliega la tarjeta `.vista-previa-argumento-completo` mostrando autor, bando y texto completo sin recortes (`slice(0, 50)`).
+  - En `PanelDeCoModerador.jsx`, los argumentos evaluados y las réplicas se despliegan íntegros sin trancar la lectura.
+- **Botones de alto contraste semánticos** (nuevo): `.boton-primario` (teal), `.boton-exito` (verde), `.boton-peligro` (rojo) y `.boton-secundario` (borde definido), cumpliendo contraste WCAG 2.1 AA.
+- **El argumento puntúa al aprobarse; el turno es para exponerlo.**
+- **Rechazar el turno cuesta puntos** y el botón muestra el costo antes de confirmar.
+- **Los co-moderadores califican la exposición mientras se habla**: en su panel aparece «Exposiciones por calificar» con botones semánticos.
+- **Un argumento preparado con objetivo** (contraargumento, refuerzo, dilema o conexión) **sale conectado**.
+- **Capa instruccional**: bloque siempre visible con AHORA / PUEDES / TIENES QUE.
+- **Vista espejo**, **Avisos automáticos**, **Modo proyección**, **Argumento destacado** y **Terminar el turno**.
 
-### Grafo
+### Cierre y Doble Podio (Orden Diferenciado)
 
-- **Layout automático** (dagre): cada argumento se ubica debajo de aquel al que responde. **El encuadre (inicial, botón ⛶ y reencuadre al crecer) deja margen y no amplía por encima de 1×**, así que con pocos nodos ninguno queda cortado. **Las aristas punteadas «(sugerido)» de Groq se dibujan una por par de argumentos** (aunque haya dos tandas) **y ninguna sobre un par ya conectado.**
-- Leyenda de colores, minimapa (solo con 6+ nodos) y botones de zoom. **El mapa arranca compacto (~240 px con 1–3 argumentos) y crece con el debate** hasta 560 px en la consola (62 % del alto de la ventana en proyección). **El scroll ya no zoomea el grafo sin querer.**
-- **En celular vertical el grafo se reemplaza por una lista** agrupada por postura.
-
-### Cierre
-
-- Ranking por postura con tiers (**los co-moderadores no aparecen a propósito**: no defienden postura), y **informe imprimible**. **El cierre ya no hay que esperarlo**: durante todo el debate el host tiene «📊 Ver ranking parcial» (solo lectura, no detiene nada) y «⏹️ Cerrar el debate ahora» (con confirmación). **Al cerrar, se ocultan «Fase activa / Cerrar fase actual» y el «Marcador en vivo», y la consola baja sola al ranking final.** Hay **un solo botón de PDF** (junto a «Cerrar debate» y al JSON, en la tarjeta del ranking). Desde el ranking, parcial o final, se baja el **PDF** (diálogo de impresión → «Guardar como PDF», con nombre de archivo descriptivo y encabezado «Informe parcial» si el debate sigue) y el **JSON** (`estadoDeLaSesion: "parcial"` o `"cerrada"`).
+- **Pantalla en vivo (`PantallaDeRanking.jsx`):**
+  1. **1º Lugar:** **Podio de Posturas** (comparativa bando vs bando por puntaje total acumulado), mostrando para cada postura tarjetas con sus **argumentos centrales / destacados**.
+  2. **2º Lugar:** **Podio Individual de Estudiantes** (ranking por puntaje individual de mayor a menor con medallas 🥇, 🥈, 🥉, incluyendo a estudiantes con 0 puntos).
+  3. **3º Lugar:** Desglose detallado agrupado por postura.
+- **Informe Exportable en PDF y JSON (`InformeDelDebate.jsx` y `exportarSesion.js`):**
+  1. **1º Lugar (al revés):** **Lista Individual de Estudiantes (Por persona)** (tabla completa ordenada por puntaje individual, incluyendo a todos los participantes registrados aunque tengan 0 puntos).
+  2. **2º Lugar:** **Lista Colaborativa por Postura (Por bando)** (postura vs postura con desgloses de equipo).
+- **Descarga de PDF y JSON**: durante todo el debate o al cierre, con botones estilizados de alto contraste. Desde el ranking, parcial o final, se descarga el PDF e informe JSON.
 
 ## 3. Bugs ya arreglados — verificar que NO reaparezcan
 

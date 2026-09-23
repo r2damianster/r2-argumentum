@@ -23,6 +23,7 @@ import { IngresoConArgumento } from './componentes/IngresoConArgumento.jsx';
 import { PrepararArgumento } from './componentes/PrepararArgumento.jsx';
 import { IntervencionVerbal } from './componentes/IntervencionVerbal.jsx';
 import { AvisoPreparateParaHablar } from './componentes/AvisoPreparateParaHablar.jsx';
+import { FormularioDeContraargumentoParaOyentes } from './componentes/FormularioDeContraargumentoParaOyentes.jsx';
 import { resolverIdiomaDelDebate } from '../shared/programa/idiomaDelDebate.js';
 import { ingresoEstaCerrado } from '../shared/ingreso/reglasDeIngreso.js';
 
@@ -344,6 +345,15 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
             todo lo que pasa, pero no recibes turnos ni puntaje.
           </p>
         </section>
+        <FormularioDeContraargumentoParaOyentes
+          estado={estado}
+          programa={programa}
+          presencia={presencia}
+          participantId={participantId}
+          nombre={nombre}
+          emoji={emoji}
+          publicar={publicar}
+        />
       )}
 
       {!sesionCerrada && sinArgumentoDeApertura && (

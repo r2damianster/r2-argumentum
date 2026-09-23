@@ -49,6 +49,7 @@ No hace falta que vengan en el JSON (pero pueden venir como valor por defecto). 
 perfilDePuntaje: "liviano" | "estandar" | "estricto"   // ver 05-reglas-de-puntaje.md
 permitirPosturasNuevas: boolean                         // por defecto false
 idioma: "es" | "en"                                     // idioma de los argumentos; por defecto "es"
+tiempoAperturaMinutos: 2 | 3 | 4 | 5                    // tiempo límite inicial de redacción (por defecto 3 min)
 posturas: [ ...solo las tildadas... ]
 ```
 
@@ -56,11 +57,13 @@ posturas: [ ...solo las tildadas... ]
 
 Con `permitirPosturasNuevas: true`, si Groq detecta que el argumento no defiende ninguna postura de la lista, el estudiante puede proponer la suya; si el moderador la acepta se suma a `posturas` y se le asigna a quien la propuso. Con `false`, el estudiante debe reescribir su argumento para una postura existente.
 
+`tiempoAperturaMinutos` establece la duración de la cuenta regresiva con semáforo visual (verde/amarillo/rojo) que se muestra en la pantalla del participante durante el ingreso con argumento obligatorio.
+
 ### D. Estructura de fases
 
 ```
 fases: [
-  { tipo: "escritura_argumentos", ronda: 1, limiteArgumentos: 3, duracionMin },
+  { tipo: "escritura_argumentos", ronda: 1, limiteArgumentos: 3, duracionMin, priorizarPosturas: true },
   { tipo: "escritura_argumentos", ronda: 2, limiteArgumentos: "segun_ronda_1", duracionMin },
   { tipo: "conexion_sugerida", disparadoPor: "moderador" },
   { tipo: "conexion_libre", ventanaAbierta: "toda_la_sesion" },
@@ -69,6 +72,10 @@ fases: [
 ```
 
 Cada fase tiene inicio y fin controlado explícitamente por el moderador — evita descontrol y llamadas a Groq impredecibles.
+
+En la **Ronda 1** (primera fase de intervenciones), el motor prioriza que al menos una persona que haya preparado su argumento dentro de cada postura activa reciba el turno de exposición en la ruleta antes de repetir posturas.
+
+Quienes no logran enviar su argumento antes de que venza la cuenta regresiva de apertura quedan registrados como **oyentes**, recibiendo la oportunidad pedagógica de redactar un **contraargumento de oyente** contra cualquier argumento publicado del mapa.
 
 ### E. Reglas de puntaje
 

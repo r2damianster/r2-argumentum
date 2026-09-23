@@ -20,6 +20,33 @@ El profesor puede fijar un tope máximo para grupos grandes. Los co-moderadores 
 
 **El argumento se publica y puntúa apenas Groq lo aprueba; el turno sirve para exponerlo en voz alta, no para escribirlo contra reloj.** Tanto el argumento redactado obligatoriamente al confirmar el ingreso (`IngresoConArgumento.jsx`) como los preparados durante el debate se publican marcados con `pendienteDeExposicion: true`. Por ello, desde el primer instante en que se inicia la sesión de debate, todos los participantes inscritos están habilitados en la ruleta de turnos aleatorios para exponer su argumento inicial en voz alta. Mientras esperan, reciben un aviso visual en pantalla (**«⚡ ¡PREPÁRATE PARA HABLAR!»**) alertándoles que en cualquier momento pueden recibir la palabra.
 
+### Temporizador de apertura y semáforo visual
+
+Durante el **ingreso obligatorio con argumento**, el moderador puede definir el tiempo límite de redacción inicial (`tiempoAperturaMinutos`: 2, 3 [por defecto], 4 o 5 minutos). En la pantalla del participante (`IngresoConArgumento.jsx`), se muestra un banner semáforo animado:
+- **Verde:** Más del 50% del tiempo restante.
+- **Amarillo (Alerta):** Entre el 20% y el 50% del tiempo.
+- **Rojo (Crítico):** Menos del 20% restante.
+
+Si el tiempo concluye antes de que el participante apruebe y confirme su argumento inicial, su estado pasa automáticamente a **oyente**.
+
+### Priorización de posturas en la primera fase (Ronda 1)
+
+Para garantizar la pluralidad del debate desde el inicio, el algoritmo de la ruleta de turnos (`priorizarPosturasSinExponer` en `motorDeSesion.js`) aplica una regla de **cobertura por postura en Ronda 1**:
+1. Antes de ofrecer un segundo turno a una postura ya expuesta, el sistema prioriza a aquellos participantes con argumentos preparados en posturas que **aún no han tenido ninguna exposición oral** en la sala.
+2. Una vez que todas las posturas representadas han expuesto al menos un argumento en voz alta, la ruleta retoma su ponderación habitual (prioridad a no participantes y menor tiempo de palabra).
+
+### Módulo de contraargumentación para oyentes
+
+Quienes no logran ingresar su argumento inicial a tiempo ingresan a la sesión con rol de **oyente**. Para no excluir su pensamiento crítico ni aprendizaje:
+- El sistema muestra un mensaje punitivo pero motivador: *"No pudiste ingresar tu argumento a tiempo por falta de tiempo, pero como ya estás adentro como oyente, ¡puedes plantear un contraargumento ahora!"*.
+- Se habilita el `FormularioDeContraargumentoParaOyentes.jsx` en la aplicación del estudiante (`App.jsx`), permitiéndoles seleccionar cualquier argumento publicado en el mapa y redactar un contraargumento directo (`oyente.contraargumento_enviado`).
+
+### Visualización completa de argumentos en interfaces desplegables
+
+Para evitar que los argumentos largos queden recortados o descontextualizados en listas desplegables o paneles compactos:
+- En las interfaces de **Conexión Libre** (`PanelDeConexionLibre.jsx`), **Bids** (`PanelDeBid.jsx`) y la vista de **Co-moderador** (`PanelDeCoModerador.jsx`), se incluye una tarjeta de previsualización interactiva `.vista-previa-argumento-completo`.
+- Permite expandir o inspeccionar el texto íntegro, autor, postura y conector del argumento seleccionado antes de confirmar una acción o emitir una calificación.
+
 Mientras escucha a los demás, cada participante prepara sus siguientes argumentos; en cuanto quedan aprobados entran al mapa, suman sus puntos y su autor entra nuevamente a la ruleta.
 
 ```
@@ -31,6 +58,7 @@ Participante prepara su argumento (tipo + objetivo si corresponde + texto)
                           │
                           ▼
 Ruleta ponderada → ofrece turno SOLO a quien tiene un argumento pendiente de exponer
+                  (en Ronda 1, prioriza posturas sin exposición previa)
                           │
                 ┌─────────┴─────────┐
                 ▼                   ▼

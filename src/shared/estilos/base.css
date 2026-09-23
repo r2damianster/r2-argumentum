@@ -109,6 +109,8 @@ button {
   font-family: inherit;
 }
 
+/* Botones semánticos de alto contraste (WCAG 2.1 AA) */
+.boton-primario,
 button[type='submit'] {
   background: var(--color-marca);
   color: white;
@@ -116,13 +118,77 @@ button[type='submit'] {
   border-radius: 10px;
   padding: 14px;
   font-size: 1.05rem;
+  padding: 10px 16px;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+  box-shadow: 0 1px 3px rgba(13, 148, 136, 0.2);
 }
 
+.boton-primario:hover:not(:disabled),
+button[type='submit']:hover:not(:disabled) {
+  background: var(--color-marca-oscuro);
+}
+
+.boton-primario:disabled,
 button[type='submit']:disabled {
   background: #94a3b8;
+  color: #f1f5f9;
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+.boton-exito {
+  background: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  box-shadow: 0 1px 3px rgba(22, 163, 74, 0.2);
+}
+
+.boton-exito:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.boton-peligro {
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.2);
+}
+
+.boton-peligro:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.boton-secundario {
+  background: white;
+  border: 1.5px solid #64748b;
+  color: #1e293b;
+  border-radius: 10px;
+  padding: 9px 15px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.boton-secundario:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #334155;
+  color: #0f172a;
 }
 
 .boton-sorpreendeme {

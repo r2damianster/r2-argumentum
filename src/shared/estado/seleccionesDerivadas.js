@@ -175,3 +175,69 @@ export function calcularRankingPorPostura(estado, programa, presencia = []) {
   }
   return ranking;
 }
+
+export function calcularPodioDePosturas(estado, programa, presencia = []) {
+  const posturasConMetricas = (programa?.posturas ?? []).map((postura) => {
+    const integrantes = Object.values(estado.participantes ?? {}).filter(
+      (p) => p.rol !== 'co_moderador' && p.stanceId === postura.id
+    );
+    const puntajeTotalPostura = integrantes.reduce(
+      (suma, p) => suma + (p.puntajeTotal ?? 0),
+      0
+    );
+    const promedioPuntaje = integrantes.length > 0 ? Math.round(puntajeTotalPostura / integrantes.length) : 0;
+
+    const argumentosDePostura = Object.values(estado.argumentos ?? {}).filter(
+      (a) => a.stanceId === postura.id
+    );
+    const argumentosCentrales = argumentosDePostura
+      .map((argumento) => {
+        const conexionesEntrantes = Object.values(estado.conexiones ?? {}).filter(
+          (c) => c.targetArgumentId === argumento.argumentId
+        ).length;
+        return { ...argumento, conexionesEntrantes };
+      })
+      .sort((a, b) => b.conexionesEntrantes - a.conexionesEntrantes || a.timestamp - b.timestamp)
+      .slice(0, 2);
+
+    return {
+      stanceId: postura.id,
+      etiqueta: postura.etiqueta,
+      color: postura.color,
+      puntajeTotalPostura,
+      promedioPuntaje,
+      totalIntegrantes: integrantes.length,
+      argumentosCentrales,
+    };
+  });
+
+  return posturasConMetricas.sort(
+    (a, b) => b.puntajeTotalPostura - a.puntajeTotalPostura || b.promedioPuntaje - a.promedioPuntaje
+  );
+}
+
+export function calcularPodioIndividual(estado, presencia = []) {
+  const participantes = Object.values(estado.participantes ?? {}).filter(
+    (p) => p.rol !== 'co_moderador'
+  );
+
+  const presenciaMap = new Map((presencia ?? []).map((p) => [p.participantId, p]));
+
+  const ordenados = [...participantes].sort(
+    (a, b) => (b.puntajeTotal ?? 0) - (a.puntajeTotal ?? 0)
+  );
+
+  const total = ordenados.length;
+  return ordenados.map((participante, indice) => {
+    const percentil = total <= 1 ? 100 : ((total - 1 - indice) / (total - 1)) * 100;
+    const presente = presenciaMap.get(participante.participantId);
+    return {
+      ...participante,
+      nombre: presente?.nombre ?? participante.nombre ?? participante.participantId,
+      emoji: presente?.emoji ?? participante.emoji ?? '👤',
+      puntajeTotal: participante.puntajeTotal ?? 0,
+      tier: calcularTierPorPercentil(percentil),
+      posicion: indice + 1,
+    };
+  });
+}

@@ -17,6 +17,7 @@ export function armarProgramaDeLaSesion({
   permitirPosturasNuevas,
   idioma,
   asignacionPostura,
+  tiempoAperturaMinutos = 3,
 }) {
   const posturasElegidas = posturasDelPrograma.filter((postura) => idsDePosturasSeleccionadas.has(postura.id));
   if (posturasElegidas.length < MINIMO_DE_POSTURAS) {
@@ -29,5 +30,6 @@ export function armarProgramaDeLaSesion({
     permitirPosturasNuevas: Boolean(permitirPosturasNuevas),
     idioma,
     asignacionPostura: asignacionPostura ?? programaBase.asignacionPostura ?? 'aleatoria',
+    tiempoAperturaMinutos: Number(tiempoAperturaMinutos) || 3,
   };
 }

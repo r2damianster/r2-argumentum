@@ -16,6 +16,9 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
   const [asignacionPostura, setAsignacionPostura] = useState(
     () => programaBase.asignacionPostura ?? 'aleatoria'
   );
+  const [tiempoAperturaMinutos, setTiempoAperturaMinutos] = useState(
+    () => programaBase.tiempoAperturaMinutos ?? 3
+  );
 
   function alternarPostura(posturaId) {
     setPosturasSeleccionadas((actuales) => {
@@ -38,6 +41,7 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
       permitirPosturasNuevas,
       idioma: idiomaDelDebate,
       asignacionPostura,
+      tiempoAperturaMinutos,
     });
 
     if (!programaConfigurado) {
@@ -178,6 +182,28 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
         </ul>
         <p className="texto-de-ayuda">
           Cambia el corrector ortográfico de los campos de texto y el idioma en que Groq revisa los argumentos. Los botones y avisos siguen en español.
+        </p>
+      </div>
+
+      <div className="bloque-de-configuracion">
+        <p className="texto-de-ayuda">Tiempo máximo para argumento inicial de apertura</p>
+        <ul className="lista-de-perfiles">
+          {[2, 3, 4, 5].map((minutos) => (
+            <li key={minutos}>
+              <label>
+                <input
+                  type="radio"
+                  name="tiempo-apertura-inicial"
+                  checked={tiempoAperturaMinutos === minutos}
+                  onChange={() => setTiempoAperturaMinutos(minutos)}
+                />
+                <strong>⏱️ {minutos} minutos {minutos === 3 ? '(Recomendado)' : ''}</strong>
+              </label>
+            </li>
+          ))}
+        </ul>
+        <p className="texto-de-ayuda">
+          Plazo para redactar y confirmar el argumento de ingreso. Al terminar, los estudiantes no confirmados pasan a Oyente.
         </p>
       </div>
 

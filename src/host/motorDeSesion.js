@@ -97,7 +97,22 @@ function elegirCandidatoParaTurno(estado, presencia, limiteDePosiciones) {
   const sinTurnoPrincipal = elegibles.filter(
     (participantId) => (estado.participantes[participantId]?.turnosPrincipalesAceptados ?? 0) === 0
   );
-  const pool = sinTurnoPrincipal.length > 0 ? sinTurnoPrincipal : elegibles;
+  const poolBase = sinTurnoPrincipal.length > 0 ? sinTurnoPrincipal : elegibles;
+
+  // Requisito: Priorizar diversidad de posturas en la primera fase / ronda inicial (Punto 3).
+  // Si existen posturas que aún no han tenido representación en turnos aceptados,
+  // priorizar candidatos de dichas posturas para asegurar cobertura entre las N posturas.
+  const posturasConTurno = new Set(
+    Object.values(estado.participantes)
+      .filter((participante) => (participante.turnosPrincipalesAceptados ?? 0) > 0 && participante.stanceId)
+      .map((participante) => participante.stanceId)
+  );
+
+  const dePosturasSinTurno = poolBase.filter(
+    (participantId) => !posturasConTurno.has(estado.participantes[participantId]?.stanceId)
+  );
+
+  const pool = dePosturasSinTurno.length > 0 ? dePosturasSinTurno : poolBase;
 
   if (sinTurnoPrincipal.length > 0) {
     return pool[Math.floor(Math.random() * pool.length)];
@@ -661,8 +676,9 @@ export function crearMotorDeSesion({ programa }) {
     const claveDeInicio = `apertura-iniciada:${faseActual.iniciadaEn}`;
     if (!yaSeHizo(claveDeInicio)) {
       const publicar = comenzarAccion(claveDeInicio);
-      const entradaDeFase = programa.fases.find((fase) => fase.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA);
-      const duracionMs = (entradaDeFase?.duracionMin ?? 5) * 60 * 1000;
+      const entradaDeFase = programa.fases?.find((fase) => fase.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA);
+      const minutosApertura = programa.tiempoAperturaMinutos ?? entradaDeFase?.duracionMin ?? 3;
+      const duracionMs = minutosApertura * 60 * 1000;
       const iniciadaEn = Date.now();
       publicar(EVENTOS.APERTURA_RONDA_INICIADA, { ronda: 1, iniciadaEn, expiraEn: iniciadaEn + duracionMs });
       return;
