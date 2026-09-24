@@ -10,6 +10,19 @@ export default defineConfig({
         host: resolve(__dirname, 'host.html'),
         player: resolve(__dirname, 'player.html'),
       },
+      output: {
+        // El mapa de argumentos (React Flow + dagre) es lo más pesado y cambia poco: en su propio
+        // chunk se cachea aparte y el resto de la interfaz carga más rápido en el celular.
+        manualChunks(idDelModulo) {
+          if (idDelModulo.includes('node_modules/@xyflow') || idDelModulo.includes('node_modules/@dagrejs')) {
+            return 'mapa-de-argumentos';
+          }
+          if (idDelModulo.includes('node_modules/ably')) {
+            return 'ably';
+          }
+          return undefined;
+        },
+      },
     },
   },
 });

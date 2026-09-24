@@ -39,7 +39,7 @@ Para garantizar la pluralidad del debate desde el inicio, el algoritmo de la rul
 
 Quienes no logran ingresar su argumento inicial a tiempo ingresan a la sesión con rol de **oyente**. Para no excluir su pensamiento crítico ni aprendizaje:
 - El sistema muestra un mensaje punitivo pero motivador: *"No pudiste ingresar tu argumento a tiempo por falta de tiempo, pero como ya estás adentro como oyente, ¡puedes plantear un contraargumento ahora!"*.
-- Se habilita el `FormularioDeContraargumentoParaOyentes.jsx` en la aplicación del estudiante (`App.jsx`), permitiéndoles seleccionar cualquier argumento publicado en el mapa y redactar un contraargumento directo (publica `argument.submitted`, `link.created` e `ingreso.confirmado`; no existe un evento propio de oyente).
+- Se habilita el `FormularioDeContraargumentoParaOyentes.jsx` en la aplicación del estudiante (`App.jsx`), permitiéndoles seleccionar cualquier argumento publicado en el mapa, elegir la postura desde la que contraargumentan (no se hereda la del objetivo) y redactar un contraargumento directo (publica `argument.submitted`, `link.created` e `ingreso.confirmado`; no existe un evento propio de oyente).
 
 ### Visualización completa de argumentos en interfaces desplegables
 

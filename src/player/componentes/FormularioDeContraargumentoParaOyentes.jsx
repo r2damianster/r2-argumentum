@@ -24,6 +24,11 @@ export function FormularioDeContraargumentoParaOyentes({
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [ultimaRespuestaDeGroq, setUltimaRespuestaDeGroq] = useState(null);
+  // Texto exacto que Groq revisó: solo ese texto se puede publicar como aprobado.
+  const [textoRevisado, setTextoRevisado] = useState('');
+  // Un contraargumento suele defender la postura contraria a la del argumento que rebate, así que
+  // no se hereda la del objetivo: la persona elige desde qué postura contraargumenta.
+  const [posturaElegidaId, setPosturaElegidaId] = useState('');
 
   const argumentosPosibles = Object.values(estado.argumentos ?? {});
   const argumentoObjetivoSeleccionado = estado.argumentos?.[argumentoObjetivoId];
@@ -69,9 +74,10 @@ export function FormularioDeContraargumentoParaOyentes({
     }
 
     setUltimaRespuestaDeGroq(respuesta);
+    setTextoRevisado(texto);
     const decisionCalculada = decidirValidacion({
       resultadoDeGroq: respuesta,
-      stanceElegido: argumentoObjetivoSeleccionado?.stanceId ?? null,
+      stanceElegido: posturaElegidaId,
       permitirPosturasNuevas: false,
       posturas: programa.posturas,
       permiteCambioDePostura: false,
@@ -83,13 +89,13 @@ export function FormularioDeContraargumentoParaOyentes({
   }
 
   function enviarContraargumento() {
-    if (!argumentoObjetivoId || !texto.trim()) {
+    if (!argumentoObjetivoId || !texto.trim() || !posturaElegidaId || texto !== textoRevisado) {
       return;
     }
     setEnviando(true);
     const argumentId = generarId('argumento');
     const attemptId = generarId('intento');
-    const stanceId = argumentoObjetivoSeleccionado?.stanceId ?? null;
+    const stanceId = posturaElegidaId;
 
     publicar(EVENTOS.ARGUMENTO_INTENTO, {
       attemptId,
@@ -128,6 +134,8 @@ export function FormularioDeContraargumentoParaOyentes({
 
     setTexto('');
     setArgumentoObjetivoId('');
+    setPosturaElegidaId('');
+    setTextoRevisado('');
     setResultado(null);
     setEnviando(false);
   }
@@ -180,6 +188,24 @@ export function FormularioDeContraargumentoParaOyentes({
           )}
 
           <label style={{ marginTop: '12px' }}>
+            Postura desde la que contraargumentas
+            <select
+              value={posturaElegidaId}
+              onChange={(evento) => {
+                setPosturaElegidaId(evento.target.value);
+                setResultado(null);
+              }}
+            >
+              <option value="">Elige una postura…</option>
+              {programa.posturas.map((postura) => (
+                <option key={postura.id} value={postura.id}>
+                  {postura.etiqueta}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label style={{ marginTop: '12px' }}>
             Tu contraargumento (debe incluir premisa y razón)
             <textarea
               value={texto}
@@ -205,7 +231,7 @@ export function FormularioDeContraargumentoParaOyentes({
               <button
                 type="button"
                 className="boton-exito"
-                disabled={enviando}
+                disabled={enviando || texto !== textoRevisado}
                 onClick={enviarContraargumento}
                 style={{ width: '100%', marginTop: '8px' }}
               >
@@ -218,7 +244,7 @@ export function FormularioDeContraargumentoParaOyentes({
             <button
               type="button"
               className="boton-primario"
-              disabled={revisando || !texto.trim() || !argumentoObjetivoId}
+              disabled={revisando || !texto.trim() || !argumentoObjetivoId || !posturaElegidaId}
               onClick={revisarConGroq}
               style={{ marginTop: '10px', width: '100%' }}
             >

@@ -41,7 +41,7 @@ Solo un grupo en 7 días: `DEP0169 url.parse()` en `/api/ably-token` (46 veces).
 - `docs/06` decía que el tiempo de apertura se elige en `ControlDeFases.jsx`; se elige en `PantallaDeConfiguracionInicial.jsx`.
 - `a606b95` borró de `IngresoConArgumento.jsx` los comentarios que explicaban por qué existe `esArgumentoDeIngreso` → restaurados (y corregido el typo «offeredía»).
 
-## 3. Hallazgos abiertos (requieren decisión tuya)
+## 3. Hallazgos (decididos y aplicados el 24-sep; ver §4)
 
 1. **Oyente que contraargumenta hereda la postura del argumento que rebate** (`FormularioDeContraargumentoParaOyentes.jsx`, `stanceId = argumentoObjetivo.stanceId`). Un contraargumento suele ser de la postura contraria, así que el ranking por postura lo suma al bando equivocado. Además publica `ingreso.confirmado`, con lo que el oyente pasa a participante en plena sesión, y `docs/09` (línea 82) todavía dice que un oyente solo puede convertirse en participante *antes* de iniciar la sesión. Decidir: ¿el oyente elige postura? ¿sigue siendo oyente y solo puntúa el contraargumento?
 2. **El formulario de oyentes publica `aprobado: true` fijo** y usa la última respuesta de Groq sin comprobar que sea del texto actual. Riesgo bajo, pero conviene atarlo al texto revisado.
@@ -55,6 +55,13 @@ Solo un grupo en 7 días: `DEP0169 url.parse()` en `/api/ably-token` (46 veces).
 - Comentarios técnicos restaurados en `IngresoConArgumento.jsx`.
 - Referencias erróneas corregidas en `docs/04` y `docs/06`.
 - Este informe (`docs/11`).
+
+### Aplicado tras las decisiones del docente
+- **Oyente con contraargumento** (§3.1 y §3.2): el formulario ahora pide elegir postura, ya no hereda la del objetivo, y solo permite publicar el texto exactamente igual al que Groq aprobó. `docs/04` y `docs/09` actualizados.
+- **`/api/ably-token`** (§3.3): valida `clientId` (`^[A-Za-z0-9_-]{1,64}$`, `api/_clienteIdValido.js` con pruebas) y responde 400 si no cumple. No se limitaron capacidades de canal (pendiente, requiere probar contra Ably real).
+- **Bundle** (§3.4): `manualChunks` separa `mapa-de-argumentos` (React Flow + dagre, 375 kB), `ably` (212 kB) y el resto (`sesion`, 47 kB): se cachean por separado.
+- **Hook `auto-commit`** (§3.5): ignora los repos con un archivo `.no-auto-commit` en la raíz; este repo lo tiene. Desde ahora, commit y push solo por instrucción explícita.
+- `npm run verificar`: 224/224 pruebas y build correcto.
 
 ## 5. Recomendaciones de proceso
 1. Antes de cada push a `main`: `npm test && npm run build` (un script `npm run verificar` lo automatiza).

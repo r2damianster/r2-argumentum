@@ -79,7 +79,7 @@ ingreso.confirmado  { participantId, stanceId, argumentId, nombre, emoji }
 
 El participante NO aparece en la sala por conectarse. Se suscribe al canal sin entrar a presencia, lee el Programa, elige postura y redacta su argumento revisándolo con Groq por HTTP (sin publicar nada). Al confirmar se publica todo junto — `argument.submit_attempt`, `argument.validation_result`, `stance.assigned`, `argument.submitted` (con `esArgumentoDeIngreso: true` y `pendienteDeExposicion: true`) e `ingreso.confirmado` — y recién ahí hace `presence.enter()`. De este modo, el argumento de ingreso entra a la ruleta marcado como pendiente de exposición (`argumentoListo: true`, `argumentoPendienteId`) conservando `intervenciones: 0`, habilitando el sorteo de turnos aleatorios desde el inicio de la sesión.
 
-Quien está en la sala sin `ingreso.confirmado` es **oyente**: ve todo el debate, no entra a la ruleta de turnos y no puntúa. Puede convertirse en participante si completa su argumento antes de que el moderador inicie la sesión.
+Quien está en la sala sin `ingreso.confirmado` es **oyente**: ve todo el debate, no entra a la ruleta de turnos y no puntúa. Puede convertirse en participante de dos maneras: completando su argumento de ingreso antes de que el moderador inicie la sesión, o —ya iniciada— publicando un contraargumento desde `FormularioDeContraargumentoParaOyentes.jsx`. En ese caso elige él mismo la postura desde la que contraargumenta (no hereda la del argumento que rebate), el texto publicado debe ser exactamente el que Groq revisó, y el envío emite `argument.submitted` + `link.created` + `ingreso.confirmado`.
 
 ## Propuesta de postura nueva
 
