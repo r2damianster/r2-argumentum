@@ -31,7 +31,7 @@ Si el tiempo concluye antes de que el participante apruebe y confirme su argumen
 
 ### Priorización de posturas en la primera fase (Ronda 1)
 
-Para garantizar la pluralidad del debate desde el inicio, el algoritmo de la ruleta de turnos (`priorizarPosturasSinExponer` en `motorDeSesion.js`) aplica una regla de **cobertura por postura en Ronda 1**:
+Para garantizar la pluralidad del debate desde el inicio, el algoritmo de la ruleta de turnos (`elegirCandidatoParaTurno` en `motorDeSesion.js`) aplica una regla de **cobertura por postura en Ronda 1**:
 1. Antes de ofrecer un segundo turno a una postura ya expuesta, el sistema prioriza a aquellos participantes con argumentos preparados en posturas que **aún no han tenido ninguna exposición oral** en la sala.
 2. Una vez que todas las posturas representadas han expuesto al menos un argumento en voz alta, la ruleta retoma su ponderación habitual (prioridad a no participantes y menor tiempo de palabra).
 
@@ -39,7 +39,7 @@ Para garantizar la pluralidad del debate desde el inicio, el algoritmo de la rul
 
 Quienes no logran ingresar su argumento inicial a tiempo ingresan a la sesión con rol de **oyente**. Para no excluir su pensamiento crítico ni aprendizaje:
 - El sistema muestra un mensaje punitivo pero motivador: *"No pudiste ingresar tu argumento a tiempo por falta de tiempo, pero como ya estás adentro como oyente, ¡puedes plantear un contraargumento ahora!"*.
-- Se habilita el `FormularioDeContraargumentoParaOyentes.jsx` en la aplicación del estudiante (`App.jsx`), permitiéndoles seleccionar cualquier argumento publicado en el mapa y redactar un contraargumento directo (`oyente.contraargumento_enviado`).
+- Se habilita el `FormularioDeContraargumentoParaOyentes.jsx` en la aplicación del estudiante (`App.jsx`), permitiéndoles seleccionar cualquier argumento publicado en el mapa y redactar un contraargumento directo (publica `argument.submitted`, `link.created` e `ingreso.confirmado`; no existe un evento propio de oyente).
 
 ### Visualización completa de argumentos en interfaces desplegables
 

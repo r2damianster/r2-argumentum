@@ -4,7 +4,7 @@ import { estadoInicial, reducirEventos } from '../shared/estado/reducirEventos.j
 import { EVENTOS } from '../shared/eventos/nombresDeEventos.js';
 
 // El motor corre solo en el cliente del host y es la autoridad única de turnos y puntaje.
-// Acá se lo prueba en seco: se le da un estado y se revisa qué eventos publica.
+// Aquí se lo prueba en seco: se le da un estado y se revisa qué eventos publica.
 
 const PROGRAMA = {
   programId: 'prueba',

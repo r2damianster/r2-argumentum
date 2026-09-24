@@ -3,7 +3,7 @@
 //   1. Valida la FORMA: ¿tiene claim + razón?
 //   2. Clasifica a qué postura del debate pertenece, o avisa que no encaja en ninguna.
 // Quién puede proponer una postura nueva lo decide el cliente según `permitirPosturasNuevas`
-// del Programa — acá solo se informa el hallazgo.
+// del Programa — aquí solo se informa el hallazgo.
 
 import { revisarFormaMinima } from './_revisarFormaMinima.js';
 
@@ -246,7 +246,7 @@ Devuelve SOLO JSON válido con esta forma exacta:
   }
 
   const { resultado } = consulta;
-  // Groq a veces devuelve el id de una postura que no existe. Se normaliza acá para que el
+  // Groq a veces devuelve el id de una postura que no existe. Se normaliza aquí para que el
   // cliente nunca reciba un stanceId inventado.
   const idsValidos = new Set(posturas.map((postura) => postura.id));
   const posturaDetectada = idsValidos.has(resultado.posturaDetectada) ? resultado.posturaDetectada : null;

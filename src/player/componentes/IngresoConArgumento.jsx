@@ -27,7 +27,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
     .map((presente) => presente.participantId);
 
   // Con asignación aleatoria el Programa quiere que defiendas una postura que no elegiste: se
-  // resuelve acá, balanceando bandos contra quienes ya confirmaron su ingreso.
+  // resuelve aquí, balanceando bandos contra quienes ya confirmaron su ingreso.
   const [stanceElegido, setStanceElegido] = useState(() =>
     asignacionEsLibre || asignacionPorArgumento
       ? ''
@@ -177,9 +177,16 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
       texto,
       stanceId: stanceElegido,
       viaCoModerador: false,
+      // El argumento de ingreso es el boleto de entrada, no una intervención en el debate: se
+      // escribe antes de que empiece y nadie lo escuchó. Sin esta marca el reducer lo contaba
+      // como "ya tomó la palabra" y el turno hablado de respaldo no se le ofrecía nunca a
+      // nadie (ver reducirEventos.js y participantesSinIntervenir en reglasDeIngreso.js).
       esArgumentoDeIngreso: true,
       pendienteDeExposicion: true,
     });
+    // No hace falta esperar nada más: el participante ya está en presencia desde que se
+    // conectó (ver useEstadoDeSesion.js). En cuanto este evento vuelva por el canal, App.jsx
+    // deja de mostrar esta pantalla porque `ingresoConfirmado` pasa a true.
     publicar(EVENTOS.INGRESO_CONFIRMADO, { participantId, stanceId: stanceElegido, argumentId, nombre, emoji });
   }
 

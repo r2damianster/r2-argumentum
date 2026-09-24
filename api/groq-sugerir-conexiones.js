@@ -62,7 +62,7 @@ Devuelve SOLO un JSON con esta forma exacta:
   try {
     const resultado = JSON.parse(datos.choices[0].message.content);
     // Groq inventa o recorta ids con frecuencia. Una sugerencia que nombra un argumento
-    // inexistente no se puede dibujar ni aceptar: se descarta acá en vez de viajar al canal
+    // inexistente no se puede dibujar ni aceptar: se descarta aquí en vez de viajar al canal
     // y quedar como una arista colgada en el mapa.
     const idsValidos = new Set(argumentos.map((argumento) => argumento.argumentId));
     const sugerencias = (resultado.sugerencias || []).filter(
