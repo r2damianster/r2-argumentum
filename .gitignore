@@ -6,3 +6,6 @@ dist/
 
 .vercel
 .env*
+scripts/prueba-e2e/perfil-host/
+scripts/prueba-e2e/*.png
+scripts/prueba-e2e/*.log

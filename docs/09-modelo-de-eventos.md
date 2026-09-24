@@ -45,6 +45,8 @@ phase.closed    { phaseType, ronda?, timestamp }
 
 El cierre de `"apertura_simultanea"` o de `"escritura_argumentos"` es lo que **dispara** la llamada Groq de sugerencia de conexiones — sobre TODO el pool de argumentos acumulado hasta ese momento, no solo los de esa fase (así se detectan conexiones entre una reacción nueva y un argumento de la apertura).
 
+> **Nota (auditoría 24-sep-2026):** esta máquina de rondas solo se activa si el Programa incluye la fase `apertura_simultanea`; los tres Programas de ejemplo empiezan directamente en `escritura_argumentos`. Además, desde el rediseño del ingreso, los elegibles son quienes ya confirmaron su ingreso: con todos confirmados la sesión salta la apertura, y con alguien sin confirmar esa persona es oyente desde el inicio (el contador «X de Y» solo cuenta a los confirmados, por eso puede decir «2 de 2» con 3 conectados). Detalle y decisión pendiente en `docs/06-pendientes.md`.
+
 ### Máquina de rondas dentro de `apertura_simultanea` — requisito de entrada
 
 Agregada tras confirmar que la apertura debe ser un **requisito indispensable** antes del debate en sí, y que no conviene forzar su cierre por temporizador sin que el moderador confirme con los estudiantes. Eventos nuevos:

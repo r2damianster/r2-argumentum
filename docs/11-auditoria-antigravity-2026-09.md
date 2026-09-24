@@ -48,7 +48,7 @@ Solo un grupo en 7 días: `DEP0169 url.parse()` en `/api/ably-token` (46 veces).
 3. **`/api/ably-token` emite tokens con la capacidad completa de la clave** y acepta cualquier `clientId` sin validar. Recomendado: limitar la capacidad a los canales `sala:*` y validar la longitud/formato del `clientId`. No se tocó porque requiere conocer el patrón exacto de canales y probar contra Ably real.
 4. **Bundle `sesion` de 635 kB** (196 kB gzip; aviso de Vite). Aceptable en aula con buena red; mejora posible con `manualChunks` (React Flow/dagre por separado).
 5. **Hook `auto-commit` global + auto-push**: cada fin de turno crea un commit y despliega. Contradice la regla «no commitear sin instrucción» de tu `CLAUDE.md` global y fue lo que permitió desplegar código sin verificar. Sugerencia: excluir este repo del hook o agregar un paso `npm test && vite build` antes del push.
-6. **Sin verificar en navegador** (pendientes ya anotados en `docs/06`): cortacircuitos, semáforo de apertura, doble podio y módulo de oyentes no tienen prueba en vivo; la guía `docs/10` no cubre todavía oyentes ni cortacircuitos.
+6. ~~Sin verificar en navegador~~ → verificado el 24-sep-2026 (ver §4B).
 
 ## 4. Mejoras aplicadas en esta auditoría
 - 5 comentarios con voseo → tuteo (`motorDeSesion.test.js`, `IngresoConArgumento.jsx`, `groq-sugerir-conexiones.js`, `groq-validar-argumento.js` ×2).
@@ -62,6 +62,16 @@ Solo un grupo en 7 días: `DEP0169 url.parse()` en `/api/ably-token` (46 veces).
 - **Bundle** (§3.4): `manualChunks` separa `mapa-de-argumentos` (React Flow + dagre, 375 kB), `ably` (212 kB) y el resto (`sesion`, 47 kB): se cachean por separado.
 - **Hook `auto-commit`** (§3.5): ignora los repos con un archivo `.no-auto-commit` en la raíz; este repo lo tiene. Desde ahora, commit y push solo por instrucción explícita.
 - `npm run verificar`: 224/224 pruebas y build correcto.
+
+## 4B. Verificación en navegador (24-sep-2026)
+
+Playwright contra producción, 1 host + 4 participantes (`scripts/prueba-e2e/`). Detalle en `docs/10` §6B. Resumen:
+- ✅ Cortacircuitos, alerta y «Reanudar ruleta».
+- ✅ Doble podio (ranking en vivo e informe, con orden diferenciado).
+- ✅ Formulario de oyentes con el cambio nuevo (postura elegida, texto atado a la revisión).
+- ✅ Semáforo del host (verde → amarillo a 01:00 → rojo a 00:30 → agotado).
+- ⚠️ **Hallazgos nuevos:** (1) ningún Programa de ejemplo tiene fase de apertura, así que el selector de tiempo y el semáforo no actúan con ellos; (2) con el ingreso obligatorio, quien no confirma antes de iniciar es oyente al instante y nunca ve su semáforo; (3) el contador «X de Y» solo cuenta confirmados; (4) una muestra de 3 de 4 participantes en la misma postura con asignación aleatoria (por repetir).
+- 🔴 **Hallazgo crítico de seguridad:** el repositorio es público y la clave del host está en el código del cliente y estuvo en texto plano en `docs/10`. Retirada de la doc; **hay que cambiarla** y mover la verificación al servidor.
 
 ## 5. Recomendaciones de proceso
 1. Antes de cada push a `main`: `npm test && npm run build` (un script `npm run verificar` lo automatiza).

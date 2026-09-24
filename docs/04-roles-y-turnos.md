@@ -23,11 +23,11 @@ El profesor puede fijar un tope máximo para grupos grandes. Los co-moderadores 
 ### Temporizador de apertura y semáforo visual
 
 Durante el **ingreso obligatorio con argumento**, el moderador puede definir el tiempo límite de redacción inicial (`tiempoAperturaMinutos`: 2, 3 [por defecto], 4 o 5 minutos). En la pantalla del participante (`IngresoConArgumento.jsx`), se muestra un banner semáforo animado:
-- **Verde:** Más del 50% del tiempo restante.
-- **Amarillo (Alerta):** Entre el 20% y el 50% del tiempo.
-- **Rojo (Crítico):** Menos del 20% restante.
+- **Verde:** más de 60 s restantes.
+- **Amarillo (alerta):** entre 60 s y 30 s.
+- **Rojo (crítico):** 30 s o menos, y «Tiempo agotado» al llegar a 0 (umbrales fijos en segundos, iguales en host y participante; verificado en producción el 24-sep-2026).
 
-Si el tiempo concluye antes de que el participante apruebe y confirme su argumento inicial, su estado pasa automáticamente a **oyente**.
+**Limitación conocida (ver `06-pendientes.md`):** el temporizador solo existe si el Programa incluye una fase `apertura_simultanea` (ninguno de los Programas de ejemplo la trae) y, con el ingreso obligatorio actual, el argumento se confirma en la sala de espera: quien no lo confirmó al pulsar «Iniciar debate» pasa a **oyente** de inmediato, así que el banner del participante no llega a verse. En la práctica el semáforo solo lo ve el host.
 
 ### Priorización de posturas en la primera fase (Ronda 1)
 
