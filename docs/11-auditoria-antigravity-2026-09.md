@@ -69,9 +69,23 @@ Playwright contra producción, 1 host + 4 participantes (`scripts/prueba-e2e/`).
 - ✅ Cortacircuitos, alerta y «Reanudar ruleta».
 - ✅ Doble podio (ranking en vivo e informe, con orden diferenciado).
 - ✅ Formulario de oyentes con el cambio nuevo (postura elegida, texto atado a la revisión).
-- ✅ Semáforo del host (verde → amarillo a 01:00 → rojo a 00:30 → agotado).
-- ⚠️ **Hallazgos nuevos:** (1) ningún Programa de ejemplo tiene fase de apertura, así que el selector de tiempo y el semáforo no actúan con ellos; (2) con el ingreso obligatorio, quien no confirma antes de iniciar es oyente al instante y nunca ve su semáforo; (3) el contador «X de Y» solo cuenta confirmados; (4) una muestra de 3 de 4 participantes en la misma postura con asignación aleatoria (por repetir).
-- 🔴 **Hallazgo crítico de seguridad:** el repositorio es público y la clave del host está en el código del cliente y estuvo en texto plano en `docs/10`. Retirada de la doc; **hay que cambiarla** y mover la verificación al servidor.
+- ✅ Semáforo del host (verde → amarillo a 01:00 → rojo a 00:30 → agotado) — funcionaba, pero se retiró por inalcanzable en el flujo real.
+- ⚠️ **Hallazgos nuevos** (resueltos en §4C): (1) ningún Programa de ejemplo tiene fase de apertura; (2) con el ingreso obligatorio, quien no confirma antes de iniciar es oyente al instante y nunca ve su semáforo; (3) el contador «X de Y» solo contaba confirmados; (4) «3 de 4 en la misma postura», que resultó ser un error del script.
+- 🔴 **Hallazgo crítico de seguridad:** el repositorio es público y la clave del host estaba en el código del cliente y en texto plano en `docs/10`. Resuelto en §4C (verificación en servidor); la clave vieja sigue en el historial de git y hay que darla por comprometida.
+
+## 4C. Resolución de los hallazgos (24-sep-2026)
+
+Decisiones del docente y lo hecho:
+
+| Hallazgo | Decisión | Resultado |
+|---|---|---|
+| Clave del host en repo público | Verificar en servidor | `api/host-login.js` + token HMAC de 7 días; la identidad `host` de Ably exige ese token; clave retirada del código y de `docs/10`. **Pendiente del docente: crear `HOST_USER`/`HOST_PASSWORD` en Vercel con una clave nueva.** |
+| Apertura simultánea inalcanzable | Retirarla | Eliminadas fase, eventos, estado, selector y semáforo; Programas antiguos con la fase se cargan igual. |
+| Contador «X de Y» engañoso | (solo aplicaba a la apertura) | Desaparece con ella. |
+| Reparto de posturas | Repetir la prueba | 3 salas × 6 en paralelo: 2/2/2. El caso «3 de 4» era un error del script de prueba. |
+| Tokens de Ably sin restringir | Limitar y probar | Capacidad `debate:*` y `clientId` validado, con pruebas. |
+
+Pruebas automáticas: 230/230 (eran 224).
 
 ## 5. Recomendaciones de proceso
 1. Antes de cada push a `main`: `npm test && npm run build` (un script `npm run verificar` lo automatiza).

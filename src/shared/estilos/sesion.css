@@ -983,65 +983,6 @@ input {
   word-break: break-word;
 }
 
-/* Temporizador con semáforo de apertura inicial */
-.panel-cronometro-apertura {
-  border-radius: 14px;
-  padding: 14px 18px;
-  margin: 0 0 16px;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.semaforo-verde {
-  background: #f0fdf4;
-  border: 2px solid #22c55e;
-  color: #15803d;
-}
-
-.semaforo-amarillo {
-  background: #fffbeb;
-  border: 2px solid #f59e0b;
-  color: #b45309;
-}
-
-.semaforo-rojo {
-  background: #fef2f2;
-  border: 2px solid #ef4444;
-  color: #b91c1c;
-  animation: pulsoSemaforoRojo 1.5s infinite ease-in-out;
-}
-
-@keyframes pulsoSemaforoRojo {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
-  }
-}
-
-.reloj-gigante-apertura {
-  font-size: 2.8rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  font-variant-numeric: tabular-nums;
-  margin: 4px 0 8px;
-}
-
-.banner-cronometro-player {
-  position: sticky;
-  top: 0;
-  z-index: 25;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  border-radius: 12px;
-  margin-bottom: 14px;
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-
 /* Estilos de Doble Podio en vivo */
 .seccion-podio {
   margin-bottom: 24px;

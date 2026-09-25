@@ -9,7 +9,6 @@ import {
 } from '../shared/estado/seleccionesDerivadas.js';
 import { miOfertaDeTurno, tengoElTurnoEnCurso } from './estadoDelParticipante.js';
 import { PantallaDeTurnoOfrecido } from './componentes/PantallaDeTurnoOfrecido.jsx';
-import { FormularioDeArgumento } from './componentes/FormularioDeArgumento.jsx';
 import { GrafoDeArgumentos } from '../shared/componentes/GrafoDeArgumentos.jsx';
 import { FeedDeActividad } from '../shared/componentes/FeedDeActividad.jsx';
 import { DestacadoDelTurno } from '../shared/componentes/DestacadoDelTurno.jsx';
@@ -270,9 +269,6 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
   const miPostura = programa.posturas.find((postura) => postura.id === estado.participantes[participantId]?.stanceId);
   const miPuntaje = estado.participantes[participantId]?.puntajeTotal ?? 0;
   const sesionCerrada = estado.fase.actual?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING || estado.sesion.cerrada;
-  const enFaseDeApertura = estado.fase.actual?.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA;
-  const yaEscribiMiApertura = (estado.participantes[participantId]?.posicionesCompletadas ?? 0) >= 1;
-  const sinArgumentoDeApertura = Boolean(estado.participantes[participantId]?.sinArgumentoDeApertura);
   const ingresoConfirmado = Boolean(estado.participantes[participantId]?.ingresoConfirmado);
   const tieneArgumentoListo = Boolean(estado.participantes[participantId]?.argumentoListo);
   const ingresoCerrado = ingresoEstaCerrado(estado);
@@ -358,37 +354,10 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
         </>
       )}
 
-      {!sesionCerrada && sinArgumentoDeApertura && (
-        <section className="tarjeta-de-turno-ofrecido">
-          <p className="mensaje-de-error">
-            No alcanzaste a completar tu argumento inicial a tiempo — quedaste sin este argumento y sin turno en
-            la ruleta de esta sesión. Puedes seguir mirando el debate.
-          </p>
-        </section>
-      )}
-
-      {!sesionCerrada && enFaseDeApertura && <CronometroDeApertura apertura={estado.apertura} />}
-
       {!sesionCerrada && <FeedDeActividad estado={estado} presencia={presencia} />}
 
       {!sesionCerrada && soyComoderador && (
         <PanelDeCoModerador estado={estado} presencia={presencia} participantId={participantId} publicar={publicar} />
-      )}
-
-      {!sesionCerrada && !soyComoderador && ingresoConfirmado && enFaseDeApertura && !yaEscribiMiApertura && (
-        <FormularioDeArgumento
-          estado={estado}
-          programa={programa}
-          participantId={participantId}
-          publicar={publicar}
-          modoApertura
-        />
-      )}
-
-      {!sesionCerrada && !soyComoderador && enFaseDeApertura && yaEscribiMiApertura && (
-        <section className="tarjeta-de-turno-ofrecido">
-          <p className="texto-de-ayuda">✅ Ya enviaste tu argumento inicial — esperando a que terminen los demás.</p>
-        </section>
       )}
 
       {!sesionCerrada && !soyComoderador && oferta && (
@@ -416,7 +385,6 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
       {!sesionCerrada &&
         !soyComoderador &&
         ingresoConfirmado &&
-        !enFaseDeApertura &&
         estado.turnos.turnoEnCurso?.modo !== 'verbal' && (
           <PrepararArgumento
             estado={estado}
@@ -459,43 +427,6 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
         </div>
       </div>
     </main>
-  );
-}
-
-// Cronómetro de la apertura obligatoria (ver docs/09 y ControlDeFases.jsx del host, que es
-// quien realmente decide cuándo se cierra la ronda — este componente solo muestra el plazo
-// vigente, nunca cierra nada por su cuenta).
-function CronometroDeApertura({ apertura }) {
-  const [ahora, setAhora] = useState(Date.now());
-
-  useEffect(() => {
-    if (!apertura || apertura.cerrada) {
-      return undefined;
-    }
-    const intervalo = setInterval(() => setAhora(Date.now()), 1000);
-    return () => clearInterval(intervalo);
-  }, [apertura?.ronda, apertura?.cerrada, apertura?.expiraEn]);
-
-  if (!apertura) {
-    return null;
-  }
-
-  if (apertura.cerrada) {
-    if (apertura.esperandoSegundaOportunidad) {
-      return (
-        <p className="texto-de-ayuda">
-          Ronda 1 cerrada — el moderador está decidiendo si da una segunda oportunidad a quienes faltan.
-        </p>
-      );
-    }
-    return null;
-  }
-
-  const segundosRestantes = Math.max(0, Math.round((apertura.expiraEn - ahora) / 1000));
-  return (
-    <p className="texto-de-ayuda">
-      Ronda {apertura.ronda} de apertura — {segundosRestantes > 0 ? `${segundosRestantes}s restantes` : 'tiempo agotado, esperando al moderador'}
-    </p>
   );
 }
 

@@ -63,10 +63,6 @@ function elegirCandidatoParaTurno(estado, presencia, limiteDePosiciones) {
     // El stanceId se fija al confirmar el ingreso (ver IngresoConArgumento) — no se le puede
     // ofrecer turno a alguien sin postura.
     .filter((participantId) => Boolean(estado.participantes[participantId]?.stanceId))
-    // Requisito de entrada: quien no logró un argumento aprobado en la apertura (agotadas
-    // las dos rondas, ver EVENTOS.APERTURA_RONDA_CERRADA con esFinal:true) queda excluido de
-    // la ruleta de turnos por el resto de la sesión — sin argumento, sin puntaje.
-    .filter((participantId) => !estado.participantes[participantId]?.sinArgumentoDeApertura)
     // Los oyentes (entraron a la sala pero nunca confirmaron su argumento de ingreso) miran
     // el debate, no participan de la ruleta — ver reglasDeIngreso.js.
     .filter((participantId) => estado.participantes[participantId]?.ingresoConfirmado)
@@ -636,116 +632,6 @@ export function crearMotorDeSesion({ programa }) {
     }
   }
 
-  // Participantes que deberían escribir el argumento de apertura: todos los conectados menos
-  // co-moderadores. OJO: no filtrar por stanceId — con asignacionPostura:"libre" alguien que
-  // todavía no eligió postura tiene posicionesCompletadas=0 y por eso nunca puede haber
-  // "escrito" (bug real ya corregido una vez: filtrarlo lo excluía del conteo). Se lo cuenta
-  // igual, así "todos listos" espera también a esa persona.
-  function participantesElegiblesParaApertura() {
-    const { estado, presencia } = contexto;
-    return presencia
-      .filter((presente) => presente.conectado !== false)
-      .map((presente) => presente.participantId)
-      .filter((participantId) => estado.participantes[participantId]?.rol !== 'co_moderador');
-  }
-
-  function tieneArgumentoDeApertura(estado, participantId) {
-    return (estado.participantes[participantId]?.posicionesCompletadas ?? 0) >= 1;
-  }
-
-  // Fase de apertura simultánea (docs/09): requisito de entrada antes de empezar el debate en
-  // sí. Máquina de rondas gestionada por el HOST, no por temporizadores automáticos — nadie se
-  // fuerza a cerrar solo: al vencer el tiempo de una ronda con pendientes, el motor espera a
-  // que el moderador decida (dar 1 minuto más, cerrar ya, o dar/negar la segunda oportunidad).
-  // Ronda 1 (duracionMin del Programa, con gracia opcional de 1 min) → si quedan pendientes,
-  // decisión del host → ronda 2 (1 min fijo, solo para quienes faltan) → corte definitivo: sin
-  // argumento aprobado en ninguna ronda = sin puntaje y fuera de la ruleta de turnos
-  // (ver elegirCandidatoParaTurno).
-  function gestionarFaseDeAperturaSiHaceFalta() {
-    const { estado } = contexto;
-    const faseActual = estado.fase.actual;
-    if (!faseActual || faseActual.tipo !== TIPOS_DE_FASE.APERTURA_SIMULTANEA) {
-      return;
-    }
-
-    const elegibles = participantesElegiblesParaApertura();
-    if (elegibles.length === 0) {
-      return;
-    }
-
-    const claveDeInicio = `apertura-iniciada:${faseActual.iniciadaEn}`;
-    if (!yaSeHizo(claveDeInicio)) {
-      const publicar = comenzarAccion(claveDeInicio);
-      const entradaDeFase = programa.fases?.find((fase) => fase.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA);
-      const minutosApertura = programa.tiempoAperturaMinutos ?? entradaDeFase?.duracionMin ?? 3;
-      const duracionMs = minutosApertura * 60 * 1000;
-      const iniciadaEn = Date.now();
-      publicar(EVENTOS.APERTURA_RONDA_INICIADA, { ronda: 1, iniciadaEn, expiraEn: iniciadaEn + duracionMs });
-      return;
-    }
-
-    if (!estado.apertura || estado.apertura.cerrada) {
-      return;
-    }
-
-    const claveDeRonda = `apertura-ronda-cerrada:${faseActual.iniciadaEn}:${estado.apertura.ronda}`;
-    if (yaSeHizo(claveDeRonda)) {
-      return;
-    }
-    const todosListos = elegibles.every((participantId) => tieneArgumentoDeApertura(estado, participantId));
-    if (todosListos) {
-      // Nadie quedó pendiente — se cierra sola, sin molestar al host con una pregunta vacía.
-      // La acción se marca ANTES de publicar: publicar es async (viaja por Ably), así que sin
-      // esto varios ticks de sincronizar() de por medio publicarían el mismo cierre repetidas
-      // veces hasta que estado.apertura.cerrada refleje la vuelta del evento.
-      cerrarRondaDeApertura({ publicarDeLaAccion: comenzarAccion(claveDeRonda) });
-    }
-  }
-
-  // El host cierra la ronda de apertura vigente. Con pendientes en ronda 1 esto NO es
-  // definitivo — solo pausa a esperar la decisión de dar o no la segunda oportunidad (ver
-  // `esperandoSegundaOportunidad` en el reducer). En ronda 2, o si no quedan pendientes, o si
-  // `forzarFinal` viene true (el host declinó la segunda oportunidad), es el corte definitivo.
-  function cerrarRondaDeApertura({ forzarFinal = false, publicarDeLaAccion = null } = {}) {
-    const { estado } = contexto;
-    const publicar = publicarDeLaAccion ?? contexto.publicar;
-    if (!estado.apertura) {
-      return;
-    }
-    const elegibles = participantesElegiblesParaApertura();
-    const aprobados = elegibles.filter((participantId) => tieneArgumentoDeApertura(estado, participantId));
-    const pendientes = elegibles.filter((participantId) => !tieneArgumentoDeApertura(estado, participantId));
-    const rondaActual = estado.apertura.ronda;
-    const esFinal = forzarFinal || rondaActual === 2 || pendientes.length === 0;
-
-    publicar(EVENTOS.APERTURA_RONDA_CERRADA, { ronda: rondaActual, aprobados, pendientes, esFinal });
-    if (esFinal) {
-      cerrarFaseActual();
-    }
-  }
-
-  // Da 1 minuto extra dentro de ronda 1 (el host consultó a los estudiantes y hacen falta más
-  // segundos) — no crea una ronda nueva, solo extiende el plazo vigente.
-  function extenderRondaDeApertura() {
-    const { estado, publicar } = contexto;
-    if (!estado.apertura || estado.apertura.ronda !== 1 || estado.apertura.cerrada) {
-      return;
-    }
-    publicar(EVENTOS.APERTURA_RONDA_EXTENDIDA, { ronda: 1, hasta: Date.now() + 60 * 1000 });
-  }
-
-  // Segunda oportunidad: solo válida tras cerrar ronda 1 con pendientes (esperandoSegundaOportunidad).
-  // 1 minuto fijo, y esta vez el cierre siempre es definitivo (cerrarRondaDeApertura ya lo sabe
-  // por `rondaActual === 2`).
-  function abrirSegundaOportunidadDeApertura() {
-    const { estado, publicar } = contexto;
-    if (!estado.apertura?.esperandoSegundaOportunidad) {
-      return;
-    }
-    const iniciadaEn = Date.now();
-    publicar(EVENTOS.APERTURA_RONDA_INICIADA, { ronda: 2, iniciadaEn, expiraEn: iniciadaEn + 60 * 1000 });
-  }
-
   function sincronizar({ estado, presencia, publicar }) {
     contexto = { estado, presencia, publicar };
     if (!estado || estaCerrada()) {
@@ -760,7 +646,6 @@ export function crearMotorDeSesion({ programa }) {
     procesarBidsResueltos();
     iniciarTemporizadoresDeBidsNuevos();
     cerrarTopicosDeBidsResueltosAutomaticamente();
-    gestionarFaseDeAperturaSiHaceFalta();
   }
 
   function iniciarSesion() {
@@ -807,7 +692,7 @@ export function crearMotorDeSesion({ programa }) {
 
   // Manda TODO el pool de argumentos acumulado hasta ahora (no solo los de la fase que se
   // cierra) — así Groq también puede encontrar conexiones entre una reacción nueva y un
-  // argumento de la fase de apertura, no solo entre argumentos de la misma fase.
+  // argumento de ingreso, no solo entre argumentos de la misma fase.
   async function dispararSugerenciasDeConexion(publicarDeLaAccion = null) {
     const { estado } = contexto;
     const publicar = publicarDeLaAccion ?? contexto.publicar;
@@ -860,7 +745,7 @@ export function crearMotorDeSesion({ programa }) {
 
     const claveDeAnalisis = `sugerencias-groq:${faseActual.tipo}:${faseActual.iniciadaEn}`;
     const esFaseQueDisparaGroq =
-      faseActual.tipo === TIPOS_DE_FASE.ESCRITURA_ARGUMENTOS || faseActual.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA;
+      faseActual.tipo === TIPOS_DE_FASE.ESCRITURA_ARGUMENTOS;
     if (esFaseQueDisparaGroq && !yaSeHizo(claveDeAnalisis)) {
       await dispararSugerenciasDeConexion(comenzarAccion(claveDeAnalisis));
     }
@@ -990,9 +875,6 @@ export function crearMotorDeSesion({ programa }) {
     sincronizar,
     iniciarSesion,
     cerrarFaseActual,
-    cerrarRondaDeApertura,
-    extenderRondaDeApertura,
-    abrirSegundaOportunidadDeApertura,
     cerrarTopicoDeBids,
     decidirBid,
     cerrarSesion,

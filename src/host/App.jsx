@@ -25,54 +25,33 @@ import { FeedDeActividad } from '../shared/componentes/FeedDeActividad.jsx';
 import { DestacadoDelTurno } from '../shared/componentes/DestacadoDelTurno.jsx';
 import { PERFILES_DE_PUNTAJE, PERFIL_POR_DEFECTO } from '../shared/puntaje/formulaDePuntaje.js';
 import { IDIOMAS_DEL_DEBATE } from '../shared/programa/idiomaDelDebate.js';
-
-// Credencial hardcodeada a propósito, mismo criterio que R2 Quiz (ver docs/07-acceso-y-paginas.md):
-// esta consola no maneja información sensible, así que no requiere autenticación real.
-const USUARIO_VALIDO = 'arturo.rodriguez@uleam.edu.ec';
-const CLAVE_VALIDA = 'R2ironmaiden';
+import { guardarSesionDelHost, iniciarSesionDelHost, leerSesionDelHost } from '../shared/ably/sesionDelHost.js';
 
 const CLAVE_DE_SESION_ACTIVA = 'r2-argumentum-sesion-activa';
-const CLAVE_DE_LOGIN_RECORDADO = 'r2-argumentum-host-autenticado';
-
-function leerLoginRecordado() {
-  try {
-    return localStorage.getItem(CLAVE_DE_LOGIN_RECORDADO) === 'true';
-  } catch {
-    return false;
-  }
-}
-
-function guardarLoginRecordado(recordar) {
-  try {
-    if (recordar) {
-      localStorage.setItem(CLAVE_DE_LOGIN_RECORDADO, 'true');
-    } else {
-      localStorage.removeItem(CLAVE_DE_LOGIN_RECORDADO);
-    }
-  } catch {
-    // Sin localStorage disponible
-  }
-}
 
 export default function App() {
-  const [autenticado, setAutenticado] = useState(() => leerLoginRecordado());
+  const [autenticado, setAutenticado] = useState(() => leerSesionDelHost() !== null);
+  const [iniciandoSesion, setIniciandoSesion] = useState(false);
   const [usuario, setUsuario] = useState('');
   const [clave, setClave] = useState('');
   const [mensajeDeError, setMensajeDeError] = useState('');
 
-  function manejarEnvioDeLogin(evento) {
+  async function manejarEnvioDeLogin(evento) {
     evento.preventDefault();
-    if (usuario === USUARIO_VALIDO && clave === CLAVE_VALIDA) {
+    setIniciandoSesion(true);
+    const { sesion, mensajeDeError: mensajeDelServidor } = await iniciarSesionDelHost({ usuario, clave });
+    setIniciandoSesion(false);
+    if (sesion) {
       setMensajeDeError('');
-      guardarLoginRecordado(true);
+      setClave('');
       setAutenticado(true);
     } else {
-      setMensajeDeError('Usuario o clave incorrectos.');
+      setMensajeDeError(mensajeDelServidor);
     }
   }
 
   function cerrarSesionDeHost() {
-    guardarLoginRecordado(false);
+    guardarSesionDelHost(null);
     setAutenticado(false);
   }
 
@@ -103,7 +82,9 @@ export default function App() {
           />
         </label>
         {mensajeDeError && <p className="mensaje-de-error">{mensajeDeError}</p>}
-        <button type="submit">Entrar</button>
+        <button type="submit" disabled={iniciandoSesion}>
+          {iniciandoSesion ? 'Entrando…' : 'Entrar'}
+        </button>
       </form>
       <footer>R2 Argumentum — Arturo Damián Rodríguez Zambrano · Docente, investigador y vibe coder</footer>
     </main>
@@ -574,7 +555,6 @@ function TarjetaResumenDeConfiguracion({ programa, onModificarConfiguracion }) {
         <li><strong>Modo de asignación:</strong> {NOMBRES_MODO_ASIGNACION[programa.asignacionPostura] ?? programa.asignacionPostura}</li>
         <li><strong>Modo de calificación:</strong> {perfilObj.etiqueta} ({perfilObj.valoresBasePosicion.join(' / ')} pts)</li>
         <li><strong>Idioma:</strong> {idiomaObj.etiqueta}</li>
-        <li><strong>Tiempo de apertura inicial:</strong> {programa.tiempoAperturaMinutos ?? 3} minutos</li>
         <li><strong>Posturas nuevas propuestas:</strong> {programa.permitirPosturasNuevas ? 'Permitidas' : 'No permitidas'}</li>
       </ul>
     </div>

@@ -6,7 +6,8 @@ Consistente con otro proyecto del usuario, **R2 Quiz** (consola de host reservad
 
 - Página/ruta separada para el profesor, ej. `/host.html` o `/moderador`.
 - Acceso reservado — pantalla de login simple ("Usuario" / "Clave") antes de entrar.
-- Credencial **hardcodeada en el código**, sin backend de autenticación real. Aceptable porque no se maneja información sensible ni datos personales protegidos — mismo criterio ya validado en R2 Quiz ("no es peligroso porque no tendremos nada relevante ahí").
+- La credencial vive **solo en variables de entorno de Vercel** (`HOST_USER`, `HOST_PASSWORD`), nunca en el código ni en la documentación (el repositorio es público). El login llama a `POST /api/host-login`, que compara con `timingSafeEqual` y responde con un token firmado (HMAC-SHA256, caduca a los 7 días, se invalida al cambiar `HOST_PASSWORD`). El navegador guarda ese token en `localStorage` (`src/shared/ably/sesionDelHost.js`); «Cerrar sesión» lo borra. Una clave incorrecta espera 700 ms antes de responder.
+- `/api/ably-token` **solo entrega la identidad `host` con ese token** (`hostToken`); los participantes usan su propio `participante-…` sin login.
 - Imagen de portada de esta consola: `public/avatar.png`.
 - Flujo en 3 Etapas del Moderador:
   1. **Selección y Configuración Inicial**: El profesor elige un Programa de Debate y configura sus parámetros (posturas activas, modo de asignación de postura, perfil de puntaje, idioma y propuesta de posturas nuevas) **antes** de abrir la sala o generar el QR, evitando descalibres con participantes ingresando en paralelo.
@@ -68,7 +69,9 @@ GET /api/ably-token   (función serverless en Vercel)
 lee ABLY_API_KEY desde entorno seguro de Vercel
      │
      ▼
-devuelve token temporal de Ably
+devuelve token temporal de Ably, con capacidad limitada a los canales `debate:*`
+     (publish, subscribe, presence, history) y `clientId` validado (^[A-Za-z0-9_-]{1,64}$);
+     la identidad `host` exige el token firmado de /api/host-login
      │
      ▼
 Cliente se conecta a Ably con ese token

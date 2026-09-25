@@ -2,12 +2,12 @@
 
 Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate real de punta a punta contra producción y devolver una lista de fallos detectados. No inventes funcionalidad ni la pruebes por encima de lo que existe.
 
-> **Esta guía cubre el rediseño grande de septiembre 2026.** El flujo cambió de raíz: el argumento ahora es requisito para entrar, el turno sirve para defender lo ya escrito (no para escribir contra reloj), y hay capa instruccional, perfiles de puntaje, vista espejo e informe imprimible. Si lo que ves en pantalla se parece más a la versión anterior (fase de "apertura simultánea", turno que abre un formulario en blanco), **el deploy no tomó los cambios**: avisa y no sigas.
+> **Esta guía cubre el rediseño grande de septiembre 2026.** El flujo cambió de raíz: el argumento ahora es requisito para entrar, el turno sirve para defender lo ya escrito (no para escribir contra reloj), y hay capa instruccional, perfiles de puntaje, vista espejo e informe imprimible. Si lo que ves en pantalla se parece más a la versión anterior (turno que abre un formulario en blanco), **el deploy no tomó los cambios**: avisa y no sigas.
 
 ## 0. Entorno
 
 - Usar **producción**: `https://r2-argumentum.vercel.app/`.
-  - Host: `/host.html` (o la raíz `/` sin parámetros, redirige ahí) — Usuario y clave: los tiene el docente (no se documentan aquí: el repositorio es público).
+  - Host: `/host.html` (o la raíz `/` sin parámetros, redirige ahí) — Usuario y clave: los tiene el docente (viven en variables de entorno de Vercel; no se documentan aquí porque el repositorio es público).
   - Participante: `/player.html`, o el link corto `/?sala=XXXX` — es el que generan el QR y el botón "Copiar link".
 - **Antes de empezar, revisa el zoom del navegador y déjalo al 100 % (`Ctrl+0`).** El zoom de Chrome se guarda **por sitio**: host y participantes comparten origen (`r2-argumentum.vercel.app`), así que si una pestaña quedó en 33 % (`window.devicePixelRatio` ≈ 0,31–0,33) todas las demás abren igual de diminutas. En la ronda anterior pasó justo eso: los clics y el scroll por coordenadas no funcionaban y hubo que manejar la interfaz por el DOM, lo que limitó lo que se pudo comprobar visualmente. La app **detecta** el zoom por debajo de ~80 % y **se amplía sola** en proporción inversa (propiedad CSS `zoom` sobre `<html>`, tope ×4) para que la interfaz salga a tamaño normal desde el primer momento, y muestra arriba una barra ámbar («El zoom del navegador está en X %, así que ampliamos la página… pulsa Ctrl + 0»). Aun así **deja el zoom al 100 % antes de empezar**: es lo que se prueba de verdad. Con la ampliación automática, comprueba que nada quede desbordado ni cortado (barra ámbar, capa instruccional fija, mapa, ventana de argumento destacado) y que al pulsar Ctrl+0 la página vuelva sola a su tamaño y desaparezca la barra. Si el zoom está bajo, **no** aparece la barra y todo se ve diminuto, anótalo como fallo. En celulares y tabletas (puntero táctil) no se aplica ninguna ampliación.
 - **No cierres la sesión del host ni escribas su clave.** Si la pestaña del host ya tiene la sesión iniciada, no hace falta la clave; y para empezar otro debate ya no hay que cerrar sesión: el ranking final tiene «➕ Iniciar un debate nuevo». Si por algún motivo el host te pide la clave, **no la teclees tú**: pídele al usuario que la escriba y espera. (En la ronda anterior se tecleó la clave para volver a entrar tras un «Cerrar sesión»; ese desvío ya no debería hacer falta.)
@@ -31,7 +31,6 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 - **Solo se restaura automáticamente una sesión ya iniciada.** Si quedó a medio configurar sin iniciar, al recargar vuelve a la lista de Programas. Si estaba iniciada y la pestaña conserva su copia local, un F5 **reconstruye el debate** (también con el debate ya cerrado: el informe no se pierde por un refresco, es intencional). Solo si no hay copia local **y** el historial de Ably ya expiró vuelve a la lista de Programas, con código nuevo al elegir uno; nunca debe reabrir una sala de configuración con el código viejo. Para empezar otro debate está «➕ Iniciar un debate nuevo» en el ranking final.
 - **Sala de configuración previa**: código + QR + link corto, participantes conectados, y la configuración de la sesión.
 - **Selector de posturas** (si el Programa tiene más de 2): checklist, todas tildadas por defecto, mínimo 2.
-- **Temporizador de apertura inicial** (solo tiene efecto con un Programa que incluya la fase `apertura_simultanea`; **ninguno de los tres Programas de ejemplo la trae**: hay que cargar un `.json` propio, p. ej. `scripts/prueba-e2e/programa-con-apertura.json`): selector de tiempo máximo para el argumento de ingreso (2, 3 [por defecto], 4 o 5 minutos). Se visualiza en vivo con semáforo semántico (Verde 🟢 $\rightarrow$ Amarillo 🟡 a 60s $\rightarrow$ Rojo 🔴 a 30s) y contador en vivo de confirmados (`X de Y inscritos`). El docente cuenta con botones de control directo: **"+1 minuto adicional"** y **"Cerrar ronda ahora"**.
 - **Modo de calificación**: Liviano (10/8/3), Estándar (100/80/30) o Estricto (1000/800/300). Cambia la escala y qué tan caro sale demorarse o rechazar un turno, pero **la proporción entre posiciones se mantiene**.
 - **Idioma de los argumentos**: Español (por defecto) o English. Cambia el corrector ortográfico de los campos de texto del participante y el idioma con que Groq valida y comenta el argumento (en inglés reconoce `because`, `since`, `due to`…). **La interfaz —botones, avisos, instrucciones— sigue en español**: no es una traducción. Se republica en vivo con el resto de la configuración de la sala.
 - **"Permitir posturas nuevas"**: casilla, **desactivada por defecto**. La configuración se republica en vivo mientras la sala está en espera.
@@ -40,8 +39,7 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
 
 El argumento es **requisito para entrar y se confirma en la sala de espera, antes de «Iniciar debate»**: quien no lo confirmó al iniciar queda como oyente de inmediato. El flujo es: nombre + avatar → conecta al canal **sin aparecer en la sala** → elige postura → escribe argumento → lo revisa con Groq → confirma ingreso → **recién ahí aparece en el roster**.
 
-- **Banner de temporizador pegajoso** (nuevo): en el celular del estudiante (`IngresoConArgumento.jsx`), un banner superior sincronizado muestra la cuenta regresiva en vivo del tiempo de apertura.
-- **Transición a Oyente con Módulo de Contraargumentación** (nuevo): Si el tiempo de apertura vence y el participante no confirmó su argumento, pasa automáticamente a **Oyente** y se le despliega el aviso:
+- **Oyentes y Módulo de Contraargumentación**: quien no confirmó su argumento de ingreso cuando el moderador pulsa «Iniciar debate» pasa a **oyente** y ve el aviso:
   > *"⚠️ No pudiste ingresar tu argumento inicial a tiempo. Se agotó el plazo de la primera fase y perdiste la oportunidad de ingresar un argumento principal. Sin embargo, como estás conectado como oyente, tienes la oportunidad de formular un contraargumento para participar."*
   Se le habilita el `FormularioDeContraargumentoParaOyentes`: selecciona un argumento del debate, **elige la postura desde la que contraargumenta**, redacta el contraargumento, pasa validación con Groq (solo se publica el texto exacto que Groq revisó) y lo publica en la sala. Al publicar pasa a ser participante.
 - Con `asignacionPostura: "libre"` el estudiante elige postura; con `"aleatoria"` se le asigna la menos representada, para que los bandos queden parejos. La asignación **se recalcula mientras el estudiante no haya escrito nada** y los empates se reparten por el lugar de cada quien en la sala, no al azar.
@@ -273,16 +271,16 @@ Si puedes, cierra la ronda con **un celular real** entrando por el QR de la sala
 
 ## 6B. Prueba automatizada en navegador (Playwright) — 24 de septiembre de 2026
 
-`scripts/prueba-e2e/` contiene dos scripts de Python + Playwright que manejan producción con 1 host visible y 4 participantes headless (ver el `README.md` de esa carpeta). Resultado de la última corrida completa (sala 9263, Programa con apertura de 2 min):
+`scripts/prueba-e2e/` contiene scripts de Python + Playwright que manejan producción con 1 host visible y participantes headless (ver el `README.md` de esa carpeta). Resultado de la corrida completa del 24-sep-2026 (sala 9263). El semáforo de apertura que se verificó entonces fue **retirado** ese mismo día (ver `06-pendientes.md`); `scripts/prueba-e2e/` se adaptó:
 
 | Qué se probó | Resultado |
 |---|---|
-| Semáforo del host en la apertura (2 min) | ✅ verde 01:53 → amarillo 01:00 → rojo 00:30 → «Tiempo agotado» |
-| Semáforo del participante | ⚠️ **inalcanzable**: quien no confirmó antes de «Iniciar debate» pasa a oyente al instante y nunca ve el banner (ver `06-pendientes.md`, sección «Abierto») |
 | Cortacircuitos de la ruleta | ✅ tras rechazos consecutivos la ruleta se pausa, el host recibe la alerta y «Reanudar ruleta» la quita |
 | Formulario de oyentes con el cambio nuevo | ✅ pide postura; Groq aprueba; editar el texto retira «Publicar»; revisar de nuevo lo devuelve; publicar saca a la persona del modo oyente |
 | Doble podio | ✅ ranking en vivo: 1) Posturas, 2) Individual, 3) Desglose; informe: 1) Lista individual, 2) Lista por postura |
 | Ranking incluye a los 4 (oyente con 0 puntos incluido) | ✅ |
+
+Reparto de posturas (`bandos.py`): 3 salas × 6 participantes en paralelo → 2/2/2 en las tres.
 
 No cubierto por el script: exposición de turnos y calificación de co-moderadores, bids, conexión libre, celular físico.
 

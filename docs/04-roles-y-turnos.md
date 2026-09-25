@@ -20,14 +20,9 @@ El profesor puede fijar un tope máximo para grupos grandes. Los co-moderadores 
 
 **El argumento se publica y puntúa apenas Groq lo aprueba; el turno sirve para exponerlo en voz alta, no para escribirlo contra reloj.** Tanto el argumento redactado obligatoriamente al confirmar el ingreso (`IngresoConArgumento.jsx`) como los preparados durante el debate se publican marcados con `pendienteDeExposicion: true`. Por ello, desde el primer instante en que se inicia la sesión de debate, todos los participantes inscritos están habilitados en la ruleta de turnos aleatorios para exponer su argumento inicial en voz alta. Mientras esperan, reciben un aviso visual en pantalla (**«⚡ ¡PREPÁRATE PARA HABLAR!»**) alertándoles que en cualquier momento pueden recibir la palabra.
 
-### Temporizador de apertura y semáforo visual
+### Ingreso con argumento y oyentes
 
-Durante el **ingreso obligatorio con argumento**, el moderador puede definir el tiempo límite de redacción inicial (`tiempoAperturaMinutos`: 2, 3 [por defecto], 4 o 5 minutos). En la pantalla del participante (`IngresoConArgumento.jsx`), se muestra un banner semáforo animado:
-- **Verde:** más de 60 s restantes.
-- **Amarillo (alerta):** entre 60 s y 30 s.
-- **Rojo (crítico):** 30 s o menos, y «Tiempo agotado» al llegar a 0 (umbrales fijos en segundos, iguales en host y participante; verificado en producción el 24-sep-2026).
-
-**Limitación conocida (ver `06-pendientes.md`):** el temporizador solo existe si el Programa incluye una fase `apertura_simultanea` (ninguno de los Programas de ejemplo la trae) y, con el ingreso obligatorio actual, el argumento se confirma en la sala de espera: quien no lo confirmó al pulsar «Iniciar debate» pasa a **oyente** de inmediato, así que el banner del participante no llega a verse. En la práctica el semáforo solo lo ve el host.
+El argumento de ingreso se redacta, se revisa con Groq y se **confirma en la sala de espera, antes de «Iniciar debate»**. Quien no lo confirmó cuando el moderador inicia la sesión pasa a **oyente** de inmediato. (Hubo un temporizador de apertura con semáforo del 17 al 24 de septiembre; se retiró porque con este flujo quien no confirmaba ya era oyente y nunca lo veía: ver `09-modelo-de-eventos.md`.)
 
 ### Priorización de posturas en la primera fase (Ronda 1)
 

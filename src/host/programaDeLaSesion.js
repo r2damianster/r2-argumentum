@@ -17,7 +17,6 @@ export function armarProgramaDeLaSesion({
   permitirPosturasNuevas,
   idioma,
   asignacionPostura,
-  tiempoAperturaMinutos = 3,
 }) {
   const posturasElegidas = posturasDelPrograma.filter((postura) => idsDePosturasSeleccionadas.has(postura.id));
   if (posturasElegidas.length < MINIMO_DE_POSTURAS) {
@@ -30,6 +29,8 @@ export function armarProgramaDeLaSesion({
     permitirPosturasNuevas: Boolean(permitirPosturasNuevas),
     idioma,
     asignacionPostura: asignacionPostura ?? programaBase.asignacionPostura ?? 'aleatoria',
-    tiempoAperturaMinutos: Number(tiempoAperturaMinutos) || 3,
+    // Programas guardados antes de retirar la apertura simultánea pueden traer esa fase: se
+    // descarta, porque ya no existe (el ingreso con argumento se confirma en la sala de espera).
+    fases: programaBase.fases?.filter((fase) => fase.tipo !== 'apertura_simultanea'),
   };
 }

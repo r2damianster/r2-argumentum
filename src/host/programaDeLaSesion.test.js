@@ -26,6 +26,24 @@ describe('armarProgramaDeLaSesion', () => {
     expect(programa.titulo).toBe('Izquierda o derecha');
   });
 
+  it('descarta la fase apertura_simultanea de Programas antiguos: ya no existe', () => {
+    const programa = armarProgramaDeLaSesion({
+      programaBase: {
+        ...programaBase,
+        fases: [
+          { tipo: 'apertura_simultanea', duracionMin: 3 },
+          { tipo: 'escritura_argumentos', ronda: 1 },
+          { tipo: 'cierre_y_ranking' },
+        ],
+      },
+      posturasDelPrograma,
+      idsDePosturasSeleccionadas: new Set(['izquierda', 'derecha']),
+      perfilDePuntaje: 'liviano',
+    });
+
+    expect(programa.fases.map((fase) => fase.tipo)).toEqual(['escritura_argumentos', 'cierre_y_ranking']);
+  });
+
   it('preserva y permite cambiar asignacionPostura', () => {
     const programa = armarProgramaDeLaSesion({
       programaBase: { ...programaBase, asignacionPostura: 'aleatoria' },

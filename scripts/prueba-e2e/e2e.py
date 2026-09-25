@@ -15,12 +15,16 @@ ARGUMENTOS_POR_BANDO = {
         "El Estado debe redistribuir la riqueza porque la desigualdad extrema debilita la educación y la salud de los más pobres.",
         "Los servicios públicos universales son necesarios ya que garantizan igualdad de oportunidades para los hijos de familias sin recursos.",
     ],
+    "matizada": [
+        "El Estado y el mercado deben complementarse porque los mercados sin regulación generan abusos y el Estado sin incentivos genera ineficiencia.",
+        "Conviene una economía mixta ya que ni la competencia total ni el control estatal total resuelven por sí solos la pobreza.",
+    ],
     "mercado": [
         "La libertad de mercado genera más prosperidad porque la competencia reduce los precios y premia la innovación.",
         "Los impuestos altos frenan el crecimiento porque quitan a las empresas el dinero que necesitan para invertir y crear empleo.",
     ],
 }
-USADOS = {"estado": 0, "mercado": 0}
+USADOS = {"estado": 0, "mercado": 0, "matizada": 0}
 TEXTO_OYENTE = "Esa defensa del Estado falla porque cuando el gobierno controla los precios aparecen la escasez y el mercado negro, y eso perjudica a los más pobres."
 
 
@@ -59,7 +63,8 @@ def escribir_y_confirmar(page, nombre):
     page.wait_for_selector("textarea", timeout=40000)
     esperar(lambda: "Te toca defender" in cuerpo(page), 15)
     texto_pagina = cuerpo(page)
-    bando = "mercado" if "Te toca defender: Más mercado" in texto_pagina.replace(chr(10), " ").replace("  ", " ") or "Más mercado" in texto_pagina.split("Te toca defender")[-1][:60] else "estado"
+    asignada = texto_pagina.split("Te toca defender")[-1][:60]
+    bando = "mercado" if "Más mercado" in asignada else "matizada" if "Matizada" in asignada else "estado"
     texto = ARGUMENTOS_POR_BANDO[bando][USADOS[bando] % 2]
     USADOS[bando] += 1
     print(f"INFO {nombre} defiende {bando}", flush=True)
@@ -78,16 +83,13 @@ with sync_playwright() as p:
     host.on("dialog", lambda d: d.accept())
     host.goto(BASE + "/host.html")
     host.wait_for_selector("text=Elige el Programa de Debate a abrir", timeout=30000)
-    host.set_input_files('input[type=file]', "programa-con-apertura.json")
-    host.wait_for_selector('input[name="tiempo-apertura-inicial"]', timeout=15000)
-    # Tiempo de apertura = 2 minutos
-    host.locator('input[name="tiempo-apertura-inicial"]').first.check()
+    host.click('button:has-text("Izquierda o derecha")')
+    host.wait_for_selector('button:has-text("Confirmar configuración y abrir sala")', timeout=15000)
     host.click('button:has-text("Confirmar configuración y abrir sala")')
     host.wait_for_selector(".codigo-de-sala", timeout=20000)
     codigo = host.inner_text(".codigo-de-sala").strip()
     print("SALA", codigo, flush=True)
-    check("Host abre sala con tiempo de apertura de 2 min", bool(re.fullmatch(r"\d{4}", codigo)), codigo)
-    check("Tarjeta resumen muestra 2 minutos", "2 minutos" in cuerpo(host))
+    check("Host abre la sala", bool(re.fullmatch(r"\d{4}", codigo)), codigo)
 
     browser = p.chromium.launch(headless=True)
     jugadores = {}
@@ -107,32 +109,6 @@ with sync_playwright() as p:
           esperar(lambda: "3 en el debate" in cuerpo(host), 30), texto_host[texto_host.find("Marcador"):][:60].replace(chr(10), " "))
 
     host.click('button:has-text("Iniciar debate")')
-    t_inicio = time.time()
-    apertura_visible = esperar(lambda: host.locator(".panel-cronometro-apertura").count() > 0, 15)
-    check("Con el Programa que trae apertura, el panel de apertura aparece al iniciar", apertura_visible)
-    vistos_host = []
-    while time.time() - t_inicio < 25 and apertura_visible:
-        try:
-            clase_host = host.locator(".panel-cronometro-apertura").first.get_attribute("class") or ""
-            m = re.search(r"semaforo-(verde|amarillo|rojo)", clase_host)
-            if m and (not vistos_host or vistos_host[-1] != m.group(1)):
-                vistos_host.append(m.group(1))
-            if host.locator(".panel-cronometro-apertura").count() == 0:
-                break
-        except Exception:
-            pass
-        time.sleep(1)
-    host.screenshot(path="03-apertura-host.png")
-    cuerpo_host = cuerpo(host)
-    print("INFO semaforo host visto:", vistos_host, "| apertura sigue abierta:", host.locator(".panel-cronometro-apertura").count() > 0, flush=True)
-    print("INFO texto contador:", cuerpo_host[cuerpo_host.find("📝"):][:60].replace(chr(10), " ") if "📝" in cuerpo_host else "sin contador", flush=True)
-    auto = esperar(lambda: host.locator(".panel-cronometro-apertura").count() == 0, 10)
-    check("La apertura se cierra sola cuando todos los confirmados ya tienen argumento", auto)
-    if not auto:
-        host.click('button:has-text("Cerrar ronda")')
-        esperar(lambda: host.locator('button:has-text("No, continuar sin ellos")').count() > 0 or host.locator(".panel-cronometro-apertura").count() == 0, 15)
-        if host.locator('button:has-text("No, continuar sin ellos")').count():
-            host.click('button:has-text("No, continuar sin ellos")')
     check("Se pasa a la fase de turnos", esperar(lambda: "Fase activa" in cuerpo(host) and "Ruleta" in cuerpo(host), 30))
 
     # OYENTE: Dani ve formulario de contraargumento

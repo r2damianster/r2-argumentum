@@ -708,7 +708,7 @@ describe('reasignarRolplayEquilibrado', () => {
     expect(asignaciones[1].stanceId).toBe(PROGRAMA.posturas[1].id);
   });
 
-  it('ofrece turno inmediatamente a quien ingresó con su argumento de apertura pendienteDeExposicion', () => {
+  it('ofrece turno inmediatamente a quien ingresó con su argumento de ingreso pendienteDeExposicion', () => {
     const estado = construirEstado([
       evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'ana', stanceId: 'izquierda' }),
       evento(EVENTOS.POSTURA_ASIGNADA, { participantId: 'ana', stanceId: 'izquierda' }),

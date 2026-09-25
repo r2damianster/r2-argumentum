@@ -82,10 +82,6 @@ function describirQuePasa(estado, presencia) {
     return `Se le ofreció la palabra a ${nombreDeParticipante(presencia, ofertaActiva.candidateId)}.`;
   }
 
-  if (estado.fase.actual?.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA) {
-    return 'Todos están escribiendo su argumento inicial al mismo tiempo.';
-  }
-
   return 'Nadie tiene la palabra ahora mismo. Se está por sortear el próximo turno.';
 }
 

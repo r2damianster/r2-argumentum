@@ -39,35 +39,11 @@ phase.started   { phaseType, ronda?, timestamp }
 phase.closed    { phaseType, ronda?, timestamp }
 ```
 
-`phaseType`: `"apertura_simultanea"` | `"escritura_argumentos"` | `"conexion_sugerida"` | `"conexion_libre"` | `"cierre_y_ranking"`.
+`phaseType`: `"escritura_argumentos"` | `"conexion_sugerida"` | `"conexion_libre"` | `"cierre_y_ranking"`.
 
-**`apertura_simultanea`** (agregada durante la implementación, no estaba en la spec original): primera fase de la sesión — todos los participantes (no co-moderadores) escriben su argumento inicial en paralelo, sin ruleta de turnos, siempre `tipoDeclarado: "nuevo"`, posición 1, ronda 1. Se cierra automáticamente cuando todos ya escribieron o al agotar `duracionMin` de esa entrada de `programa.fases` (lo que ocurra primero) — el motor del host la gestiona igual que un cierre manual de fase.
+> **Fase `apertura_simultanea` retirada (24-sep-2026).** Existió del 17 al 24 de septiembre: todos escribían su argumento inicial en paralelo con una máquina de rondas (`apertura.ronda_iniciada`, `apertura.ronda_extendida`, `apertura.ronda_cerrada`) y un temporizador con semáforo. Desde el ingreso obligatorio (el argumento se confirma en la sala de espera, antes de «Iniciar debate») dejó de tener sentido: ningún Programa de ejemplo la usaba, quien no confirmaba era oyente al instante y el contador solo contaba a los confirmados. Se eliminaron la fase, sus eventos, el estado `apertura`, la marca `sinArgumentoDeApertura`, el selector `tiempoAperturaMinutos` y el semáforo. Un Programa antiguo que aún traiga esa fase se sigue cargando: `armarProgramaDeLaSesion` la descarta, y los eventos `apertura.*` que hubiera en un log viejo el reducer los ignora.
 
-El cierre de `"apertura_simultanea"` o de `"escritura_argumentos"` es lo que **dispara** la llamada Groq de sugerencia de conexiones — sobre TODO el pool de argumentos acumulado hasta ese momento, no solo los de esa fase (así se detectan conexiones entre una reacción nueva y un argumento de la apertura).
-
-> **Nota (auditoría 24-sep-2026):** esta máquina de rondas solo se activa si el Programa incluye la fase `apertura_simultanea`; los tres Programas de ejemplo empiezan directamente en `escritura_argumentos`. Además, desde el rediseño del ingreso, los elegibles son quienes ya confirmaron su ingreso: con todos confirmados la sesión salta la apertura, y con alguien sin confirmar esa persona es oyente desde el inicio (el contador «X de Y» solo cuenta a los confirmados, por eso puede decir «2 de 2» con 3 conectados). Detalle y decisión pendiente en `docs/06-pendientes.md`.
-
-### Máquina de rondas dentro de `apertura_simultanea` — requisito de entrada
-
-Agregada tras confirmar que la apertura debe ser un **requisito indispensable** antes del debate en sí, y que no conviene forzar su cierre por temporizador sin que el moderador confirme con los estudiantes. Eventos nuevos:
-
-```
-apertura.ronda_iniciada  { ronda: 1 | 2, iniciadaEn, expiraEn }
-apertura.ronda_extendida { ronda: 1, hasta }
-apertura.ronda_cerrada   { ronda: 1 | 2, aprobados: [participantId...], pendientes: [participantId...], esFinal: bool }
-```
-
-Flujo (gestionado enteramente por el host, sin cierre automático por temporizador salvo cuando ya no queda nadie pendiente):
-
-1. Al iniciar la sesión se publica `apertura.ronda_iniciada { ronda: 1 }` con `expiraEn` calculado desde `duracionMin` de la entrada `apertura_simultanea` del Programa.
-2. Si todos los elegibles (no co-moderadores) ya tienen un `argument.submitted` antes de que venza el plazo, la ronda se cierra sola (`esFinal: true`, `pendientes: []`) — no se molesta al host con una pregunta vacía.
-3. Si vence el plazo y quedan pendientes, el motor **no cierra nada solo**: espera un clic del host. El host pregunta a los estudiantes si ya terminaron y decide:
-   - **Dar 1 minuto más** → `apertura.ronda_extendida { ronda: 1, hasta: ahora + 60000 }` (extiende el plazo vigente, no crea una ronda nueva).
-   - **Cerrar ronda ya** → `apertura.ronda_cerrada { ronda: 1, esFinal: pendientes.length === 0 }`. Si siguen quedando pendientes, `esFinal: false` — esto NO es el corte definitivo, solo pausa a la siguiente pregunta.
-4. Con `esFinal: false`, el host recibe una segunda pregunta: ¿dar una segunda oportunidad (1 minuto, fijo) solo a quienes faltan?
-   - **Sí** → `apertura.ronda_iniciada { ronda: 2, expiraEn: ahora + 60000 }`. Al vencer (o si el host cierra antes), el cierre de ronda 2 es **siempre definitivo** (`esFinal: true`).
-   - **No** → se publica igual un `apertura.ronda_cerrada` definitivo (recalculando pendientes en ese instante), sin pasar por una ronda 2 real.
-5. Corte definitivo (`esFinal: true`): quienes están en `pendientes` quedan marcados `sinArgumentoDeApertura: true` en el estado derivado — sin argumento aprobado, sin `score.updated` de categoría "argumento", y excluidos de la ruleta de turnos por el resto de la sesión (`elegirCandidatoParaTurno` en `motorDeSesion.js` los filtra). Esto es una excepción deliberada a la política general de "2 intentos de Groq y escala a co-moderador" (ver `CLAUDE.md` del proyecto y `06-pendientes.md`): esa política sigue vigente tal cual dentro de `escritura_argumentos`, pero el requisito de apertura es un corte de asistencia, no un turno en vivo — agotadas las dos rondas, no hay más reintentos ni escalamiento.
+El cierre de `"escritura_argumentos"` es lo que **dispara** la llamada Groq de sugerencia de conexiones — sobre TODO el pool de argumentos acumulado hasta ese momento, no solo los de esa fase (así se detectan conexiones entre una reacción nueva y los argumentos de ingreso).
 
 Nota de costo de Ably: el chequeo de Groq contra un borrador (`/api/groq-validar-argumento`) es una llamada HTTP directa del cliente, no pasa por el canal — el estudiante puede corregir su argumento tantas veces como quiera sin publicar nada. Recién se publica al canal (`argument.submit_attempt` → `argument.validation_result` → `argument.submitted`) una vez que el intento queda aprobado, igual que hoy.
 
@@ -321,8 +297,6 @@ evaluaciones-finales
 bid-resuelto:<bidId>
 topico-bids:<turnoPrincipalId>
 sugerencias-groq:<tipoDeFase>:<iniciadaEn>
-apertura-iniciada:<iniciadaEn>
-apertura-ronda-cerrada:<iniciadaEn>:<ronda>
 ```
 
 Un motor nuevo consulta esas marcas antes de actuar. En la misma línea:

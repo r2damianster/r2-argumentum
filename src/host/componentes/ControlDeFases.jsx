@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react';
 import { TIPOS_DE_FASE } from '../../shared/eventos/nombresDeEventos.js';
 
 const ETIQUETA_DE_FASE = {
-  [TIPOS_DE_FASE.APERTURA_SIMULTANEA]: 'Apertura simultánea (todos escriben)',
   [TIPOS_DE_FASE.ESCRITURA_ARGUMENTOS]: 'Escritura de argumentos',
   [TIPOS_DE_FASE.CONEXION_SUGERIDA]: 'Conexión sugerida por Groq',
   [TIPOS_DE_FASE.CONEXION_LIBRE]: 'Conexión libre',
@@ -43,10 +41,7 @@ export function ControlDeFases({ estado, motor }) {
         {ETIQUETA_DE_FASE[faseActual.tipo] || faseActual.tipo}
         {faseActual.ronda ? ` · Ronda ${faseActual.ronda}` : ''}
       </h3>
-      {faseActual.tipo === TIPOS_DE_FASE.APERTURA_SIMULTANEA ? (
-        <PanelDeAperturaDelHost estado={estado} motor={motor} />
-      ) : (
-        faseActual.tipo !== TIPOS_DE_FASE.CIERRE_Y_RANKING && (
+      {faseActual.tipo !== TIPOS_DE_FASE.CIERRE_Y_RANKING && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
             {faseActual.tipo === TIPOS_DE_FASE.ESCRITURA_ARGUMENTOS && motor && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -68,98 +63,7 @@ export function ControlDeFases({ estado, motor }) {
               Cerrar fase actual
             </button>
           </div>
-        )
-      )}
+        )}
     </section>
   );
-}
-
-// Máquina de rondas de la apertura obligatoria (ver docs/09 y motorDeSesion.js): aquí vive el
-// arbitraje del host — dar 1 minuto más, cerrar la ronda ya, o dar/negar la segunda oportunidad
-// a quienes quedaron sin argumento. No hay cierre automático por temporizador: el motor espera
-// siempre una decisión humana una vez vencido el plazo (salvo que ya todos terminaron).
-function PanelDeAperturaDelHost({ estado, motor }) {
-  const apertura = estado.apertura;
-  const [ahora, setAhora] = useState(Date.now());
-
-  useEffect(() => {
-    if (!apertura || apertura.cerrada) {
-      return undefined;
-    }
-    const intervalo = setInterval(() => setAhora(Date.now()), 1000);
-    return () => clearInterval(intervalo);
-  }, [apertura?.ronda, apertura?.cerrada, apertura?.expiraEn]);
-
-  if (!apertura) {
-    return <p className="texto-de-ayuda">Arrancando la apertura…</p>;
-  }
-
-  if (!apertura.cerrada) {
-    const segundosRestantes = Math.max(0, Math.round((apertura.expiraEn - ahora) / 1000));
-    const minutos = Math.floor(segundosRestantes / 60);
-    const segundos = segundosRestantes % 60;
-    const relojFormateado = `${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
-    const tiempoAgotado = segundosRestantes === 0;
-
-    const claseSemaforo =
-      segundosRestantes <= 30 || tiempoAgotado
-        ? 'semaforo-rojo'
-        : segundosRestantes <= 60
-        ? 'semaforo-amarillo'
-        : 'semaforo-verde';
-
-    const participantesTotales = Object.values(estado.participantes).filter(
-      (p) => p.rol !== 'co_moderador'
-    ).length;
-    const participantesConfirmados = Object.values(estado.participantes).filter(
-      (p) => p.ingresoConfirmado && p.rol !== 'co_moderador'
-    ).length;
-
-    return (
-      <div className={`panel-cronometro-apertura ${claseSemaforo}`}>
-        <p className="texto-de-ayuda" style={{ color: 'inherit', margin: 0 }}>
-          {tiempoAgotado ? '⚠️ Tiempo agotado de la apertura' : '⏱️ Tiempo restante para redactar e ingresar'}
-        </p>
-        <div className="reloj-gigante-apertura">{relojFormateado}</div>
-        <p className="texto-de-ayuda" style={{ color: 'inherit', fontWeight: 'bold', marginBottom: '12px' }}>
-          📝 {participantesConfirmados} de {participantesTotales} argumento(s) de ingreso confirmados
-        </p>
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-          <button
-            type="button"
-            className={tiempoAgotado ? 'boton-peligro' : 'boton-secundario'}
-            onClick={() => motor.cerrarRondaDeApertura()}
-          >
-            {tiempoAgotado ? '🛑 Cerrar ronda ya' : '⏹️ Cerrar ronda ahora (ya terminaron)'}
-          </button>
-          {apertura.ronda === 1 && (
-            <button type="button" className="boton-exito" onClick={motor.extenderRondaDeApertura}>
-              ➕ Dar 1 minuto más
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (apertura.esperandoSegundaOportunidad) {
-    const pendientes = apertura.ultimoCierre?.pendientes ?? [];
-    return (
-      <div className="panel-cronometro-apertura semaforo-amarillo">
-        <p className="texto-de-ayuda" style={{ color: 'inherit' }}>
-          Faltan <strong>{pendientes.length}</strong> participante(s) sin argumento aprobado. ¿Das otra oportunidad de 1 minuto?
-        </p>
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '10px' }}>
-          <button type="button" className="boton-exito" onClick={motor.abrirSegundaOportunidadDeApertura}>
-            Sí, dar 1 minuto más
-          </button>
-          <button type="button" className="boton-peligro" onClick={() => motor.cerrarRondaDeApertura({ forzarFinal: true })}>
-            No, continuar sin ellos
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
 }

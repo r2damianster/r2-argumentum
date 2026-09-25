@@ -17,7 +17,6 @@ export function estadoInicial() {
   return {
     programa: null,
     fase: { actual: null, historial: [] },
-    apertura: null,
     posturasPropuestas: {},
     intervencionesVerbales: {},
     // Exposición oral de un argumento ya publicado, por argumentId: quién la calificó (cada
@@ -76,10 +75,6 @@ function crearParticipanteVacio(participantId) {
     argumentoListo: false,
     // El argumento publicado (y ya puntuando) que esta persona todavía no expuso en un turno.
     argumentoPendienteId: null,
-    // true solo tras el cierre DEFINITIVO de la apertura (ver EVENTOS.APERTURA_RONDA_CERRADA
-    // con esFinal:true) si esta persona nunca logró un argumento aprobado — excluida de la
-    // ruleta de turnos del resto de la sesión (ver elegirCandidatoParaTurno en motorDeSesion.js).
-    sinArgumentoDeApertura: false,
   };
 }
 
@@ -222,49 +217,6 @@ function aplicarEvento(estado, evento) {
           [data.propuestaId]: { ...propuestaExistente, decision: data.decision, stanceId: data.stanceId ?? null },
         },
       };
-    }
-
-    case EVENTOS.APERTURA_RONDA_INICIADA:
-      return {
-        ...estado,
-        apertura: {
-          ronda: data.ronda,
-          iniciadaEn: data.iniciadaEn,
-          expiraEn: data.expiraEn,
-          cerrada: false,
-          esperandoSegundaOportunidad: false,
-          ultimoCierre: estado.apertura?.ultimoCierre ?? null,
-        },
-      };
-
-    case EVENTOS.APERTURA_RONDA_EXTENDIDA:
-      if (!estado.apertura || estado.apertura.ronda !== data.ronda) {
-        return estado;
-      }
-      return { ...estado, apertura: { ...estado.apertura, expiraEn: data.hasta } };
-
-    case EVENTOS.APERTURA_RONDA_CERRADA: {
-      if (!estado.apertura) {
-        return estado;
-      }
-      let siguiente = {
-        ...estado,
-        apertura: {
-          ...estado.apertura,
-          cerrada: true,
-          esperandoSegundaOportunidad: !data.esFinal,
-          ultimoCierre: { ronda: data.ronda, aprobados: data.aprobados, pendientes: data.pendientes, esFinal: data.esFinal },
-        },
-      };
-      if (data.esFinal) {
-        for (const participantId of data.pendientes) {
-          siguiente = conParticipanteActualizado(siguiente, participantId, (participante) => ({
-            ...participante,
-            sinArgumentoDeApertura: true,
-          }));
-        }
-      }
-      return siguiente;
     }
 
     case EVENTOS.POSTURA_ASIGNADA:

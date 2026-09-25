@@ -7,10 +7,7 @@ export const EVENTOS = {
   FASE_INICIADA: 'phase.started',
   FASE_CERRADA: 'phase.closed',
 
-  // Máquina de rondas dentro de la fase apertura_simultanea — ver docs/09.
-  APERTURA_RONDA_INICIADA: 'apertura.ronda_iniciada',
-  APERTURA_RONDA_EXTENDIDA: 'apertura.ronda_extendida',
-  APERTURA_RONDA_CERRADA: 'apertura.ronda_cerrada',
+
 
   POSTURA_ASIGNADA: 'stance.assigned',
 
@@ -100,8 +97,6 @@ export const TIPOS_DE_BID = {
 };
 
 export const TIPOS_DE_FASE = {
-  // Todos escriben su argumento inicial en paralelo (sin ruleta) — ver docs/09.
-  APERTURA_SIMULTANEA: 'apertura_simultanea',
   ESCRITURA_ARGUMENTOS: 'escritura_argumentos',
   CONEXION_SUGERIDA: 'conexion_sugerida',
   CONEXION_LIBRE: 'conexion_libre',

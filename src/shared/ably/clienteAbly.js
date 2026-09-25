@@ -1,4 +1,5 @@
 import * as Ably from 'ably';
+import { leerSesionDelHost } from './sesionDelHost.js';
 
 let clienteAbly = null;
 
@@ -11,7 +12,8 @@ export function obtenerClienteAbly(clientId) {
 
   clienteAbly = new Ably.Realtime({
     authUrl: '/api/ably-token',
-    authParams: { clientId },
+    // La identidad "host" exige la sesión firmada del moderador; los participantes no la usan.
+    authParams: clientId === 'host' ? { clientId, hostToken: leerSesionDelHost()?.token ?? '' } : { clientId },
   });
 
   return clienteAbly;
