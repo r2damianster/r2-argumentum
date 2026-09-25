@@ -99,7 +99,6 @@ export function PanelDeConexionLibre({ estado, participantId, publicar }) {
             <option value={TIPOS_DE_RELACION.CONEXION}>Conexión</option>
           </select>
         </label>
-        <button type="submit">Conectar</button>
         <button type="submit" className="boton-primario">
           Conectar
         </button>

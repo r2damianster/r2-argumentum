@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "verificar": "vitest run && vite build"
+    "verificar": "vitest run && vite build",
+    "instalar-hooks": "git config core.hooksPath .githooks"
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.1.1",

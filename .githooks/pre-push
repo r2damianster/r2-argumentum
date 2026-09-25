@@ -1,0 +1,8 @@
+#!/bin/sh
+# Impide subir código que no pasa las pruebas o que no compila (ver docs/11, sección 5).
+# Se activa con:  npm run instalar-hooks   (git config core.hooksPath .githooks)
+echo "[pre-push] npm run verificar..."
+if ! npm run verificar --silent; then
+  echo "[pre-push] Fallaron las pruebas o el build: push cancelado." >&2
+  exit 1
+fi

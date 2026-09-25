@@ -100,7 +100,6 @@ export function PanelDeBid({ estado, participantId, turnoEnCurso, publicar }) {
             <textarea value={texto} onChange={(evento) => setTexto(evento.target.value)} rows={3} />
           </label>
           {avisoDeCampoFaltante && <p className="mensaje-de-error">{avisoDeCampoFaltante}</p>}
-          <button type="submit">Lanzar bid</button>
           <button type="submit" className="boton-primario">
             Lanzar bid
           </button>
