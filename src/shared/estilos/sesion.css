@@ -234,7 +234,7 @@ input {
 }
 
 .etiqueta-instruccional {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -626,6 +626,7 @@ input {
 .botonera-de-turno,
 .botonera-de-bid {
   display: flex;
+  flex-wrap: wrap; /* en pantallas de 320-360 px, cuatro botones en una fila se salían de la pantalla */
   gap: 10px;
   justify-content: center;
 }
@@ -633,6 +634,11 @@ input {
 .botonera-de-turno button,
 .botonera-de-bid button {
   flex: 1;
+}
+
+.botonera-de-bid button {
+  flex: 1 1 8.5rem;
+  min-width: 0;
 }
 
 /* Lista de participantes */
@@ -941,7 +947,8 @@ input {
   font-weight: 700;
   cursor: pointer;
   padding: 4px 8px;
-  min-height: auto !important;
+  min-height: 44px !important; /* objetivo táctil mínimo */
+  min-width: 44px;
   border-radius: 6px;
   opacity: 0.75;
   transition: opacity 0.2s ease;
