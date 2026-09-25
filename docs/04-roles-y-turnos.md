@@ -24,6 +24,10 @@ El profesor puede fijar un tope máximo para grupos grandes. Los co-moderadores 
 
 El argumento de ingreso se redacta, se revisa con Groq y se **confirma en la sala de espera, antes de «Iniciar debate»**. Quien no lo confirmó cuando el moderador inicia la sesión pasa a **oyente** de inmediato. (Hubo un temporizador de apertura con semáforo del 17 al 24 de septiembre; se retiró porque con este flujo quien no confirmaba ya era oyente y nunca lo veía: ver `09-modelo-de-eventos.md`.)
 
+### Reparto equitativo en la asignación aleatoria
+
+Solo con `asignacionPostura: "aleatoria"` (modo Rolplay) el reparto de posturas debe ser equitativo. Cada cliente elige la menos representada con lo que ya sabe y, justo antes de confirmar el ingreso, comprueba el **cupo**: ninguna postura puede pasar de `ceil(personas en la sala / posturas)`. Si mientras escribía otras personas la llenaron, se le asigna la menos representada y se le pide ajustar su argumento y revisarlo otra vez. En «libre» y «postura propia» no se fuerza nada: que una postura la defienda una sola persona es válido.
+
 ### Priorización de posturas en la primera fase (Ronda 1)
 
 Para garantizar la pluralidad del debate desde el inicio, el algoritmo de la ruleta de turnos (`elegirCandidatoParaTurno` en `motorDeSesion.js`) aplica una regla de **cobertura por postura en Ronda 1**:

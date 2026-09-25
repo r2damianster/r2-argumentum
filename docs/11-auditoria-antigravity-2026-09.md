@@ -96,7 +96,7 @@ Decisiones del docente: ampliar el e2e a turnos/co-moderadores/bids/conexión li
 - **Flujo central: 24 PASS / 0 FAIL** en producción (detalle en `docs/10` §6B).
 - **Hallazgo 1 — botones de envío duplicados** en `PanelDeBid` y `PanelDeConexionLibre` (restos de la fusión de Antigravity, invisibles en las pruebas de lógica). Corregido; una búsqueda automática de botones idénticos consecutivos en todo `src/**/*.jsx` no encontró más.
 - **Hallazgo 2 — «Volver a configuración» dejaba varados a los participantes** (abre sala con código nuevo, sin aviso). Corregido con una confirmación.
-- **Hallazgo 3 — reparto de posturas sensible a confirmaciones casi simultáneas** (1/3/4 con 8 en una corrida sin esperas). Abierto (`06-pendientes.md`).
+- **Hallazgo 3 — reparto de posturas sensible a confirmaciones casi simultáneas** (1/3/4 con 8 en una corrida sin esperas). **Corregido** con un cupo por postura al confirmar, solo en asignación aleatoria (decisión del docente: en «libre» y «postura propia» no se fuerza nada). Verificado: 3/2/3 con 8 personas confirmando a la vez, dos rondas.
 - **Proceso:** GitHub Action verde en los dos commits siguientes; el hook pre-push corrió tests+build al hacer push. `ably` 2.28.0 → 2.29.0. `npm audit --omit=dev`: 0 vulnerabilidades.
 - **Historial de git:** se deja como está (la clave vieja ya no sirve).
 

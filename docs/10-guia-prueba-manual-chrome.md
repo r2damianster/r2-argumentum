@@ -299,7 +299,7 @@ Reparto de posturas (`bandos.py`): 3 salas × 6 participantes en paralelo → 2/
 | Móvil emulado (iPhone 13 y 700×400 horizontal) | ✅ sin desbordamiento; botones ≥ 40 px |
 | Errores de JavaScript en cualquier pantalla | ✅ ninguno |
 
-**Advertencias de la prueba:** (1) con confirmaciones **casi simultáneas** (sin dejar que la anterior se propague) el reparto salió 1/3/4 con 8 participantes, porque cada cliente calcula con el conteo que ya conoce; con confirmación secuencial sale parejo (ver `06-pendientes.md`). (2) Una ventana de Chrome con `viewport` fijo puede disparar el falso aviso «zoom en 30 %» (`outerWidth/innerWidth`): en `e2e_flujo.py` el host usa `no_viewport`. (3) No se pudo verificar que Groq sugiera conexiones: depende del contenido.
+**Advertencias de la prueba:** (1) con confirmaciones **casi simultáneas** el reparto llegó a salir 1/3/4 con 8 participantes; se corrigió con un cupo por postura al confirmar (solo asignación aleatoria) y `confirmaciones_simultaneas.py` lo verifica (8 a la vez → 3/2/3). (2) Una ventana de Chrome con `viewport` fijo puede disparar el falso aviso «zoom en 30 %» (`outerWidth/innerWidth`): en `e2e_flujo.py` el host usa `no_viewport`. (3) No se pudo verificar que Groq sugiera conexiones: depende del contenido.
 
 `volver_config.py` (sala de espera → «Volver a configuración»): se descubrió que **abre una sala con otro código** y que quienes ya habían entrado quedaban varados sin aviso; ahora el host recibe una confirmación antes (ver `06-pendientes.md`).
 
