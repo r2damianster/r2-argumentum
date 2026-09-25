@@ -328,7 +328,7 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
       />
 
       <div className="layout-de-participante">
-        <CapaInstruccional estado={estado} presencia={presencia} participantId={participantId} />
+        <CapaInstruccional estado={estado} presencia={presencia} participantId={participantId} sinFijar={estado.sesion.cerrada} />
 
         <div className="columna-de-trabajo">
           <AvisoPreparateParaHablar

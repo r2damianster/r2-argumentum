@@ -7,7 +7,9 @@ import { calcularInstruccionesDelParticipante } from '../instrucciones/calcularI
 // muestra lo más urgente: TIENES QUE → AHORA.
 //
 // `soloLectura` lo usa la vista espejo del moderador: mismo cálculo, otro participantId.
-export function CapaInstruccional({ estado, presencia, participantId, soloLectura = false }) {
+// `sinFijar`: la capa deja de quedar pegada arriba (sticky) y se desplaza con la página. Se usa con el
+// debate cerrado: el podio final sube a la pantalla y la capa fija le tapaba la primera línea y el botón «Saltar».
+export function CapaInstruccional({ estado, presencia, participantId, soloLectura = false, sinFijar = false }) {
   const [colapsada, setColapsada] = useState(false);
   const [expandidaAMano, setExpandidaAMano] = useState(false);
 
@@ -62,7 +64,7 @@ export function CapaInstruccional({ estado, presencia, participantId, soloLectur
     const urgente = instrucciones.tienesQue;
     return (
       <div
-        className={`capa-instruccional capa-compacta ${urgente ? 'capa-con-pendiente' : ''}`}
+        className={`capa-instruccional capa-compacta ${urgente ? 'capa-con-pendiente' : ''} ${sinFijar ? 'capa-instruccional--sin-fijar' : ''}`}
         role="button"
         tabIndex={0}
         onClick={() => setExpandidaAMano(true)}
@@ -75,7 +77,7 @@ export function CapaInstruccional({ estado, presencia, participantId, soloLectur
 
   return (
     <div
-      className={`capa-instruccional ${soloLectura ? 'capa-espejo' : ''}`}
+      className={`capa-instruccional ${soloLectura ? 'capa-espejo' : ''} ${sinFijar ? 'capa-instruccional--sin-fijar' : ''}`}
       onClick={() => setExpandidaAMano(false)}
     >
       <div className="bloque-instruccional">

@@ -292,6 +292,11 @@ describe('créditos y podio final (docs/04, docs/12)', () => {
     expect(podio).toMatch(/bloque:\s*'start'/);
   });
 
+  it('con el debate cerrado la capa instruccional no queda fija arriba (taparía el podio y su botón Saltar)', () => {
+    expect(leer(join(RAIZ, 'src/player/App.jsx'))).toMatch(/sinFijar=\{estado\.sesion\.cerrada\}/);
+    expect(leer(join(RAIZ, 'src/shared/estilos/sesion.css'))).toMatch(/capa-instruccional--sin-fijar[^{]*\{\s*position:\s*static/);
+  });
+
   it('la revelación respeta «reducir movimiento» (sin animaciones ni esperas)', () => {
     expect(leer(join(RAIZ, 'src/shared/estilos/sesion.css'))).toMatch(/prefers-reduced-motion:\s*reduce\)\s*\{\s*\.escalon--revelado/);
     expect(leer(join(RAIZ, 'src/player/podio/useRevelacionPorEtapas.js'))).toContain('prefers-reduced-motion');

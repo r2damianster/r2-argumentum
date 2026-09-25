@@ -31,6 +31,7 @@ Durante el debate el estudiante puede estar mirando el mapa, leyendo o haciendo 
 - Texto de contenido ≥ 13 px; etiquetas en mayúscula ≥ 12 px.
 - Comprueba con `python scripts/prueba-e2e/moviles.py` (8 modelos, de 320 px a iPad) **y**, si puedes, en un celular real. La emulación no reproduce el teclado, el notch ni el rendimiento.
 - Un elemento `position: fixed` (barra de acción, capa instruccional) no puede ocupar más del ~35 % del alto en 320×568.
+- **Comprobar «visible» no basta:** si algo se lleva a la pantalla (`scrollIntoView`) o hay capas `sticky`/`fixed`, verifica con `document.elementFromPoint` que el control **recibe el toque** (ver `moviles.py`).
 
 ### Regla 3 — Nunca subas código que no compila ni pasa las pruebas
 - `npm run verificar` (pruebas + build) **antes de cada push**. Actívate el hook con `npm run instalar-hooks`: `git push` se cancela si falla.
@@ -88,6 +89,7 @@ El hook global `auto-commit` de Claude Code ignora este repositorio (existe `.no
 | 24-sep | «Volver a configuración» abría una sala con **otro código** sin avisar | Diseño sin advertencia | `volver_config.py` | Confirmación en la interfaz |
 | 24-sep | Reparto de posturas 1/3/4 con 8 personas en asignación aleatoria | Cada cliente calculaba con conteos viejos | e2e | Cupo por postura al confirmar (`verificarCupoDePostura`) |
 | 24-sep | `/api/host-login` respondió 503 tras un push | El auto-push desplegó antes de crear las variables de entorno | Producción | Regla 6 |
+| 25-sep | Podio final: al llevarlo a la pantalla, la **capa instruccional fija** tapaba su primera línea y el botón «Saltar la animación» no recibía el toque | `scrollIntoView` sin contar con elementos `sticky`/`fixed`; la comprobación «está en pantalla» (`y ≥ 0`) no detectaba el solapamiento | `moviles.py` (Playwright: «intercepts pointer events») | Con el debate cerrado la capa va sin fijar; las pruebas verifican con `elementFromPoint` que el botón recibe el toque |
 | 24-sep | Falso «zoom 30 %» en un navegador automatizado (tapaba botones) | `viewport` fijo en una ventana con otro tamaño | Capturas del e2e | El script usa `no_viewport` |
 
 ## 4. Cómo probar

@@ -272,7 +272,19 @@ with sync_playwright() as p:
     for modelo in MODELOS:
         boton_saltar = paginas[modelo].locator('button:has-text("Saltar la animación")')
         if boton_saltar.count():
-            boton_saltar.first.tap()
+            recibe = paginas[modelo].evaluate("""() => {
+              const b = document.querySelector('.podio-final__saltar');
+              if (!b) return null;
+              b.scrollIntoView({ block: 'center' });
+              const r = b.getBoundingClientRect();
+              return b.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+            }""")
+            if recibe is False:
+                HALLAZGOS.append((modelo, "12-podio", "BOTON SALTAR TAPADO", "otro elemento (capa fija) intercepta el toque"))
+            try:
+                boton_saltar.first.tap(timeout=8000)
+            except Exception as error:
+                HALLAZGOS.append((modelo, "12-podio", "BOTON SALTAR NO RESPONDE AL TOQUE", str(error)[:90]))
     time.sleep(1.5)
     for modelo in MODELOS:
         medir(modelo, "12b-podio-final-con-creditos", paginas[modelo], captura=modelo in ("iPhone SE", "Galaxy S9+", "iPad Mini"))

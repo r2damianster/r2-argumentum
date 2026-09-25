@@ -323,7 +323,13 @@ with sync_playwright() as p:
             muestras.append((round(transcurrido, 1), hugo_final.locator(".escalon--revelado").count(),
                              hugo_final.locator('button:has-text("Saltar la animación")').count()))
             if 1.4 <= transcurrido < 2.2 and "posicion_del_podio" not in locals():
-                posicion_del_podio = hugo_final.evaluate("() => { const r = document.querySelector('.podio-final-participante').getBoundingClientRect(); return { y: Math.round(r.top), vh: innerHeight }; }")
+                posicion_del_podio = hugo_final.evaluate("""() => {
+                  const r = document.querySelector('.podio-final-participante').getBoundingClientRect();
+                  const b = document.querySelector('.podio-final__saltar');
+                  const rb = b.getBoundingClientRect();
+                  const encima = document.elementFromPoint(rb.x + rb.width / 2, rb.y + rb.height / 2);
+                  return { y: Math.round(r.top), vh: innerHeight, saltarRecibeElToque: b.contains(encima) };
+                }""")
             if muestras[-1][2] == 1:
                 creditos_durante_la_revelacion.append(hugo_final.locator(".creditos").count())
             if transcurrido == 0 or len(muestras) == 1:
@@ -337,6 +343,8 @@ with sync_playwright() as p:
     posicion = locals().get("posicion_del_podio")
     check("El podio se lleva solo a la pantalla: su primera línea queda a la vista aunque la página estuviera desplazada",
           bool(posicion) and -20 <= posicion["y"] < posicion["vh"] * 0.5, str(posicion))
+    check("«Saltar la animación» recibe el toque: ninguna capa fija lo tapa",
+          bool(posicion) and posicion["saltarRecibeElToque"], str(posicion))
     check("La revelación empieza con suspenso: al aparecer no hay ningún puesto descubierto y se ofrece «Saltar la animación»",
           bool(muestras) and muestras[0][1] == 0 and muestras[0][2] == 1, str(muestras[:1]))
     descubiertos = [m[1] for m in muestras]

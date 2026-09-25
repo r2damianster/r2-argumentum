@@ -1530,3 +1530,15 @@ input {
     height: 88px;
   }
 }
+
+/* Con el debate cerrado la capa instruccional no se queda pegada arriba: taparía la primera línea del
+   podio y el botón «Saltar la animación» (la prueba móvil lo detectó). Los selectores llevan doble clase
+   para ganar a la regla del diseño de dos columnas en horizontal. */
+.capa-instruccional.capa-instruccional--sin-fijar,
+.layout-de-participante .capa-instruccional.capa-instruccional--sin-fijar {
+  position: static;
+}
+
+.podio-final-participante {
+  scroll-margin-top: 0.75rem;
+}
