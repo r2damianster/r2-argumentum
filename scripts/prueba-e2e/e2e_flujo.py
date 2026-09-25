@@ -303,6 +303,40 @@ with sync_playwright() as p:
     if boton_cierre.count():
         boton_cierre.first.scroll_into_view_if_needed()
         boton_cierre.first.click()
+    # Muestreo del podio del participante DESDE el instante del cierre (antes de las comprobaciones del host).
+    hugo_final = jugadores["Hugo"]
+    inicio_podio = None
+    muestras = []  # (segundos desde que apareció, puestos descubiertos, hay botón saltar)
+    creditos_durante_la_revelacion = []
+    limite = time.time() + 45
+    while time.time() < limite:
+        if hugo_final.locator(".podio-final-participante").count():
+            inicio_podio = inicio_podio or time.time()
+            transcurrido = time.time() - inicio_podio
+            muestras.append((round(transcurrido, 1), hugo_final.locator(".escalon--revelado").count(),
+                             hugo_final.locator('button:has-text("Saltar la animación")').count()))
+            if 1.4 <= transcurrido < 2.2 and "posicion_del_podio" not in locals():
+                posicion_del_podio = hugo_final.evaluate("() => { const r = document.querySelector('.podio-final-participante').getBoundingClientRect(); return { y: Math.round(r.top), vh: innerHeight }; }")
+            if muestras[-1][2] == 1:
+                creditos_durante_la_revelacion.append(hugo_final.locator(".creditos").count())
+            if transcurrido == 0 or len(muestras) == 1:
+                hugo_final.screenshot(path="flujo-04-podio-introduccion.png")
+            if transcurrido > 12:
+                break
+        time.sleep(0.5)
+    hugo_final.screenshot(path="flujo-05-podio-a-mitad.png")
+    print("INFO muestras del podio (s, descubiertos, saltar):", muestras[:3], "...", muestras[-2:], flush=True)
+    check("El podio del participante aparece al cerrar el debate", inicio_podio is not None)
+    posicion = locals().get("posicion_del_podio")
+    check("El podio se lleva solo a la pantalla: su primera línea queda a la vista aunque la página estuviera desplazada",
+          bool(posicion) and -20 <= posicion["y"] < posicion["vh"] * 0.5, str(posicion))
+    check("La revelación empieza con suspenso: al aparecer no hay ningún puesto descubierto y se ofrece «Saltar la animación»",
+          bool(muestras) and muestras[0][1] == 0 and muestras[0][2] == 1, str(muestras[:1]))
+    descubiertos = [m[1] for m in muestras]
+    check("Los puestos se descubren de a uno, sin retroceder (no aparecen todos de golpe)",
+          descubiertos == sorted(descubiertos) and len(set(descubiertos)) >= 3 and max(descubiertos) < 8, str(sorted(set(descubiertos))))
+    check("Se toma su tiempo: el primer puesto tarda al menos 2 s en descubrirse",
+          next((m[0] for m in muestras if m[1] >= 1), 99) >= 2, f"primer puesto a los {next((m[0] for m in muestras if m[1] >= 1), None)} s")
     check("El debate se cierra y aparece el ranking final", esperar(lambda: "Marcador y Podios finales" in cuerpo(host), 60))
     host.screenshot(path="flujo-03-ranking.png", full_page=True)
     texto_ranking = cuerpo(host)
@@ -314,20 +348,10 @@ with sync_playwright() as p:
     check("El informe exportable está presente", host.locator(".informe-del-debate").count() > 0)
 
     # ---------- podio final del participante: revelación progresiva, salto y créditos
-    hugo_final = jugadores["Hugo"]
-    check("Al cerrar, el participante ve la pantalla del podio", esperar(lambda: hugo_final.locator(".podio-final-participante").count() > 0, 30))
-    time.sleep(1.2)
-    revelados_al_inicio = hugo_final.locator(".escalon--revelado").count()
-    check("La revelación empieza con suspenso: al inicio no hay ningún puesto descubierto y aparece «Saltar la animación»",
-          revelados_al_inicio == 0 and hugo_final.locator('button:has-text("Saltar la animación")').count() == 1)
-    hugo_final.screenshot(path="flujo-04-podio-introduccion.png")
-    time.sleep(9)
-    revelados_a_mitad = hugo_final.locator(".escalon--revelado").count()
-    check("Se toma su tiempo: pasados ~10 s hay algunos puestos descubiertos, pero aún no todos",
-          1 <= revelados_a_mitad and hugo_final.locator('button:has-text("Saltar la animación")').count() == 1, f"{revelados_a_mitad} puestos descubiertos")
-    hugo_final.screenshot(path="flujo-05-podio-a-mitad.png")
-    check("Créditos ocultos mientras dura la revelación", hugo_final.locator(".creditos").count() == 0)
-    hugo_final.locator('button:has-text("Saltar la animación")').tap() if False else hugo_final.click('button:has-text("Saltar la animación")')
+    check("Créditos ocultos mientras dura la revelación (solo aparecen al terminar)",
+          bool(creditos_durante_la_revelacion) and sum(creditos_durante_la_revelacion) == 0, f"{len(creditos_durante_la_revelacion)} muestras")
+    if hugo_final.locator('button:has-text("Saltar la animación")').count():
+        hugo_final.click('button:has-text("Saltar la animación")')
     check("«Saltar la animación» muestra el podio completo, el resultado personal y los créditos",
           esperar(lambda: hugo_final.locator(".podio-tu-resultado").count() == 1 and hugo_final.locator(".creditos").count() == 1, 10)
           and hugo_final.locator(".escalon--puesto-1.escalon--revelado").count() >= 1)

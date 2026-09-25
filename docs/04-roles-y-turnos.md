@@ -33,7 +33,7 @@ Cuando el moderador cierra el debate (`session.closed`; no antes, porque los aju
 3. **Podio individual** (top 3, sin co-moderadores): 3.º → 2.º → 1.º; antes del primer lugar hay una pausa más larga (3,4 s) y el ganador trae medalla que late y confeti. Quien está en el podio ve su escalón resaltado con «¡Eres tú!».
 4. **Tu resultado** (puesto N de M, puntos, mensaje según el nivel; los co-moderadores y quienes fueron oyentes ven un mensaje propio), tabla completa desplegable, «Ver la revelación otra vez» y los **créditos**.
 
-La revelación completa dura unos 22 s con 3 posturas y 8 personas; hay un botón **«Saltar la animación»**. Con «reducir movimiento» del sistema no hay esperas ni animaciones: se muestra todo de una vez. Mientras el moderador está en «Cierre y ranking» pero no ha cerrado, el participante ve «El moderador está por cerrar el debate…».
+Al cerrarse el debate el podio **se lleva solo a la pantalla** (desde su primera línea, con vibración y el título «🏆 ¡Ya está el podio!»): la página del participante puede estar desplazada a cualquier parte y sin esto se perdería la revelación (se vio en el e2e real). La revelación completa dura unos 22 s con 3 posturas y 8 personas; hay un botón **«Saltar la animación»**. Con «reducir movimiento» del sistema no hay esperas ni animaciones: se muestra todo de una vez. Mientras el moderador está en «Cierre y ranking» pero no ha cerrado, el participante ve «El moderador está por cerrar el debate…».
 
 ### Acciones del turno: cómo se le presentan al estudiante
 

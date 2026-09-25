@@ -3,6 +3,7 @@ import { calcularPodioDePosturas, calcularPodioIndividual } from '../../shared/e
 import { Creditos } from '../../shared/componentes/Creditos.jsx';
 import { construirEtapasDelPodio, puestosRevelados, MAXIMO_DE_PUESTOS_EN_EL_PODIO } from '../podio/etapasDelPodio.js';
 import { useRevelacionPorEtapas } from '../podio/useRevelacionPorEtapas.js';
+import { useAtencionDelTurno } from '../useAtencionDelTurno.js';
 
 // Las etiquetas de postura suelen ser «Más estado / redistribución»: en una columna de podio de
 // 90 px cabe la parte corta («Más estado»); la etiqueta completa queda en el título del escalón.
@@ -131,6 +132,9 @@ export function PodioFinalParaParticipantes({ estado, programa, presencia, parti
     [podioDePosturas, podioIndividual]
   );
   const { indice, terminado, saltar, repetir } = useRevelacionPorEtapas(etapas);
+  // Al cerrarse el debate la persona puede tener la página desplazada a cualquier parte: el podio
+  // se lleva solo a la pantalla (desde su primera línea) para que no se pierda la revelación.
+  const referenciaDelPodio = useAtencionDelTurno(true, '🏆 ¡Ya está el podio!', { bloque: 'start' });
 
   const posturasReveladas = puestosRevelados(etapas, indice, 'postura');
   const individualesReveladas = puestosRevelados(etapas, indice, 'individual');
@@ -148,7 +152,7 @@ export function PodioFinalParaParticipantes({ estado, programa, presencia, parti
     : '';
 
   return (
-    <section className="podio-final-participante" aria-live="polite">
+    <section className="podio-final-participante" aria-live="polite" ref={referenciaDelPodio}>
       <header className="podio-final__encabezado">
         <p className="podio-final__etiqueta">🏁 Debate cerrado</p>
         <h2>{enIntroduccion ? '🥁 Y ahora… ¡el podio!' : terminado ? '🏆 El podio final' : '🥁 Descubriendo el podio…'}</h2>

@@ -286,6 +286,12 @@ describe('créditos y podio final (docs/04, docs/12)', () => {
     expect(podio).toContain('useRevelacionPorEtapas');
   });
 
+  it('el podio se lleva solo a la pantalla al cerrarse el debate (la página puede estar desplazada)', () => {
+    const podio = leer(join(RAIZ, 'src/player/componentes/PodioFinalParaParticipantes.jsx'));
+    expect(podio).toContain('useAtencionDelTurno');
+    expect(podio).toMatch(/bloque:\s*'start'/);
+  });
+
   it('la revelación respeta «reducir movimiento» (sin animaciones ni esperas)', () => {
     expect(leer(join(RAIZ, 'src/shared/estilos/sesion.css'))).toMatch(/prefers-reduced-motion:\s*reduce\)\s*\{\s*\.escalon--revelado/);
     expect(leer(join(RAIZ, 'src/player/podio/useRevelacionPorEtapas.js'))).toContain('prefers-reduced-motion');
