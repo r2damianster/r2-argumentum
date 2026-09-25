@@ -37,7 +37,12 @@ TEXTOS = {
     ],
 }
 USADOS = {"estado": 0, "mercado": 0, "matizada": 0}
-TEXTO_CONTRAARGUMENTO = "Ese planteamiento falla porque los precios controlados generan escasez y mercado negro, y eso termina perjudicando a los más pobres."
+# El contraargumento debe coincidir con la postura de quien lo escribe, o Groq lo rechaza por «postura distinta».
+CONTRAARGUMENTO_POR_BANDO = {
+    "mercado": "Ese planteamiento falla porque los precios controlados generan escasez y mercado negro, y eso termina perjudicando a los más pobres.",
+    "estado": "Ese planteamiento falla porque sin regulación los mercados concentran el poder en pocas empresas y perjudican a los consumidores más pobres.",
+    "matizada": "Ese planteamiento es demasiado extremo porque ni el mercado ni el Estado resuelven la pobreza por sí solos, y conviene combinar ambos con reglas claras.",
+}
 TEXTO_BID = "Los mercados sin reglas tampoco funcionan porque sin competencia real las grandes empresas fijan los precios a su conveniencia."
 
 
@@ -239,7 +244,9 @@ with sync_playwright() as p:
             esperar(lambda: pagina.locator(".tarjeta-de-formulario-de-argumento select").count() >= 2, 5)
             objetivo = pagina.locator(".tarjeta-de-formulario-de-argumento select").nth(1)
             objetivo.select_option(index=1)
-            pagina.fill(".tarjeta-de-formulario-de-argumento textarea", TEXTO_CONTRAARGUMENTO)
+            chip = (pagina.locator(".chip-de-postura").first.inner_text() if pagina.locator(".chip-de-postura").count() else cuerpo(pagina))
+            bando_de_quien_prepara = "mercado" if "Más mercado" in chip else "matizada" if "Matizada" in chip else "estado"
+            pagina.fill(".tarjeta-de-formulario-de-argumento textarea", CONTRAARGUMENTO_POR_BANDO[bando_de_quien_prepara])
             pagina.click('button:has-text("Revisar y publicar en el mapa")')
             check("El contraargumento preparado se publica en el mapa (Groq lo aprueba)",
                   esperar(lambda: contar_nodos_y_aristas(host)[0] > nodos_previos, 90), f"nodos antes: {nodos_previos}")
