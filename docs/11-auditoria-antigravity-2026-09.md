@@ -109,7 +109,7 @@ Decisiones del docente: ampliar el e2e a turnos/co-moderadores/bids/conexión li
 
 - **Hallazgo del docente:** los botones de acción del turno no se diferenciaban del resto. Causa: sin clase (gris del navegador) o con la clase más discreta. **Corregido** con `boton-accion-principal` / `boton-accion-rechazo` en una barra fija inferior; ver `docs/04`, `docs/08` y `docs/12` (regla 1).
 - **Nuevo resto de fusión:** `turnId` duplicado en `IntervencionVerbal.jsx`; el escaneo anterior solo cubría JSX.
-- **Prevención sistémica (para que no se repita, sea quien sea el agente):** `src/guardias/guardias.test.js` convierte en pruebas automáticas cada error ya cometido, y corre en `npm test`, en el hook pre-push y en GitHub Actions; `AGENTS.md` / `GEMINI.md` / `docs/12` explican las reglas y el porqué. Se verificó que las guardias fallan al inyectar los errores.
+- **Prevención sistémica (para que no se repita, sea quien sea el agente):** `src/guardias/guardias.test.js` convierte en pruebas automáticas cada error ya cometido, y corre en `npm test`, en el hook pre-push y en GitHub Actions; `AGENTS.md` / `GEMINI.md` / `docs/12` explican las reglas y el porqué. Se verificó que las guardias fallan al inyectar los errores. Verificación en la app real el 25-sep: barra fija visible en oferta y exposición en 6 modelos de móvil emulados (0 hallazgos graves) y flujo central 24/24.
 
 ## 5. Recomendaciones de proceso
 1. Antes de cada push a `main`: `npm test && npm run build` (un script `npm run verificar` lo automatiza).

@@ -102,6 +102,32 @@ def medir(modelo, pantalla, pagina, captura=False):
         pagina.screenshot(path=f"movil-{modelo.replace(' ', '_').replace('+', 'mas')}-{pantalla}.png")
 
 
+def verificar_barra_de_accion(modelo, pantalla, pagina):
+    """La barra de acción del turno debe verse con cualquier scroll y sus botones ser verdes/rojos, grandes."""
+    barra = pagina.locator(".barra-de-accion-fija")
+    if not barra.count():
+        HALLAZGOS.append((modelo, pantalla, "BARRA DE ACCION AUSENTE", "no hay .barra-de-accion-fija en la pantalla"))
+        return
+    alto = pagina.viewport_size["height"]
+    for posicion, script in (("arriba", "window.scrollTo(0, 0)"), ("a mitad", "window.scrollTo(0, document.body.scrollHeight / 2)"), ("al final", "window.scrollTo(0, document.body.scrollHeight)")):
+        pagina.evaluate(script)
+        time.sleep(0.3)
+        caja = barra.first.bounding_box()
+        if caja is None or caja["y"] < -1 or caja["y"] + caja["height"] > alto + 1:
+            HALLAZGOS.append((modelo, pantalla, "BARRA DE ACCION FUERA DE PANTALLA", f"scroll {posicion}: {caja}"))
+        elif caja["height"] > alto * 0.45:
+            HALLAZGOS.append((modelo, pantalla, "BARRA DE ACCION DEMASIADO GRANDE", f"ocupa {int(caja['height'] * 100 / alto)}% del alto en {modelo}"))
+    estilo = pagina.evaluate("""() => {
+      const b = document.querySelector('.barra-de-accion-fija .boton-accion-principal');
+      if (!b) return null;
+      const s = getComputedStyle(b); const r = b.getBoundingClientRect();
+      return { fondo: s.backgroundColor, alto: Math.round(r.height), ancho: Math.round(r.width), vw: innerWidth };
+    }""")
+    if not estilo or estilo["alto"] < 56 or estilo["fondo"] != "rgb(21, 128, 61)":
+        HALLAZGOS.append((modelo, pantalla, "BOTON PRINCIPAL SIN ENFASIS", str(estilo)))
+    pagina.evaluate("window.scrollTo(0, 0)")
+
+
 def entrar(navegador, playwright, codigo, modelo):
     contexto = navegador.new_context(**playwright.devices[modelo])
     pagina = contexto.new_page()
@@ -201,12 +227,20 @@ with sync_playwright() as p:
                     if boton.count() and (modelo, clave) not in vistas:
                         vistas.add((modelo, clave))
                         medir(modelo, nombre_pantalla, pagina, captura=modelo in ("iPhone SE", "Galaxy S9+"))
+                        if clave in ("turno", "exposicion"):
+                            verificar_barra_de_accion(modelo, nombre_pantalla, pagina)
+                            print(f"INFO {modelo}: barra de acción verificada en «{nombre_pantalla}»", flush=True)
                 boton_turno = pagina.locator('button:has-text("Aceptar y defender mi argumento")')
                 if boton_turno.count():
                     boton_turno.first.tap(timeout=2000)
                     time.sleep(6)
                 boton_expuse = pagina.locator('button:has-text("Ya lo expuse")')
                 if boton_expuse.count():
+                    if (modelo, "exposicion") not in vistas:
+                        vistas.add((modelo, "exposicion"))
+                        medir(modelo, "7-exposicion", pagina, captura=modelo in ("iPhone SE", "Galaxy S9+"))
+                        verificar_barra_de_accion(modelo, "7-exposicion", pagina)
+                        print(f"INFO {modelo}: barra de acción verificada en «7-exposicion»", flush=True)
                     boton_expuse.first.tap(timeout=2000)
                     expuestos += 1
                 for boton in pagina.locator('button:has-text("Coherente con el punto")').all():
@@ -247,7 +281,7 @@ with sync_playwright() as p:
         vistos.add(hallazgo)
         print("-", " | ".join(hallazgo), flush=True)
     print("\nERRORES DE JAVASCRIPT:", ERRORES_JS or "ninguno", flush=True)
-    graves = [h for h in HALLAZGOS if h[2].isupper() or h[2].startswith(("DESBORDE", "CONTROL", "CAPA", "CAMPO", "NO PUDO"))]
+    graves = [h for h in HALLAZGOS if h[2].isupper() or h[2].startswith(("DESBORDE", "CONTROL", "CAPA", "CAMPO", "NO PUDO", "BARRA", "BOTON"))]
     print("PASS" if not graves else "FAIL", f"Sin hallazgos graves (desborde, controles fuera de pantalla, capa fija > 40 %, campo tapado): {len(graves)}", flush=True)
     print("PASS" if not ERRORES_JS else "FAIL", "Sin errores de JavaScript", flush=True)
     navegador.close()

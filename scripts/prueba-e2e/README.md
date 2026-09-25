@@ -24,7 +24,7 @@ with sync_playwright() as p:
 - `e2e_flujo.py` — flujo central: 8 participantes (1 con iPhone 13 emulado), turnos, exposición, co-moderadores, bid con veredicto del moderador, conexión libre, contraargumento preparado, F5 del host, cierre y ranking, móvil y errores de JavaScript. Unos 8 minutos, ~10 llamadas a Groq.
 - `volver_config.py` — «Volver a configuración» en la sala de espera: aviso de sala nueva y reparto de posturas en ella.
 - `confirmaciones_simultaneas.py [rondas]` — 8 personas escriben y confirman a la vez; comprueba el reparto equitativo (asignación aleatoria) y cuenta los ajustes por cupo.
-- `moviles.py` — 8 modelos de móvil emulados (iPhone SE 320 px hasta iPad Mini) con toques reales, teclado emulado y horizontal; mide desbordes, controles < 44 px, texto pequeño, capas fijas y errores de JavaScript en 12 pantallas. Unos 6 minutos. No sustituye a un celular físico.
+- `moviles.py` — 8 modelos de móvil emulados (iPhone SE 320 px hasta iPad Mini) con toques reales, teclado emulado y horizontal; mide desbordes, controles < 44 px, texto pequeño, capas fijas y errores de JavaScript en 12 pantallas. Unos 6 minutos. Comprueba además que la barra de acción del turno («Aceptar/Rechazar», «Ya lo expuse») esté visible con cualquier scroll y con el botón principal verde y grande. No sustituye a un celular físico.
 - `bandos.py [salas] [participantes]` — mide el reparto de posturas con asignación aleatoria y entrada simultánea (por defecto 3 × 6). No confirma ingresos ni llama a Groq.
 
 ## Notas
