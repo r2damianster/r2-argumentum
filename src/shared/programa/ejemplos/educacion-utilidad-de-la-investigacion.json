@@ -1,0 +1,78 @@
+{
+  "programId": "utilidad-formacion-investigacion-2026",
+  "titulo": "¿Ha sido útil la formación en investigación?",
+  "categoria": "Educación",
+  "version": "1.0.0",
+  "creadoPor": "arturo.rodriguez@uleam.edu.ec",
+  "fechaCreacion": "2026-09-25",
+
+  "temaCentral": "Después de varios semestres de asignaturas de investigación, ¿la formación recibida ha sido realmente útil para tu desarrollo académico y profesional?",
+  "preguntaGuia": "¿Ha sido útil la formación en investigación que has recibido?",
+  "objetivoAprendizaje": "Metacognición y pensamiento crítico: evaluar la propia formación con evidencia concreta (una tarea, un proyecto, una situación real) y no solo con opiniones generales.",
+  "instruccionesParaEstudiantes": "Habla desde tu experiencia real. Cita un caso, una materia o una situación concreta donde aplicaste lo aprendido o lo echaste en falta. «Fue aburrida» no es un argumento; «no pude aplicar X en mi trabajo porque…» sí lo es. Aquí se evalúa la calidad de tu argumento, no si tu opinión es favorable o crítica.",
+
+  "posturas": [
+    { "id": "util", "etiqueta": "Sí, ha sido útil", "color": "#2a9d8f" },
+    { "id": "poco_util", "etiqueta": "No, ha sido poco útil", "color": "#d1495b" },
+    { "id": "matizada", "etiqueta": "Depende / matizada", "color": "#8a8a8a", "esMatizada": true }
+  ],
+  "asignacionPostura": "libre",
+  "permiteCambioPostura": false,
+
+  "fases": [
+    { "tipo": "escritura_argumentos", "ronda": 1, "limiteArgumentos": 3, "duracionMin": 12 },
+    { "tipo": "escritura_argumentos", "ronda": 2, "limiteArgumentos": "segun_ronda_1", "duracionMin": 10 },
+    { "tipo": "conexion_sugerida", "disparadoPor": "moderador" },
+    { "tipo": "conexion_libre", "ventanaAbierta": "toda_la_sesion" },
+    { "tipo": "cierre_y_ranking" }
+  ],
+
+  "valoresBasePosicion": [10, 8, 3],
+  "descuentoRonda2": 0.7,
+  "descuentoViaCoModerador": 0.5,
+  "maxIntentosGroqPorArgumento": 2,
+  "puntajeCoModerador": { "bidAprobado": 5, "bidRechazado": 0 },
+  "visualizacionRanking": "por_postura_con_tiers",
+  "tiers": ["Sólido", "Consistente", "En desarrollo"],
+
+  "mecanismoTurno": "ruleta_ponderada_con_prioridad_a_no_participantes",
+  "timeoutAceptacion": 20,
+  "maxRechazosAntesDeForzar": 3,
+  "tiempoLimiteEvaluacionBid": 20,
+  "duracionMaximaIntervencionPrincipal": 90,
+  "duracionMaximaIntervencionBid": 45,
+
+  "maxConexionesSalientesPorArgumento": 1,
+  "requiereSeleccionDeTipo": true,
+
+  "criterioValidacion": "claim_mas_razon",
+  "ejemplosPorTema": [
+    {
+      "malo": "Las materias de investigación no sirven para nada.",
+      "bueno": "En metodología aprendí a formular una pregunta de investigación, y eso me sirvió en mis prácticas preprofesionales, porque tuve que proponer cómo recoger datos para un problema real de la institución.",
+      "porque": "El malo es una generalización sin caso ni razón; el bueno da una situación concreta y explica por qué sirvió."
+    },
+    {
+      "malo": "Fue muy útil.",
+      "bueno": "El taller de análisis de datos me permitió ordenar los resultados de la encuesta de mi proyecto, porque ya sabía construir tablas y gráficos con los datos.",
+      "porque": "El malo solo declara una valoración; el bueno nombra la actividad, el resultado y la razón."
+    },
+    {
+      "malo": "Depende de cada profesor.",
+      "bueno": "El valor de estas materias depende de cómo se enseñan, porque cuando el docente nos hizo aplicar los métodos a un caso propio los entendí, y cuando solo copiamos formatos no me quedó nada.",
+      "porque": "El malo es una frase abierta sin razón; el bueno compara dos experiencias y explica qué cambió."
+    }
+  ],
+  "promptSistemaFase1": "Evalúa si el argumento del estudiante tiene una afirmación (claim) y una razón o evidencia explícita (un caso, una materia, una situación vivida, 'porque', 'ya que'). No evalúes si su opinión sobre la formación en investigación es favorable o crítica, ni si su experiencia fue buena o mala. Responde solo si cumple el criterio estructural.",
+  "promptSistemaFase2": "A partir de los argumentos de esta fase, sugiere posibles conexiones (apoyo, contraargumento, dilema, reformulación, concesión) entre pares de argumentos de distinta postura o de la misma postura. No decidas cuál es correcta, solo sugiere candidatos para que el moderador confirme.",
+
+  "formulaCoModeradores": "ceil(n * 0.10)_min_1",
+  "topeMaximoCoModeradores": null,
+  "exclusionMutua": true,
+
+  "exportaJSON": { "eventLogCompleto": true, "mapaArgumental": true, "rankingPorPostura": true, "perfilPorEstudiante": true },
+  "exportaPDF": true,
+
+  "canalAbly": "debate:utilidad-formacion-investigacion-2026:{sessionId}",
+  "duracionTotalEstimada": 45
+}

@@ -11,6 +11,10 @@ Decisiones abiertas o trabajo técnico que todavía no se ha hecho, y registro d
 
 ## Cerrado
 
+- ~~Programa de ejemplo «¿Ha sido útil la formación en investigación?»~~ — 25-sep-2026, pedido del docente para grupos con varios semestres de investigación: `educacion-utilidad-de-la-investigacion.json` (3 posturas, asignación libre, 3 pares de ejemplos para Groq). Con `npm run verificar` correcto (280 pruebas y build).
+  - **Bug hallado al revisar Groq:** `api/groq-validar-argumento.js` conservaba un resto de fusión: el prompt en uso era el antiguo (sin dilemas) con una línea de código pegada dentro del texto, y `construirPromptSistema` no se usaba. Ahora el handler usa esa función.
+  - **Pendiente:** confirmar en producción, tras el despliegue, que Groq sigue aprobando argumentos con esta corrección; y revisar la cuota diaria en console.groq.com → Limits antes de una sesión con grupo grande (desde aquí no se ve el saldo).
+
 - ~~Podio final en la pantalla del participante + créditos~~ — 25-sep-2026, pedido del docente:
   - **Podio con suspenso** (`PodioFinalParaParticipantes.jsx`, guion puro y probado en `src/player/podio/`): introducción, podio por postura y podio individual descubiertos del último al primer lugar (≈ 22 s), «Tu resultado», tabla completa, «Saltar la animación» y «Ver la revelación otra vez»; sin animaciones con «reducir movimiento». Solo aparece con el debate **realmente cerrado** (`estado.sesion.cerrada`), porque los ajustes de exposiciones se aplican justo antes de `session.closed`. Reemplaza a la antigua `PantallaDeResultadoDelParticipante` (solo mostraba los puntos propios).
   - **Créditos** (`Creditos.jsx`, datos en `src/shared/creditos.js`): al ingresar y en el podio final, no durante el debate. Foto = recorte circular de 10 KB (`public/autor.webp`) del retrato `avatar.png` (3,2 MB); nombre, ORCID, «creado con el apoyo de Claude y Antigravity». El pie del login del host y el del informe imprimible usan `textoDeCreditos()`.
