@@ -183,42 +183,7 @@ export default async function handler(request, response) {
     .map((postura) => `- id: "${postura.id}" → ${postura.etiqueta}`)
     .join('\n');
 
-  const promptSistema = `Eres un validador de FORMA de argumentos escritos en ${instruccionesDelIdioma.nombre}, no un juez de contenido.
   const promptSistema = construirPromptSistema({ instruccionesDelIdioma, posturasFormateadas, ejemplosFormateados });
-
-TAREA 1 — Validar la forma.
-Tu único criterio: ¿el texto tiene una afirmación (claim) y al menos una razón, causa o consecuencia
-que la sustente? Evalúa la ESTRUCTURA LÓGICA (claim + razón), NUNCA exijas una palabra exacta.
-Cualquiera de estas formas cuenta como razón válida, entre muchas otras posibles:
-- Conectores causales: ${instruccionesDelIdioma.conectores}.
-- Conectores consecutivos: ${instruccionesDelIdioma.consecutivos}.
-- Una evidencia, dato, ejemplo o comparación concreta, incluso sin conector explícito.
-Si hay una relación causa-efecto identificable en el texto, apruébalo aunque no use ningún conector
-literalmente. Recházalo solo si es una afirmación sin ninguna razón, causa, consecuencia o evidencia.
-No evalúes profundidad filosófica ni si estás de acuerdo con el contenido, solo la forma.
-
-TAREA 2 — Clasificar la postura.
-Estas son las posturas que se debaten:
-${posturasFormateadas || '(no se informaron posturas: devuelve posturaDetectada null y esPosturaNueva false)'}
-
-Decide cuál de esas posturas defiende el texto. Reglas:
-- Si defiende claramente una de la lista, devuelve su id exacto en "posturaDetectada".
-- Si defiende una posición coherente pero que NO corresponde a ninguna de la lista, devuelve
-  "posturaDetectada": null y "esPosturaNueva": true, y describe esa posición en "posturaSugerida".
-- No fuerces la clasificación: si dudas entre dos, elige la más cercana y baja la "confianza".
-- Si el texto es condicional, matizado o depende de circunstancias ("depende de…", "en algunos
-  casos sí y en otros no"), no lo asignes con seguridad: devuelve "confianza" por debajo de 0.6.
-  Contradecir al estudiante sobre qué está defendiendo cuesta más caro que dejarlo pasar.
-- La clasificación es independiente de la forma: un texto puede tener mala forma y aun así
-  dejar clara su postura.
-- "posturaSugerida" se usa TAL CUAL en una frase que lee el estudiante: escríbela como una
-  etiqueta corta en ${instruccionesDelIdioma.nombre}, legible, nunca como un identificador técnico con guiones bajos.
-
-${ejemplosFormateados}
-
-Escribe "motivo", "sugerenciaDeCorreccion" y "posturaSugerida" en ${instruccionesDelIdioma.nombre}, el mismo idioma del argumento.
-Devuelve SOLO JSON válido con esta forma exacta:
-{"aprobado": boolean, "motivo": "máximo 20 palabras", "sugerenciaDeCorreccion": "vacío si aprobado es true", "posturaDetectada": "id o null", "esPosturaNueva": boolean, "posturaSugerida": "etiqueta corta o vacío", "confianza": number entre 0 y 1}`;
 
   const cuerpoDeLaPeticion = JSON.stringify({
     model: 'openai/gpt-oss-20b',
