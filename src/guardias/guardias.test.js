@@ -243,3 +243,51 @@ describe('proceso: lo que impide subir código roto', () => {
     }
   });
 });
+
+describe('créditos y podio final (docs/04, docs/12)', () => {
+  it('los créditos viven en una sola constante con ORCID y herramientas de IA', () => {
+    const creditos = leer(join(RAIZ, 'src/shared/creditos.js'));
+    expect(creditos).toContain('0000-0002-7017-9443');
+    expect(creditos).toContain('Claude');
+    expect(creditos).toContain('Antigravity');
+  });
+
+  it('el ORCID y el nombre completo no se repiten a mano fuera de la constante de créditos', () => {
+    const repetidos = [];
+    for (const ruta of sinPruebas(codigoFuente())) {
+      const nombre = relativa(ruta);
+      if (nombre === 'src/shared/creditos.js') {
+        continue;
+      }
+      const texto = leer(ruta);
+      if (texto.includes('0000-0002-7017-9443') || texto.includes('Arturo Damián Rodríguez Zambrano')) {
+        repetidos.push(nombre);
+      }
+    }
+    expect(repetidos).toEqual([]);
+  });
+
+  it('la foto de los créditos es un recorte ligero (menos de 50 KB), no el retrato de 3 MB', () => {
+    expect(statSync(join(RAIZ, 'public/autor.webp')).size).toBeLessThan(50 * 1024);
+  });
+
+  it('los créditos aparecen al ingresar y en el podio final, y NO durante el debate', () => {
+    const app = leer(join(RAIZ, 'src/player/App.jsx'));
+    expect(app).toContain('<Creditos />');
+    expect(app.match(/<Creditos \/>/g)).toHaveLength(1); // solo en la pantalla de ingreso
+    expect(leer(join(RAIZ, 'src/player/componentes/PodioFinalParaParticipantes.jsx'))).toContain('<Creditos />');
+  });
+
+  it('el podio final solo se muestra con el debate realmente cerrado y se puede saltar', () => {
+    const app = leer(join(RAIZ, 'src/player/App.jsx'));
+    expect(app).toMatch(/estado\.sesion\.cerrada\s*&&\s*\(\s*<PodioFinalParaParticipantes/);
+    const podio = leer(join(RAIZ, 'src/player/componentes/PodioFinalParaParticipantes.jsx'));
+    expect(podio).toContain('Saltar la animación');
+    expect(podio).toContain('useRevelacionPorEtapas');
+  });
+
+  it('la revelación respeta «reducir movimiento» (sin animaciones ni esperas)', () => {
+    expect(leer(join(RAIZ, 'src/shared/estilos/sesion.css'))).toMatch(/prefers-reduced-motion:\s*reduce\)\s*\{\s*\.escalon--revelado/);
+    expect(leer(join(RAIZ, 'src/player/podio/useRevelacionPorEtapas.js'))).toContain('prefers-reduced-motion');
+  });
+});

@@ -1,3 +1,4 @@
+import { textoDeCreditos } from '../../shared/creditos.js';
 import {
   calcularRankingPorPostura,
   calcularPodioIndividual,
@@ -216,9 +217,7 @@ export function InformeDelDebate({ estado, programa, presencia, eventos }) {
         )}
 
         <footer>
-          <p className="texto-de-ayuda">
-            R2 Argumentum — Arturo Damián Rodríguez Zambrano · Docente, investigador y vibe coder
-          </p>
+          <p className="texto-de-ayuda">{textoDeCreditos()}</p>
         </footer>
       </article>
     </section>

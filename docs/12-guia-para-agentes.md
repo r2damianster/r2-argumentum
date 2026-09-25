@@ -63,6 +63,11 @@ La «apertura simultánea» (temporizador con semáforo y selector de tiempo) se
 ### Regla 9 — Las decisiones de arquitectura no se reabren
 Sin base de datos para el estado en vivo (Ably). La proyección usa `BroadcastChannel`, no otro cliente de Ably. Groq **nunca** es juez: solo valida la forma al escribir y sugiere conexiones en lote cuando el moderador lo pide. Un solo esquema de puntaje. Detalle y motivos en `CLAUDE.md`.
 
+### Regla 9b — Créditos y podio final
+- Los créditos (nombre, ORCID, herramientas de IA, foto) salen **solo** de `src/shared/creditos.js` y del componente `Creditos`; no copies el ORCID ni el nombre a mano. Se muestran **solo al ingresar y en el podio final**, nunca durante el debate.
+- La foto es `public/autor.webp` (10 KB). No cargues `public/avatar.png` (3,2 MB) en pantallas de estudiantes.
+- El podio final del participante solo aparece con `estado.sesion.cerrada`, es saltable y respeta «reducir movimiento». El guion vive en `src/player/podio/etapasDelPodio.js` (con pruebas); no metas temporizadores sueltos en el componente.
+
 ### Regla 10 — Commits solo cuando te lo piden
 El hook global `auto-commit` de Claude Code ignora este repositorio (existe `.no-auto-commit`). No commitees ni empujes por iniciativa propia; cuando te lo pidan, mensajes claros y con el pie de coautoría.
 

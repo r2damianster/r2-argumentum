@@ -82,3 +82,7 @@ Esto sí requiere un backend mínimo (solo esa función), distinto de "sin base 
 ## Convención de nombres y despliegue
 
 La familia de proyectos del usuario usa el prefijo **"R2"** (R2 Quiz, R2 Argumentum). Mantener esta convención en nombres de repositorio y, si aplica, en el subdominio de despliegue (ej. `r2-argumentum.vercel.app`), replicando el esquema ya usado en R2 Quiz (`r2-quiz.vercel.app` para consola, `/player.html` para estudiantes).
+
+## Créditos
+
+Se muestran en dos momentos y en ninguno más (no se quiere distraer durante el debate): la **pantalla de ingreso del participante** (debajo del formulario) y el **podio final**. Contenido: foto circular, «Arturo Rodríguez», «Docente, investigador y vibe coder», enlace al ORCID (`0000-0002-7017-9443`) y «Recurso creado con el apoyo de Claude y Antigravity». También van, en una línea, en el pie del login del host y del informe imprimible. Todo sale de una sola constante, `src/shared/creditos.js`; la foto es `public/autor.webp`, un recorte de la cara de 10 KB (el retrato original `public/avatar.png` pesa 3,2 MB, tiene un cartel de fondo con texto deformado y solo lo usa la portada del host).

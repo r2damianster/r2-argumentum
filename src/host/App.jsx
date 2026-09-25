@@ -25,6 +25,7 @@ import { FeedDeActividad } from '../shared/componentes/FeedDeActividad.jsx';
 import { DestacadoDelTurno } from '../shared/componentes/DestacadoDelTurno.jsx';
 import { PERFILES_DE_PUNTAJE, PERFIL_POR_DEFECTO } from '../shared/puntaje/formulaDePuntaje.js';
 import { IDIOMAS_DEL_DEBATE } from '../shared/programa/idiomaDelDebate.js';
+import { textoDeCreditos } from '../shared/creditos.js';
 import { guardarSesionDelHost, iniciarSesionDelHost, leerSesionDelHost } from '../shared/ably/sesionDelHost.js';
 
 const CLAVE_DE_SESION_ACTIVA = 'r2-argumentum-sesion-activa';
@@ -86,7 +87,7 @@ export default function App() {
           {iniciandoSesion ? 'Entrando…' : 'Entrar'}
         </button>
       </form>
-      <footer>R2 Argumentum — Arturo Damián Rodríguez Zambrano · Docente, investigador y vibe coder</footer>
+      <footer>{textoDeCreditos()}</footer>
     </main>
   );
 }

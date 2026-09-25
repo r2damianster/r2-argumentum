@@ -5,10 +5,17 @@ Decisiones abiertas o trabajo técnico que todavía no se ha hecho, y registro d
 ## Abierto
 
 - **Guarda la clave nueva del host.** `HOST_USER` y `HOST_PASSWORD` ya están en Vercel (Production, Sensitive) desde el 24-sep-2026 con una clave generada al azar que se te entregó una sola vez en la conversación: guárdala en tu gestor de contraseñas o cámbiala (Vercel → Settings → Environment Variables → `HOST_PASSWORD`, y redespliega). La clave anterior estuvo en un repositorio público y sigue en el historial de git: está comprometida.
+- **Retrato original pesado:** `public/avatar.png` pesa 3,2 MB y lo carga la portada del login del host; conviene reemplazarlo por una versión optimizada (p. ej. WebP de ~600 px). No afecta a los estudiantes (usan `autor.webp`, 10 KB).
 - **Celular físico:** no se ha probado en un aparato real (teclado virtual, notch, rendimiento, gestos). Lo cubierto es emulación de 8 modelos con `scripts/prueba-e2e/moviles.py`; conviene una pasada con 2 o 3 celulares reales (uno Android de gama baja y un iPhone) usando la guía `10` §5B.
 - **Texto pequeño (menor prioridad):** las etiquetas de postura y los títulos de paso («1 · TU POSTURA») miden 12–12,8 px; legibles, pero por debajo de 13 px.
 
 ## Cerrado
+
+- ~~Podio final en la pantalla del participante + créditos~~ — 25-sep-2026, pedido del docente:
+  - **Podio con suspenso** (`PodioFinalParaParticipantes.jsx`, guion puro y probado en `src/player/podio/`): introducción, podio por postura y podio individual descubiertos del último al primer lugar (≈ 22 s), «Tu resultado», tabla completa, «Saltar la animación» y «Ver la revelación otra vez»; sin animaciones con «reducir movimiento». Solo aparece con el debate **realmente cerrado** (`estado.sesion.cerrada`), porque los ajustes de exposiciones se aplican justo antes de `session.closed`. Reemplaza a la antigua `PantallaDeResultadoDelParticipante` (solo mostraba los puntos propios).
+  - **Créditos** (`Creditos.jsx`, datos en `src/shared/creditos.js`): al ingresar y en el podio final, no durante el debate. Foto = recorte circular de 10 KB (`public/autor.webp`) del retrato `avatar.png` (3,2 MB); nombre, ORCID, «creado con el apoyo de Claude y Antigravity». El pie del login del host y el del informe imprimible usan `textoDeCreditos()`.
+  - **Retoques a 320 px:** nombre corto de la postura en los escalones (las etiquetas largas se cortaban) y créditos apilados en pantallas estrechas.
+  - 278 pruebas (8 del guion del podio y 6 guardias nuevas de créditos/podio).
 
 - ~~Énfasis de las acciones del turno + guardias contra errores repetidos~~ — 24-sep-2026, pedido del docente («un estudiante puede no ver los botones Ya lo expuse o Aceptar/Rechazar»):
   - **Causa:** «Aceptar y defender mi argumento» y «Ya lo expuse» no tenían ninguna clase (botón gris del navegador) y «Rechazar» usaba `boton-cambiar-programa`, el estilo más discreto.

@@ -17,6 +17,8 @@ Guía completa, con el catálogo de errores ya cometidos y cómo probar: **[`doc
 9. **No reabras decisiones de arquitectura** (sin BD, `BroadcastChannel` para proyección, Groq no es juez, puntaje con fórmula única).
 10. **No commitees ni empujes por iniciativa propia.**
 
+**Créditos y podio final:** los datos de autoría salen solo de `src/shared/creditos.js` y se muestran únicamente al ingresar y en el podio final (nunca durante el debate); el podio del participante solo aparece con el debate cerrado y se puede saltar.
+
 ## Si una prueba falla
 
 `src/guardias/guardias.test.js` vigila los errores ya cometidos. **Arregla el código; no borres la prueba ni le pongas excepciones.**

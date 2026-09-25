@@ -5,12 +5,13 @@ import {
   soyCoModerador,
   misArgumentosSinConexionSaliente,
   obtenerSugerenciasVisiblesParaParticipante,
-  calcularRankingPorPostura,
 } from '../shared/estado/seleccionesDerivadas.js';
 import { miOfertaDeTurno, tengoElTurnoEnCurso } from './estadoDelParticipante.js';
 import { PantallaDeTurnoOfrecido } from './componentes/PantallaDeTurnoOfrecido.jsx';
 import { GrafoDeArgumentos } from '../shared/componentes/GrafoDeArgumentos.jsx';
 import { FeedDeActividad } from '../shared/componentes/FeedDeActividad.jsx';
+import { Creditos } from '../shared/componentes/Creditos.jsx';
+import { PodioFinalParaParticipantes } from './componentes/PodioFinalParaParticipantes.jsx';
 import { DestacadoDelTurno } from '../shared/componentes/DestacadoDelTurno.jsx';
 import { CapaInstruccional } from '../shared/componentes/CapaInstruccional.jsx';
 import { AvisoDeConexion } from '../shared/componentes/AvisoDeConexion.jsx';
@@ -217,6 +218,7 @@ export default function App() {
           Entrar
         </button>
       </form>
+      <Creditos />
     </main>
   );
 }
@@ -332,7 +334,16 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
           <AvisoPreparateParaHablar
             visible={!sesionCerrada && !soyComoderador && ingresoConfirmado && tieneArgumentoListo && !oferta && !tengoElTurno}
           />
-      {sesionCerrada && <PantallaDeResultadoDelParticipante estado={estado} programa={programa} participantId={participantId} />}
+      {/* El podio solo aparece con el debate REALMENTE cerrado: los ajustes de las exposiciones se
+          aplican justo antes de session.closed, así que antes de eso los puntajes no son los finales. */}
+      {estado.sesion.cerrada && (
+        <PodioFinalParaParticipantes estado={estado} programa={programa} presencia={presencia} participantId={participantId} />
+      )}
+      {sesionCerrada && !estado.sesion.cerrada && (
+        <section className="tarjeta-de-turno-ofrecido">
+          <p className="texto-de-ayuda">🥁 El moderador está por cerrar el debate. En cuanto lo haga, aquí aparece el podio.</p>
+        </section>
+      )}
 
       {!sesionCerrada && !ingresoConfirmado && (
         <>
@@ -427,27 +438,5 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
         </div>
       </div>
     </main>
-  );
-}
-
-function PantallaDeResultadoDelParticipante({ estado, programa, participantId }) {
-  const ranking = calcularRankingPorPostura(estado, programa);
-  const miStanceId = estado.participantes[participantId]?.stanceId;
-  const miEntrada = miStanceId
-    ? ranking[miStanceId]?.find((participante) => participante.participantId === participantId)
-    : null;
-
-  return (
-    <section className="tarjeta-de-ranking">
-      <h3>Debate cerrado</h3>
-      {miEntrada ? (
-        <p>
-          Tu resultado: {miEntrada.puntajeTotal} pts —{' '}
-          {miEntrada.tier === 'Sólido' ? '🥇' : miEntrada.tier === 'Consistente' ? '🥈' : '🥉'} {miEntrada.tier}
-        </p>
-      ) : (
-        <p className="texto-de-ayuda">Gracias por participar.</p>
-      )}
-    </section>
   );
 }

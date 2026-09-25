@@ -268,7 +268,14 @@ with sync_playwright() as p:
     esperar(lambda: "Marcador y Podios finales" in cuerpo(host), 60)
     time.sleep(2)
     for modelo in MODELOS:
-        medir(modelo, "12-debate-cerrado", paginas[modelo], captura=modelo == "iPhone SE")
+        medir(modelo, "12a-podio-en-revelacion", paginas[modelo], captura=modelo == "iPhone SE")
+    for modelo in MODELOS:
+        boton_saltar = paginas[modelo].locator('button:has-text("Saltar la animación")')
+        if boton_saltar.count():
+            boton_saltar.first.tap()
+    time.sleep(1.5)
+    for modelo in MODELOS:
+        medir(modelo, "12b-podio-final-con-creditos", paginas[modelo], captura=modelo in ("iPhone SE", "Galaxy S9+", "iPad Mini"))
 
     # ------------------ informe
     print("\n=== HALLAZGOS POR MODELO Y PANTALLA ===", flush=True)

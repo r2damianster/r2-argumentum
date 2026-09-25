@@ -42,3 +42,9 @@ Solo para los momentos en que el debate depende de un estudiante (aceptar/rechaz
 | `barra-de-accion-fija` | `position: fixed` al borde inferior, máx. 40 rem | fondo `#f0fdf4`, borde superior `#15803d` 4 px | 8,7:1 (título) |
 
 Los demás botones mantienen la escala semántica de `base.css` (`boton-primario` teal, `boton-exito` verde, `boton-peligro` rojo, `boton-secundario` con borde). El foco por teclado usa un anillo amarillo de 4 px. Regla y motivos en `docs/12`.
+
+## Podio final y créditos (25-sep-2026)
+
+- **Escalones:** oro `#f59e0b` sobre `#fef3c7` (base `#b45309`), plata `#94a3b8` sobre `#f1f5f9` (base `#475569`), bronce `#ea580c` sobre `#ffedd5` (base `#9a3412`); puestos ocultos con borde discontinuo gris y «?». El escalón del propio participante lleva un halo verde azulado (`#14b8a6`) y la etiqueta «¡Eres tú!».
+- **Alturas:** 1.º 11 rem, 2.º 8,5 rem, 3.º 7 rem; en 320 px caben las tres columnas (nombre corto de la postura, p. ej. «Más estado»).
+- **Créditos:** foto circular de 72 px (88 px apilada en pantallas de 420 px o menos) con borde `var(--color-marca)`, enlace ORCID de ≥ 44 px de alto.

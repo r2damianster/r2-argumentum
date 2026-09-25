@@ -1137,4 +1137,396 @@ input {
   font-style: italic;
 }
 
+/* ===== Podio final del participante (docs/04, «Podio final») ===== */
+.visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 
+.podio-final-participante {
+  background: linear-gradient(180deg, #fefce8, #ffffff 40%);
+  border: 2px solid #fde68a;
+  border-radius: 20px;
+  padding: 16px;
+  margin: 0 0 16px;
+  text-align: center;
+}
+
+.podio-final__etiqueta {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #92400e;
+}
+
+.podio-final__encabezado h2 {
+  margin: 4px 0 10px;
+  font-size: 1.5rem;
+}
+
+.podio-final__saltar {
+  min-height: 44px;
+}
+
+.podio-final__suspenso {
+  margin: 20px 0;
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: #b45309;
+}
+
+.podio-final__suspenso span {
+  display: inline-block;
+  animation: latido-del-suspenso 1s ease-in-out infinite;
+}
+
+.podio-final__suspenso span:nth-child(2) {
+  animation-delay: 0.25s;
+}
+
+.podio-final__suspenso span:nth-child(3) {
+  animation-delay: 0.5s;
+}
+
+@keyframes latido-del-suspenso {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+.podio-bloque {
+  margin: 18px 0;
+}
+
+.podio-bloque__titulo {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  color: #7c2d12;
+}
+
+.podio-escalones {
+  display: grid;
+  gap: 8px;
+  align-items: end;
+}
+
+.podio-escalones--de-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.podio-escalones--de-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.podio-escalones--de-1 {
+  grid-template-columns: minmax(0, 12rem);
+  justify-content: center;
+}
+
+.escalon {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border-radius: 12px 12px 0 0;
+}
+
+.escalon--puesto-1 {
+  min-height: 11rem;
+}
+
+.escalon--puesto-2 {
+  min-height: 8.5rem;
+}
+
+.escalon--puesto-3 {
+  min-height: 7rem;
+}
+
+.escalon--oculto {
+  background: #f8fafc;
+  border: 3px dashed #cbd5e1;
+}
+
+.escalon--revelado.escalon--puesto-1 {
+  background: #fef3c7;
+  border: 3px solid #f59e0b;
+}
+
+.escalon--revelado.escalon--puesto-2 {
+  background: #f1f5f9;
+  border: 3px solid #94a3b8;
+}
+
+.escalon--revelado.escalon--puesto-3 {
+  background: #ffedd5;
+  border: 3px solid #ea580c;
+}
+
+.escalon--revelado {
+  animation: subir-escalon 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+
+@keyframes subir-escalon {
+  from {
+    opacity: 0;
+    transform: translateY(36px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.escalon__contenido {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 4px;
+}
+
+.escalon__medalla,
+.escalon__emblema {
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.escalon--puesto-1 .escalon__medalla {
+  animation: brillo-de-la-medalla 1.4s ease-in-out infinite;
+}
+
+@keyframes brillo-de-la-medalla {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.18);
+  }
+}
+
+.escalon__nombre {
+  font-size: 0.875rem;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.escalon__puntos {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.escalon__misterio {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.escalon__base {
+  padding: 6px 0;
+  border-radius: 0 0 8px 8px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ffffff;
+  background: #94a3b8;
+}
+
+.escalon--puesto-1 .escalon__base {
+  background: #b45309;
+}
+
+.escalon--puesto-2 .escalon__base {
+  background: #475569;
+}
+
+.escalon--puesto-3 .escalon__base {
+  background: #9a3412;
+}
+
+.escalon--tuyo {
+  box-shadow: 0 0 0 4px #14b8a6, 0 10px 24px rgba(13, 148, 136, 0.35);
+}
+
+.escalon__tuyo {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: #ffffff;
+  background: #0f766e;
+}
+
+.confeti {
+  position: absolute;
+  top: -6px;
+  left: 0;
+  right: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.confeti__pieza {
+  position: absolute;
+  top: 0;
+  left: calc(var(--n) * 7%);
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  background: hsl(calc(var(--n) * 27), 90%, 55%);
+  animation: caer-el-confeti 2.4s ease-in calc(var(--n) * 0.12s) both;
+}
+
+@keyframes caer-el-confeti {
+  from {
+    opacity: 1;
+    transform: translateY(0) rotate(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(14rem) rotate(540deg);
+  }
+}
+
+.podio-tu-resultado {
+  margin: 16px 0;
+  padding: 14px;
+  background: #ffffff;
+  border: 2px solid var(--color-marca);
+  border-radius: 16px;
+}
+
+.podio-tu-resultado h3 {
+  margin: 0 0 6px;
+}
+
+.podio-tu-resultado__puesto {
+  font-size: 1.25rem;
+}
+
+.podio-tabla-completa {
+  margin: 12px 0;
+  text-align: left;
+}
+
+.podio-tabla-completa summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.podio-tabla-completa__yo {
+  font-weight: 800;
+  color: var(--color-marca-oscuro);
+}
+
+.podio-final__gracias {
+  margin: 16px 0 8px;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .escalon--revelado,
+  .escalon--puesto-1 .escalon__medalla,
+  .podio-final__suspenso span {
+    animation: none;
+  }
+
+  .confeti {
+    display: none;
+  }
+}
+
+/* ===== Créditos (ingreso del participante y pantalla final) ===== */
+.creditos {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  text-align: left;
+  background: #ffffff;
+  border: 1px solid var(--color-borde);
+  border-radius: 16px;
+}
+
+.creditos__foto {
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  background: #e2e8f0;
+  border: 3px solid var(--color-marca);
+  border-radius: 50%;
+}
+
+.creditos__texto p {
+  margin: 0;
+}
+
+.creditos__proyecto {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.creditos__nombre {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.creditos__rol {
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.creditos__orcid {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f766e;
+  text-decoration: underline;
+}
+
+.creditos__herramientas {
+  font-size: 0.8125rem;
+  color: #475569;
+}
+
+/* En pantallas estrechas los créditos se apilan: foto arriba, texto centrado debajo. */
+@media (max-width: 420px) {
+  .creditos {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .creditos__foto {
+    width: 88px;
+    height: 88px;
+  }
+}

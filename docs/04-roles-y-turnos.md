@@ -24,6 +24,17 @@ El profesor puede fijar un tope máximo para grupos grandes. Los co-moderadores 
 
 El argumento de ingreso se redacta, se revisa con Groq y se **confirma en la sala de espera, antes de «Iniciar debate»**. Quien no lo confirmó cuando el moderador inicia la sesión pasa a **oyente** de inmediato. (Hubo un temporizador de apertura con semáforo del 17 al 24 de septiembre; se retiró porque con este flujo quien no confirmaba ya era oyente y nunca lo veía: ver `09-modelo-de-eventos.md`.)
 
+### Podio final en la pantalla del participante
+
+Cuando el moderador cierra el debate (`session.closed`; no antes, porque los ajustes de las exposiciones se aplican justo antes de cerrar) cada participante ve su propio podio, que **se toma su tiempo** (`PodioFinalParaParticipantes.jsx`, guion en `src/player/podio/etapasDelPodio.js`):
+
+1. **Introducción** «🥁 Y ahora… ¡el podio!» (2,6 s).
+2. **Podio por postura** (equipos): se descubre del último lugar al primero, con «?» en los puestos aún ocultos.
+3. **Podio individual** (top 3, sin co-moderadores): 3.º → 2.º → 1.º; antes del primer lugar hay una pausa más larga (3,4 s) y el ganador trae medalla que late y confeti. Quien está en el podio ve su escalón resaltado con «¡Eres tú!».
+4. **Tu resultado** (puesto N de M, puntos, mensaje según el nivel; los co-moderadores y quienes fueron oyentes ven un mensaje propio), tabla completa desplegable, «Ver la revelación otra vez» y los **créditos**.
+
+La revelación completa dura unos 22 s con 3 posturas y 8 personas; hay un botón **«Saltar la animación»**. Con «reducir movimiento» del sistema no hay esperas ni animaciones: se muestra todo de una vez. Mientras el moderador está en «Cierre y ranking» pero no ha cerrado, el participante ve «El moderador está por cerrar el debate…».
+
 ### Acciones del turno: cómo se le presentan al estudiante
 
 Cuando el estudiante tiene que actuar, la pantalla se lo hace imposible de ignorar (regla 1 de `docs/12`):

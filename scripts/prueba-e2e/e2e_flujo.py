@@ -76,6 +76,15 @@ def entrar_jugador(navegador, codigo, nombre, **opciones_de_contexto):
     pagina.on("dialog", lambda dialogo: dialogo.accept())
     pagina.goto(f"{BASE}/?sala={codigo}")
     pagina.wait_for_selector("text=Tu nombre", timeout=30000)
+    if nombre == "Ana":
+        enlace = pagina.locator(".creditos a.creditos__orcid")
+        check("Créditos al ingresar: foto, nombre, ORCID y herramientas de IA",
+              pagina.locator(".creditos img.creditos__foto").count() == 1
+              and "Arturo Rodríguez" in cuerpo(pagina)
+              and enlace.get_attribute("href") == "https://orcid.org/0000-0002-7017-9443"
+              and "Claude y Antigravity" in cuerpo(pagina))
+        foto_cargada = pagina.evaluate("() => { const i = document.querySelector('.creditos__foto'); return i.complete && i.naturalWidth > 0; }")
+        check("La foto de los créditos carga (recorte ligero)", esperar(lambda: pagina.evaluate("() => { const i = document.querySelector('.creditos__foto'); return i.complete && i.naturalWidth > 0; }"), 10) or foto_cargada)
     pagina.fill('input[placeholder="Ej. Arturo"]', nombre)
     pagina.click("button.boton-sorpreendeme")
     pagina.click('button[type=submit]:has-text("Entrar")')
@@ -215,6 +224,8 @@ with sync_playwright() as p:
     check("Los co-moderadores votaron el bid", estado_de["votos_de_bid"] >= 1, f"{estado_de['votos_de_bid']} votos")
     check("Se creó una conexión libre", bool(estado_de["conexion_libre"]), str(estado_de["conexion_libre"]))
 
+    check("Los créditos NO aparecen durante el debate", all(jugadores[n].locator(".creditos").count() == 0 for n in NOMBRES))
+
     # ---------- preparar un contraargumento (quien ya expuso puede preparar otro)
     quien_prepara = next((n for n in estado_de["expuestos"] if n in participantes), None)
     if quien_prepara:
@@ -301,6 +312,29 @@ with sync_playwright() as p:
     check("Al cerrar se aplican los ajustes de las exposiciones calificadas (el total cambia)",
           sum(puntajes) != sum(puntajes_antes), f"suma antes {sum(puntajes_antes)} → después {sum(puntajes)}")
     check("El informe exportable está presente", host.locator(".informe-del-debate").count() > 0)
+
+    # ---------- podio final del participante: revelación progresiva, salto y créditos
+    hugo_final = jugadores["Hugo"]
+    check("Al cerrar, el participante ve la pantalla del podio", esperar(lambda: hugo_final.locator(".podio-final-participante").count() > 0, 30))
+    time.sleep(1.2)
+    revelados_al_inicio = hugo_final.locator(".escalon--revelado").count()
+    check("La revelación empieza con suspenso: al inicio no hay ningún puesto descubierto y aparece «Saltar la animación»",
+          revelados_al_inicio == 0 and hugo_final.locator('button:has-text("Saltar la animación")').count() == 1)
+    hugo_final.screenshot(path="flujo-04-podio-introduccion.png")
+    time.sleep(9)
+    revelados_a_mitad = hugo_final.locator(".escalon--revelado").count()
+    check("Se toma su tiempo: pasados ~10 s hay algunos puestos descubiertos, pero aún no todos",
+          1 <= revelados_a_mitad and hugo_final.locator('button:has-text("Saltar la animación")').count() == 1, f"{revelados_a_mitad} puestos descubiertos")
+    hugo_final.screenshot(path="flujo-05-podio-a-mitad.png")
+    check("Créditos ocultos mientras dura la revelación", hugo_final.locator(".creditos").count() == 0)
+    hugo_final.locator('button:has-text("Saltar la animación")').tap() if False else hugo_final.click('button:has-text("Saltar la animación")')
+    check("«Saltar la animación» muestra el podio completo, el resultado personal y los créditos",
+          esperar(lambda: hugo_final.locator(".podio-tu-resultado").count() == 1 and hugo_final.locator(".creditos").count() == 1, 10)
+          and hugo_final.locator(".escalon--puesto-1.escalon--revelado").count() >= 1)
+    check("El podio final muestra ORCID y herramientas de IA",
+          hugo_final.locator(".creditos a.creditos__orcid").get_attribute("href") == "https://orcid.org/0000-0002-7017-9443"
+          and "Claude y Antigravity" in cuerpo(hugo_final))
+    hugo_final.screenshot(path="flujo-06-podio-final.png", full_page=True)
 
     # ---------- errores de JavaScript en cualquier pantalla
     check("Sin errores de JavaScript en ninguna pantalla", len(ERRORES_DE_PAGINA) == 0, "; ".join(ERRORES_DE_PAGINA[:4]))
