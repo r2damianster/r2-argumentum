@@ -47,10 +47,10 @@ export function PanelDeSugerencias({ estado, participantId, publicar }) {
             </p>
             <p className="texto-de-ayuda">Confianza: {Math.round((sugerencia.confianza ?? 0) * 100)}%</p>
             <div className="botonera-de-bid">
-              <button type="button" onClick={() => aceptar(sugerencia)}>
+              <button type="button" className="boton-exito" onClick={() => aceptar(sugerencia)}>
                 Aceptar
               </button>
-              <button type="button" className="boton-cambiar-programa" onClick={() => rechazar(sugerencia)}>
+              <button type="button" className="boton-secundario" onClick={() => rechazar(sugerencia)}>
                 Rechazar
               </button>
             </div>

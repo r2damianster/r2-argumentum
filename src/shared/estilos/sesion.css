@@ -234,7 +234,7 @@ input {
 }
 
 .etiqueta-instruccional {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -484,7 +484,7 @@ input {
 }
 
 .paso-de-ingreso h3 {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -545,7 +545,7 @@ input {
 .chip-de-rol,
 .chip-de-postura {
   display: inline-block;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
@@ -614,6 +614,80 @@ input {
 .tarjeta-de-turno-ofrecido {
   text-align: center;
   border-color: var(--color-marca);
+}
+
+/* ACCIÓN DEL TURNO. Dos piezas (docs/12):
+   1) la tarjeta en el flujo normal, con fondo y borde verdes, que explica qué pasa;
+   2) la BARRA FIJA pegada al borde inferior de la pantalla con los botones y la cuenta atrás:
+      se ve siempre, aunque la persona haya hecho scroll hasta el final o hasta arriba. */
+.tarjeta-de-accion-del-turno {
+  text-align: center;
+  background: #f0fdf4;
+  border: 3px solid #15803d;
+  border-radius: 18px;
+  padding: 16px;
+  margin: 0 0 16px;
+}
+
+.etiqueta-de-accion-del-turno {
+  margin: 0 0 4px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #14532d;
+}
+
+.barra-de-accion-fija {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  background: #f0fdf4;
+  border-top: 4px solid #15803d;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.28);
+}
+
+.barra-de-accion-fija__encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #14532d;
+}
+
+.barra-de-accion-fija .boton-accion-principal {
+  min-height: 56px;
+  padding: 10px 14px;
+  font-size: 1.1rem;
+}
+
+.barra-de-accion-fija .boton-accion-rechazo {
+  min-height: 44px;
+  padding: 8px 14px;
+}
+
+/* La barra tapa el borde inferior: se deja aire debajo del contenido para poder verlo todo. */
+.layout-de-participante:has(.barra-de-accion-fija) {
+  padding-bottom: 13rem;
+}
+
+.cuenta-regresiva-en-barra {
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+  color: #14532d;
+}
+
+.cuenta-regresiva--urgente {
+  color: #b91c1c !important;
 }
 
 .cuenta-regresiva {

@@ -10,6 +10,14 @@ Decisiones abiertas o trabajo técnico que todavía no se ha hecho, y registro d
 
 ## Cerrado
 
+- ~~Énfasis de las acciones del turno + guardias contra errores repetidos~~ — 24-sep-2026, pedido del docente («un estudiante puede no ver los botones Ya lo expuse o Aceptar/Rechazar»):
+  - **Causa:** «Aceptar y defender mi argumento» y «Ya lo expuse» no tenían ninguna clase (botón gris del navegador) y «Rechazar» usaba `boton-cambiar-programa`, el estilo más discreto.
+  - **Corrección:** `boton-accion-principal` (verde sólido, ≥ 56 px, anillo que pulsa) y `boton-accion-rechazo` (rojo, borde grueso), dentro de una **barra fija al borde inferior** (`barra-de-accion-fija`) con la cuenta atrás (roja en los últimos 5 s); tarjeta verde en el flujo; `useAtencionDelTurno` centra la tarjeta, vibra y cambia el título de la pestaña. Se hizo también para «Ya lo expuse» (`TarjetaDeExposicionEnCurso.jsx`) y «Terminé de hablar» (`IntervencionVerbal.jsx`), y las sugerencias de Groq usan `boton-exito`/`boton-secundario`. Un primer diseño con `position: sticky` se descartó porque la tarjeta desaparecía al hacer scroll hasta el final; la barra fija se comprobó arriba, a mitad y al final, a 320 y 393 px.
+  - **Texto pequeño:** etiquetas de postura, pasos del ingreso y AHORA/PUEDES subieron a 13–13,6 px.
+  - **Resto de fusión hallado:** `turnId` duplicado en `IntervencionVerbal.jsx`.
+  - **Guardias** (`src/guardias/guardias.test.js`, 20 pruebas; se comprobó que detectan los fallos inyectados): marcadores de conflicto, botones y líneas repetidas, voseo, credenciales, funciones retiradas, identificadores inexistentes en la documentación, contrato de las acciones del turno, `flex-wrap` móvil y proceso (hook, workflow).
+  - **Guía para agentes:** `AGENTS.md`, `GEMINI.md` y `docs/12-guia-para-agentes.md` (reglas, catálogo de 14 errores ya cometidos con su prevención, cómo probar).
+
 - ~~Vulnerabilidades de `npm audit` (5: 1 crítica, 1 alta, 3 moderadas)~~ — 24-sep-2026: vite 5→8, vitest 2→5 y `@vitejs/plugin-react` 4→6; `npm audit` da 0 (con y sin `--omit=dev`). Eran de servidores de desarrollo, no del despliegue. `vite.config.js` usa `import.meta.dirname`. 244 pruebas y build correctos; el bundle mantiene los mismos chunks (empaquetador ahora Rolldown).
 - ~~Prueba en móviles (8 modelos emulados)~~ — `scripts/prueba-e2e/moviles.py`, 24-sep-2026 (detalle en `10` §6B): iPhone SE (320 px), iPhone 13, 13 Pro Max, Pixel 7, Galaxy S9+ (320 px), Galaxy S8 (360 px), Moto G4 y iPad Mini, con toques reales, teclado emulado y horizontal. **Fallo real encontrado y corregido:** el panel de co-moderador se desbordaba en pantallas de 320–360 px (documento de 381 px en 360 px; botones de calificación fuera de pantalla) porque `.botonera-de-bid` no envolvía. Ahora envuelve (`flex-wrap`); el «✕» del aviso «Prepárate para hablar» pasó de 31 a 44 px y las etiquetas AHORA/PUEDES de 11,2 a 12 px. Reverificado: 0 hallazgos graves y 0 controles < 44 px.
 

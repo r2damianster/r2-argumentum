@@ -1,0 +1,36 @@
+import { useEffect, useRef } from 'react';
+
+// El estudiante no puede perderse el momento en que le toca actuar (aceptar o rechazar el turno,
+// avisar que terminó de exponer). Mientras `activo` sea true, el elemento al que se le pasa la
+// referencia devuelta:
+//   - se centra solo en pantalla (sin animación si la persona pidió reducir el movimiento),
+//   - hace vibrar el celular con un patrón corto (si el navegador lo permite),
+//   - y el título de la pestaña cambia a `titulo` para llamar la atención aunque esté en segundo plano.
+// Todo se deshace al terminar. Ver docs/12 (regla «acciones del turno»).
+export function useAtencionDelTurno(activo, titulo) {
+  const referencia = useRef(null);
+
+  useEffect(() => {
+    if (!activo) {
+      return undefined;
+    }
+
+    const tituloOriginal = document.title;
+    document.title = titulo;
+
+    const prefiereMenosMovimiento = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    referencia.current?.scrollIntoView?.({ block: 'center', behavior: prefiereMenosMovimiento ? 'auto' : 'smooth' });
+
+    try {
+      navigator.vibrate?.([200, 100, 200]);
+    } catch {
+      // Algunos navegadores bloquean vibrate sin un toque previo: no es un error.
+    }
+
+    return () => {
+      document.title = tituloOriginal;
+    };
+  }, [activo, titulo]);
+
+  return referencia;
+}

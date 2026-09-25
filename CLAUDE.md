@@ -35,6 +35,12 @@ Plataforma de debate argumental en tiempo real para uso en aula (ULEAM). No es u
 
 El modelo de eventos y el motor ya están construidos y desplegados (`docs/09-modelo-de-eventos.md`, `src/host/motorDeSesion.js`). Ya no aplica la regla de "no escribir componentes hasta cerrar el modelo de eventos". Lo que sigue y las decisiones abiertas están en `docs/06-pendientes.md`; el procedimiento de prueba manual en producción, con el elenco de actores, en `docs/10-guia-prueba-manual-chrome.md`. Tests de la lógica pura: `npm test`.
 
+## Reglas de la interfaz (probadas en el aula)
+
+- **Las acciones del turno tienen que verse siempre** («Aceptar / Rechazar», «Ya lo expuse», «Terminé de hablar»): `barra-de-accion-fija` + `boton-accion-principal` / `boton-accion-rechazo`. Nunca sin clase.
+- **Móvil de 320 px:** sin scroll horizontal, controles ≥ 44 px, botoneras con `flex-wrap`.
+- Guía completa para agentes, catálogo de errores ya cometidos y cómo probar: `AGENTS.md` y `docs/12-guia-para-agentes.md`. Las guardias automáticas están en `src/guardias/guardias.test.js`: **no las borres ni les agregues excepciones**.
+
 ## Antes de subir cambios
 
 Ejecuta `npm run verificar` (pruebas + build). Con `npm run instalar-hooks` el hook `pre-push` lo exige, y GitHub Actions lo repite en cada push. Si un cambio depende de variables de entorno nuevas en Vercel, créalas **antes** de commitear: el auto-push despliega enseguida y `/api/host-login` responde 503 sin `HOST_USER` / `HOST_PASSWORD`. La verificación en navegador contra producción está en `scripts/prueba-e2e/` (ver su `README.md`).

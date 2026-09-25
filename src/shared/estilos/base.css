@@ -191,6 +191,80 @@ button[type='submit']:disabled {
   color: #0f172a;
 }
 
+/* ACCIONES DEL TURNO — lo que el estudiante no puede perderse durante el debate: aceptar o
+   rechazar el turno, avisar que terminó de exponer. Son grandes, de ancho completo y con un
+   color que ningún otro botón usa a este tamaño (verde sólido con borde oscuro y anillo que
+   pulsa; el rechazo va en rojo con borde grueso). Regla completa en docs/12. Contrastes: blanco
+   sobre #15803d = 5,0:1; #b91c1c sobre blanco = 6,5:1 (WCAG AA). */
+.boton-accion-principal {
+  display: block;
+  width: 100%;
+  min-height: 60px;
+  padding: 14px 18px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+  background: #15803d;
+  border: 3px solid #14532d;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(21, 128, 61, 0.35);
+  animation: pulso-de-accion 1.6s ease-in-out infinite;
+}
+
+.boton-accion-principal:hover:not(:disabled) {
+  background: #166534;
+}
+
+.boton-accion-principal:focus-visible,
+.boton-accion-rechazo:focus-visible {
+  outline: 4px solid #facc15;
+  outline-offset: 3px;
+}
+
+.boton-accion-principal:disabled {
+  background: #94a3b8;
+  border-color: #64748b;
+  box-shadow: none;
+  animation: none;
+  cursor: not-allowed;
+}
+
+.boton-accion-rechazo {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 16px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #b91c1c;
+  background: #ffffff;
+  border: 2.5px solid #b91c1c;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.boton-accion-rechazo:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+@keyframes pulso-de-accion {
+  0%,
+  100% {
+    box-shadow: 0 6px 16px rgba(21, 128, 61, 0.35), 0 0 0 0 rgba(21, 128, 61, 0.55);
+  }
+  50% {
+    box-shadow: 0 6px 16px rgba(21, 128, 61, 0.35), 0 0 0 10px rgba(21, 128, 61, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boton-accion-principal {
+    animation: none;
+  }
+}
+
 .boton-sorpreendeme {
   background: white;
   border: 1px solid var(--color-marca);

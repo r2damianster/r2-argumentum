@@ -24,6 +24,16 @@ El profesor puede fijar un tope máximo para grupos grandes. Los co-moderadores 
 
 El argumento de ingreso se redacta, se revisa con Groq y se **confirma en la sala de espera, antes de «Iniciar debate»**. Quien no lo confirmó cuando el moderador inicia la sesión pasa a **oyente** de inmediato. (Hubo un temporizador de apertura con semáforo del 17 al 24 de septiembre; se retiró porque con este flujo quien no confirmaba ya era oyente y nunca lo veía: ver `09-modelo-de-eventos.md`.)
 
+### Acciones del turno: cómo se le presentan al estudiante
+
+Cuando el estudiante tiene que actuar, la pantalla se lo hace imposible de ignorar (regla 1 de `docs/12`):
+
+- **Oferta de turno:** tarjeta verde con la explicación y una **barra fija al borde inferior** con la cuenta atrás (roja en los últimos 5 s), **«Aceptar y defender mi argumento»** (verde sólido, ≥ 56 px, con anillo que pulsa) y **«Rechazar (−N pts)»** (rojo con borde grueso). La barra se ve aunque haya hecho scroll a cualquier punto de la página.
+- **Exposición:** barra fija «🎙️ Estás exponiendo» con **«Ya lo expuse»**.
+- **Turno hablado:** barra fija «🎙️ Estás hablando» con **«Terminé de hablar»**.
+- Además, mientras la acción esté pendiente: la tarjeta se centra sola en pantalla, el celular vibra (si el navegador lo permite) y el título de la pestaña cambia (`useAtencionDelTurno`). Con «reducir movimiento» del sistema no hay animaciones.
+- Verificado en producción en 8 modelos de móvil emulados (`scripts/prueba-e2e/moviles.py`) y con el CSS compilado a 320 y 393 px: barra visible arriba, a mitad y al final de una página larga; ocupa 33 % del alto en 320×568 y 20 % en 393×852; contraste 5,0:1 (botón verde) y 6,5:1 (rechazo).
+
 ### Reparto equitativo en la asignación aleatoria
 
 Solo con `asignacionPostura: "aleatoria"` (modo Rolplay) el reparto de posturas debe ser equitativo. Cada cliente elige la menos representada con lo que ya sabe y, justo antes de confirmar el ingreso, comprueba el **cupo**: ninguna postura puede pasar de `ceil(personas en la sala / posturas)`. Si mientras escribía otras personas la llenaron, se le asigna la menos representada y se le pide ajustar su argumento y revisarlo otra vez. En «libre» y «postura propia» no se fuerza nada: que una postura la defienda una sola persona es válido.

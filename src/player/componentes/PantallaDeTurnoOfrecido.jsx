@@ -1,3 +1,4 @@
+import { useAtencionDelTurno } from '../useAtencionDelTurno.js';
 import { useEffect, useState } from 'react';
 import { EVENTOS } from '../../shared/eventos/nombresDeEventos.js';
 import {
@@ -33,6 +34,8 @@ export function PantallaDeTurnoOfrecido({ oferta, estado, programa, participantI
     return undefined;
   }, [oferta.turnId, oferta.modo, tieneArgumentoPendiente]);
 
+  const referenciaDeLaTarjeta = useAtencionDelTurno(!retenida, '🎙️ ¡Es tu turno! Acepta o rechaza');
+
   const esVerbal = oferta.modo === 'verbal';
   const penalidad = calcularPenalidadPorRechazoDeTurno(resolverParametrosDePuntaje(programa));
 
@@ -50,9 +53,12 @@ export function PantallaDeTurnoOfrecido({ oferta, estado, programa, participantI
   }
 
   return (
-    <section className="tarjeta-de-turno-ofrecido">
-      <p className="texto-de-ayuda">🎙️ Es tu turno de hablar</p>
-      <p className="cuenta-regresiva">{segundosRestantes}s</p>
+    <section
+      className="tarjeta-de-turno-ofrecido tarjeta-de-accion-del-turno"
+      ref={referenciaDeLaTarjeta}
+      role="alert"
+    >
+      <p className="etiqueta-de-accion-del-turno">🎙️ ¡Es tu turno de hablar!</p>
       {esVerbal ? (
         <p className="texto-de-ayuda">
           No queda ningún argumento escrito por exponer y todavía no has tomado la palabra. Puedes intervenir
@@ -65,19 +71,26 @@ export function PantallaDeTurnoOfrecido({ oferta, estado, programa, participantI
           ahora.
         </p>
       )}
-      <div className="botonera-de-turno">
-        <button type="button" onClick={aceptar}>
-          {esVerbal ? 'Aceptar e intervenir' : 'Aceptar y defender mi argumento'}
-        </button>
-        <button type="button" className="boton-cambiar-programa" onClick={rechazar}>
-          Rechazar ({penalidad} pts)
-        </button>
-      </div>
       <p className="texto-de-ayuda">
         {esVerbal
           ? `Si rechazas, pierdes ${Math.abs(penalidad)} puntos.`
           : `Si rechazas, pierdes ${Math.abs(penalidad)} puntos de los que ya ganaste con ese argumento.`}
       </p>
+      {/* Barra fija al borde inferior: se ve aunque la persona haya hecho scroll (docs/12). */}
+      <div className="barra-de-accion-fija">
+        <div className="barra-de-accion-fija__encabezado">
+          <span>🎙️ ¡Tu turno!</span>
+          <span className={`cuenta-regresiva-en-barra${segundosRestantes <= 5 ? ' cuenta-regresiva--urgente' : ''}`}>
+            {segundosRestantes}s
+          </span>
+        </div>
+        <button type="button" className="boton-accion-principal" onClick={aceptar}>
+          {esVerbal ? 'Aceptar e intervenir' : 'Aceptar y defender mi argumento'}
+        </button>
+        <button type="button" className="boton-accion-rechazo" onClick={rechazar}>
+          Rechazar ({penalidad} pts)
+        </button>
+      </div>
     </section>
   );
 }

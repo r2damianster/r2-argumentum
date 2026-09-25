@@ -1,3 +1,4 @@
+import { TarjetaDeExposicionEnCurso } from './TarjetaDeExposicionEnCurso.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
 import { resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.js';
@@ -231,16 +232,10 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
 
   if (tengoLaPalabra && argumentoPendiente) {
     return (
-      <section className="tarjeta-de-formulario-de-argumento">
-        <p className="texto-de-ayuda">
-          Tienes la palabra. Defiende en voz alta tu argumento, que ya está en el mapa; los co-moderadores
-          califican cómo lo expones. Cuando termines, pulsa el botón.
-        </p>
-        <blockquote className="cita-de-argumento">{argumentoPendiente.texto}</blockquote>
-        <button type="button" onClick={() => terminarExposicion(turnoEnCurso.turnId)}>
-          Ya lo expuse
-        </button>
-      </section>
+      <TarjetaDeExposicionEnCurso
+        textoDelArgumento={argumentoPendiente.texto}
+        alTerminar={() => terminarExposicion(turnoEnCurso.turnId)}
+      />
     );
   }
 

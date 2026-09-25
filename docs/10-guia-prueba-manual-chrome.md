@@ -314,6 +314,8 @@ Reparto de posturas (`bandos.py`): 3 salas × 6 participantes en paralelo → 2/
 | Errores de JavaScript | ✅ ninguno |
 | Texto < 13 px | ⚠️ etiquetas de postura y pasos del ingreso (12–12,8 px); tolerable |
 
+**Acciones del turno con énfasis (24-sep-2026).** Verifica a mano, en un celular: cuando te ofrecen el turno aparece una **barra verde fija abajo** con «Aceptar y defender mi argumento» (verde sólido, grande) y «Rechazar» (rojo con borde); haz scroll arriba y abajo: la barra **no se mueve**; la cuenta atrás se pone roja a los 5 s; el celular vibra y la pestaña cambia de título. Al aceptar, la barra pasa a «Estás exponiendo» con «Ya lo expuse». Con «reducir movimiento» del sistema, sin animaciones. Anota como fallo grave que cualquiera de esos botones se vea gris, quede tapado o desaparezca al hacer scroll.
+
 **Fallo real encontrado por esta prueba:** el panel de co-moderador se desbordaba en pantallas de 320–360 px (documento de 381 px en 360 px; botones «Coherente con el punto» y «No está hablando» fuera de pantalla). Corregido con `flex-wrap` en `.botonera-de-bid`; comprobado con el CSS compilado: antes 381 px, ahora 360 px exactos.
 
 No cubierto por los scripts: **celular físico** (teclado virtual real, notch, rendimiento, gestos) y la evaluación del moderador sobre exposiciones («Descartar calificaciones»).

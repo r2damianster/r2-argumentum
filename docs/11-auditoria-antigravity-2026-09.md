@@ -105,6 +105,12 @@ Decisiones del docente: ampliar el e2e a turnos/co-moderadores/bids/conexión li
 - **`npm audit`: de 5 a 0.** Todas venían de herramientas de desarrollo (vite 5, esbuild, vitest 2 y su UI) y exigían un salto de versión mayor: vite 8.3.1, vitest 5.0.1, plugin-react 6.1.1. Se regeneró el `package-lock.json`; 244 pruebas, build, servidor de desarrollo, GitHub Action y despliegue de Vercel correctos.
 - **Móviles emulados (8 modelos):** un fallo real (panel de co-moderador desbordado a 320–360 px) y dos ajustes menores (objetivo táctil de 31 → 44 px; etiquetas de 11,2 → 12 px). Reverificado. **Sigue pendiente una pasada con celulares físicos.**
 
+## 4F. Énfasis de los botones críticos y guardias (24-sep-2026, noche)
+
+- **Hallazgo del docente:** los botones de acción del turno no se diferenciaban del resto. Causa: sin clase (gris del navegador) o con la clase más discreta. **Corregido** con `boton-accion-principal` / `boton-accion-rechazo` en una barra fija inferior; ver `docs/04`, `docs/08` y `docs/12` (regla 1).
+- **Nuevo resto de fusión:** `turnId` duplicado en `IntervencionVerbal.jsx`; el escaneo anterior solo cubría JSX.
+- **Prevención sistémica (para que no se repita, sea quien sea el agente):** `src/guardias/guardias.test.js` convierte en pruebas automáticas cada error ya cometido, y corre en `npm test`, en el hook pre-push y en GitHub Actions; `AGENTS.md` / `GEMINI.md` / `docs/12` explican las reglas y el porqué. Se verificó que las guardias fallan al inyectar los errores.
+
 ## 5. Recomendaciones de proceso
 1. Antes de cada push a `main`: `npm test && npm run build` (un script `npm run verificar` lo automatiza).
 2. Trabajo de agentes externos en ramas y Preview de Vercel; fusionar a `main` solo con build verde.
