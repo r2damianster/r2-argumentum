@@ -89,6 +89,17 @@ Pruebas automáticas: 230/230 (eran 224). Verificado en producción tras el desp
 
 **Nota de proceso:** el hook `auto-push` empujó el commit apenas se creó, antes de que existieran las variables; hubo que redesplegar (`vercel redeploy`) para que `/api/host-login` dejara de responder 503. Con cambios que dependen de variables de entorno nuevas, créalas **antes** de commitear.
 
+## 4D. Ampliación de la verificación (24-sep-2026, tarde)
+
+Decisiones del docente: ampliar el e2e a turnos/co-moderadores/bids/conexión libre/sugerencias/F5/móvil, dejar GitHub Action **y** hook pre-push, actualizar `ably`, probar «Volver a configuración» y cubrir `sesionDelHost`; **no** tocar el historial de git.
+
+- **Flujo central: 24 PASS / 0 FAIL** en producción (detalle en `docs/10` §6B).
+- **Hallazgo 1 — botones de envío duplicados** en `PanelDeBid` y `PanelDeConexionLibre` (restos de la fusión de Antigravity, invisibles en las pruebas de lógica). Corregido; una búsqueda automática de botones idénticos consecutivos en todo `src/**/*.jsx` no encontró más.
+- **Hallazgo 2 — «Volver a configuración» dejaba varados a los participantes** (abre sala con código nuevo, sin aviso). Corregido con una confirmación.
+- **Hallazgo 3 — reparto de posturas sensible a confirmaciones casi simultáneas** (1/3/4 con 8 en una corrida sin esperas). Abierto (`06-pendientes.md`).
+- **Proceso:** GitHub Action verde en los dos commits siguientes; el hook pre-push corrió tests+build al hacer push. `ably` 2.28.0 → 2.29.0. `npm audit --omit=dev`: 0 vulnerabilidades.
+- **Historial de git:** se deja como está (la clave vieja ya no sirve).
+
 ## 5. Recomendaciones de proceso
 1. Antes de cada push a `main`: `npm test && npm run build` (un script `npm run verificar` lo automatiza).
 2. Trabajo de agentes externos en ramas y Preview de Vercel; fusionar a `main` solo con build verde.

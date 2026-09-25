@@ -282,7 +282,28 @@ Si puedes, cierra la ronda con **un celular real** entrando por el QR de la sala
 
 Reparto de posturas (`bandos.py`): 3 salas × 6 participantes en paralelo → 2/2/2 en las tres.
 
-No cubierto por el script: exposición de turnos y calificación de co-moderadores, bids, conexión libre, celular físico.
+**Flujo central (`e2e_flujo.py`, 24 PASS / 0 FAIL, sala 2569, 8 participantes con 1 en móvil emulado):**
+
+| Qué se probó | Resultado |
+|---|---|
+| Ingreso de 8 con confirmación secuencial; reparto de posturas | ✅ 3 / 3 / 2 |
+| Sorteo de co-moderador al iniciar | ✅ |
+| Aceptar turno → exponer → «Ya lo expuse» (3 turnos) | ✅ |
+| Co-moderador califica la exposición («Coherente con el punto») | ✅ 3 calificaciones |
+| Bid de «Fortalecer» durante un turno ajeno; voto del co-moderador; veredicto del moderador («Aprobar») | ✅ el argumento del bid entra al mapa |
+| Conexión libre entre argumentos | ✅ |
+| Preparar un contraargumento tras exponer (Groq lo aprueba, sale con arista) | ✅ |
+| F5 del host en pleno debate | ✅ reconstruye sesión y mapa; no vuelve al login |
+| Cierre de fases (dispara Groq de sugerencias) | ✅ sin errores (Groq no sugirió conexiones en esa corrida) |
+| Ranking final con los 8, puntajes, informe exportable | ✅; al cerrar cambia el total (ajustes de exposiciones) |
+| Móvil emulado (iPhone 13 y 700×400 horizontal) | ✅ sin desbordamiento; botones ≥ 40 px |
+| Errores de JavaScript en cualquier pantalla | ✅ ninguno |
+
+**Advertencias de la prueba:** (1) con confirmaciones **casi simultáneas** (sin dejar que la anterior se propague) el reparto salió 1/3/4 con 8 participantes, porque cada cliente calcula con el conteo que ya conoce; con confirmación secuencial sale parejo (ver `06-pendientes.md`). (2) Una ventana de Chrome con `viewport` fijo puede disparar el falso aviso «zoom en 30 %» (`outerWidth/innerWidth`): en `e2e_flujo.py` el host usa `no_viewport`. (3) No se pudo verificar que Groq sugiera conexiones: depende del contenido.
+
+`volver_config.py` (sala de espera → «Volver a configuración»): se descubrió que **abre una sala con otro código** y que quienes ya habían entrado quedaban varados sin aviso; ahora el host recibe una confirmación antes (ver `06-pendientes.md`).
+
+No cubierto por los scripts: celular físico y calificación del moderador sobre exposiciones (botones «Descartar calificaciones» / evaluar).
 
 ## 7. Pendiente de verificar
 

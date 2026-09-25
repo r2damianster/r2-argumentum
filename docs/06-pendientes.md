@@ -5,9 +5,17 @@ Decisiones abiertas o trabajo técnico que todavía no se ha hecho, y registro d
 ## Abierto
 
 - **Guarda la clave nueva del host.** `HOST_USER` y `HOST_PASSWORD` ya están en Vercel (Production, Sensitive) desde el 24-sep-2026 con una clave generada al azar que se te entregó una sola vez en la conversación: guárdala en tu gestor de contraseñas o cámbiala (Vercel → Settings → Environment Variables → `HOST_PASSWORD`, y redespliega). La clave anterior estuvo en un repositorio público y sigue en el historial de git: está comprometida.
+- **Asignación de posturas sensible a confirmaciones casi simultáneas.** Con `asignacionPostura: "aleatoria"` cada cliente calcula su postura con lo que ya sabe (`elegirPosturaMenosRepresentada`). Si varias personas confirman con menos de ~1–2 s de diferencia, alguien calcula con un conteo viejo: en una prueba con 8 se llegó a 1/3/4 (con confirmación secuencial: 3/3/2; con 6 entrando en paralelo sin confirmar: 2/2/2). Decisión pendiente: (a) dejarlo (en un aula las confirmaciones rara vez coinciden), o (b) que al «Iniciar debate» el motor reequilibre a quienes queden desbalanceados, o (c) hacer la asignación autoritativa en el host.
+- **Vulnerabilidades solo de desarrollo** (`npm audit`: 5, 1 crítica, 1 alta; `--omit=dev` da 0): vienen de vite/vitest/esbuild. Actualizarlas exige saltar de versión mayor (vite 5→8, vitest 2→5); no afectan lo que se despliega. Pendiente de decidir.
 - **Sin verificar en navegador:** exposición de turnos y calificación de co-moderadores, bids, conexión libre y celular físico (`scripts/prueba-e2e/` cubre oyentes, cortacircuitos, podio y reparto de posturas).
 
 ## Cerrado
+
+- ~~Ronda del 24-sep-2026: verificación del flujo central + arreglos~~ (`docs/10` §6B, `docs/11` §4D):
+  - **Botones de envío duplicados** en `PanelDeBid` («Lanzar bid») y `PanelDeConexionLibre` («Conectar»): dos botones seguidos por restos de fusión. Eliminado el sobrante.
+  - **«Volver a configuración» sin aviso**: abre una sala con otro código y deja varados a quienes ya entraron. Ahora pide confirmación con el número de personas afectadas.
+  - **Flujo central verificado en producción** (24 PASS / 0 FAIL): turnos, exposición, calificación de co-moderadores, bids con veredicto, conexión libre, contraargumento preparado, F5 del host, cierre con ajustes, móvil emulado, sin errores de JavaScript.
+  - **Proceso**: GitHub Action (`.github/workflows/verificar.yml`) y hook `pre-push` local (`npm run instalar-hooks`; forzado a LF con `.gitattributes`); `ably` 2.29.0; pruebas del módulo `sesionDelHost` (239 en total).
 
 - ~~Auditoría del 24-sep-2026: decisiones aplicadas~~ (detalle en `11-auditoria-antigravity-2026-09.md`):
   - **Clave del host fuera del código**: login y verificación en el servidor (`api/host-login.js`, `api/_sesionDelHost.js`), token firmado con caducidad; `/api/ably-token` solo da la identidad `host` con ese token. Con pruebas.

@@ -21,6 +21,8 @@ with sync_playwright() as p:
 ## Scripts
 - `login_host.py <usuario> <clave>` — inicia sesión del host en `perfil-host/` (alternativa al procedimiento manual de arriba; la clave se pasa por argumento y no se guarda).
 - `e2e.py` — 1 host (ventana visible) + 4 participantes headless (Ana, Beto y Carla confirman en la sala de espera; Dani queda como oyente). Comprueba oyente, cortacircuitos y doble podio. Unos 5 minutos. Imprime `PASS`/`FAIL` y guarda capturas `.png`.
+- `e2e_flujo.py` — flujo central: 8 participantes (1 con iPhone 13 emulado), turnos, exposición, co-moderadores, bid con veredicto del moderador, conexión libre, contraargumento preparado, F5 del host, cierre y ranking, móvil y errores de JavaScript. Unos 8 minutos, ~10 llamadas a Groq.
+- `volver_config.py` — «Volver a configuración» en la sala de espera: aviso de sala nueva y reparto de posturas en ella.
 - `bandos.py [salas] [participantes]` — mide el reparto de posturas con asignación aleatoria y entrada simultánea (por defecto 3 × 6). No confirma ingresos ni llama a Groq.
 
 ## Notas

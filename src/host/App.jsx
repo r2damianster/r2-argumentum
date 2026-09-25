@@ -301,6 +301,23 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
   });
   const motor = useMotorDeSesion({ estado, presencia, publicar, programa });
 
+  // Volver a configuración abre una sala NUEVA con otro código (así no se mezclan debates, ver
+  // docs/06). Quienes ya entraron se quedan en la sala actual sin enterarse: se avisa antes.
+  function pedirModificarConfiguracion() {
+    const personasYaEnLaSala = presencia.filter(
+      (presente) => presente.conectado !== false && presente.participantId !== 'host'
+    ).length;
+    if (personasYaEnLaSala > 0) {
+      const seguir = window.confirm(
+        `Volver a configuración abre una sala NUEVA con otro código. Las ${personasYaEnLaSala} persona(s) que ya entraron se quedan en la sala actual y tendrán que volver a entrar con el código nuevo. ¿Continuar?`
+      );
+      if (!seguir) {
+        return;
+      }
+    }
+    onModificarConfiguracion();
+  }
+
   const [modoProyeccion, setModoProyeccion] = useState(false);
   const [rankingParcialVisible, setRankingParcialVisible] = useState(false);
   const [avisoDeVentanaBloqueada, setAvisoDeVentanaBloqueada] = useState(false);
@@ -436,7 +453,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
             <h3>Etapa 2: Sala de espera y recepción de participantes</h3>
             {onModificarConfiguracion && (
-              <button type="button" className="boton-cambiar-programa" onClick={onModificarConfiguracion}>
+              <button type="button" className="boton-cambiar-programa" onClick={pedirModificarConfiguracion}>
                 ✏️ Volver a configuración
               </button>
             )}
@@ -457,7 +474,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
 
           <PanelDeGuiaPedagogica />
 
-          <TarjetaResumenDeConfiguracion programa={programaVisible} onModificarConfiguracion={onModificarConfiguracion} />
+          <TarjetaResumenDeConfiguracion programa={programaVisible} onModificarConfiguracion={onModificarConfiguracion && pedirModificarConfiguracion} />
 
           <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
           <PanelDeAvisos estado={estado} presencia={presencia} motor={motor} />

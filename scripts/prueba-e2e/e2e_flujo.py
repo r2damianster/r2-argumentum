@@ -21,16 +21,19 @@ TEXTOS = {
         "El Estado debe redistribuir la riqueza porque la desigualdad extrema debilita la educación y la salud de los más pobres.",
         "Los servicios públicos universales son necesarios ya que garantizan igualdad de oportunidades para los hijos de familias sin recursos.",
         "La educación pública gratuita reduce la desigualdad porque permite que cualquier estudiante compita sin depender del ingreso familiar.",
+        "Los impuestos progresivos financian hospitales y escuelas ya que quienes más tienen pueden aportar más sin perder su calidad de vida.",
     ],
     "mercado": [
         "La libertad de mercado genera más prosperidad porque la competencia reduce los precios y premia la innovación.",
         "Los impuestos altos frenan el crecimiento porque quitan a las empresas el dinero que necesitan para invertir y crear empleo.",
         "La propiedad privada incentiva el ahorro y la inversión ya que cada persona se beneficia del fruto de su propio esfuerzo.",
+        "Los aranceles bajos benefician a los consumidores porque permiten comprar productos importados más baratos y de mejor calidad.",
     ],
     "matizada": [
         "El Estado y el mercado deben complementarse porque los mercados sin regulación generan abusos y el Estado sin incentivos genera ineficiencia.",
         "Conviene una economía mixta ya que ni la competencia total ni el control estatal total resuelven por sí solos la pobreza.",
         "Ninguna postura extrema funciona porque cada país necesita ajustar el equilibrio entre libertad económica y protección social según su contexto.",
+        "Las políticas deben probarse con datos antes de generalizarse ya que lo que funciona en un país puede fallar en otro por su historia e instituciones.",
     ],
 }
 USADOS = {"estado": 0, "mercado": 0, "matizada": 0}
@@ -84,13 +87,16 @@ def confirmar_ingreso(pagina, nombre):
     esperar(lambda: "Te toca defender" in cuerpo(pagina), 15)
     asignada = cuerpo(pagina).split("Te toca defender")[-1][:60]
     bando = "mercado" if "Más mercado" in asignada else "matizada" if "Matizada" in asignada else "estado"
-    texto = TEXTOS[bando][USADOS[bando] % 3]
-    USADOS[bando] += 1
-    pagina.fill("textarea", texto)
-    pagina.click('button:has-text("Revisar mi argumento")')
-    pagina.wait_for_selector('button:has-text("Confirmar mi ingreso")', timeout=90000)
-    pagina.click('button:has-text("Confirmar mi ingreso")')
-    return texto
+    for intento in range(2):
+        texto = TEXTOS[bando][USADOS[bando] % 4]
+        USADOS[bando] += 1
+        pagina.fill("textarea", texto)
+        pagina.click('button:has-text("Revisar mi argumento")')
+        if esperar(lambda: pagina.locator('button:has-text("Confirmar mi ingreso")').count() > 0, 60):
+            pagina.click('button:has-text("Confirmar mi ingreso")')
+            return texto
+        print(f"INFO {nombre} ({bando}) no pasó Groq en el intento {intento + 1}: {cuerpo(pagina)[-260:]!r}", flush=True)
+    raise RuntimeError(f"{nombre} no logró confirmar su ingreso")
 
 
 def contar_nodos_y_aristas(host):
@@ -101,7 +107,7 @@ def contar_nodos_y_aristas(host):
 
 
 with sync_playwright() as p:
-    contexto_host = p.chromium.launch_persistent_context("perfil-host", headless=False, viewport={"width": 1280, "height": 1000})
+    contexto_host = p.chromium.launch_persistent_context("perfil-host", headless=False, no_viewport=True, args=["--window-size=1400,1100"])
     host = contexto_host.pages[0] if contexto_host.pages else contexto_host.new_page()
     vigilar(host, "HOST")
     host.on("dialog", lambda dialogo: dialogo.accept())
@@ -123,14 +129,22 @@ with sync_playwright() as p:
             jugadores[nombre] = entrar_jugador(navegador, codigo, nombre)
         time.sleep(0.5)
     time.sleep(5)
+    confirmados = 0
     for nombre in NOMBRES:
         try:
             confirmar_ingreso(jugadores[nombre], nombre)
+            confirmados += 1
+            # Sin esta espera, la persona siguiente calcula su postura con conteos viejos.
+            esperar(lambda: f"{confirmados} en el debate" in cuerpo(host), 20)
         except Exception as error:
             check(f"{nombre} confirma su ingreso", False, str(error)[:120])
     check("Los 8 participantes confirmaron su ingreso", esperar(lambda: "8 en el debate" in cuerpo(host), 60),
           re.search(r"Marcador en vivo \(([^)]*)\)", cuerpo(host)).group(1) if re.search(r"Marcador en vivo \(([^)]*)\)", cuerpo(host)) else "")
 
+    roster = cuerpo(host)
+    reparto = {etiqueta: len(re.findall(re.escape(etiqueta), roster.split("Marcador en vivo")[-1])) for etiqueta in ["Más estado", "Más mercado", "Matizada"]}
+    print("INFO reparto de posturas con confirmación secuencial:", reparto, flush=True)
+    check("Reparto de posturas equilibrado con confirmación secuencial (diferencia <= 1)", max(reparto.values()) - min(reparto.values()) <= 1, str(reparto))
     host.click('button:has-text("Iniciar debate")')
     check("Se pasa a la fase de turnos", esperar(lambda: "Fase activa" in cuerpo(host) and "Ruleta" in cuerpo(host), 30))
     esperar(lambda: any("Panel de co-moderador" in cuerpo(jugadores[n]) for n in NOMBRES), 20)
@@ -227,6 +241,18 @@ with sync_playwright() as p:
           f"nodos {nodos_antes_f5} → {contar_nodos_y_aristas(host)[0]}")
     check("F5 del host: sigue con la sesión iniciada (no vuelve al login)", "Acceso reservado" not in cuerpo(host))
 
+    # ---------- el moderador aprueba el bid
+    boton_aprobar = host.locator('button:has-text("Aprobar")')
+    if boton_aprobar.count():
+        nodos_previos_bid = contar_nodos_y_aristas(host)[0]
+        boton_aprobar.first.scroll_into_view_if_needed()
+        boton_aprobar.first.click()
+        check("El moderador aprueba el bid y su argumento entra al mapa",
+              esperar(lambda: contar_nodos_y_aristas(host)[0] > nodos_previos_bid, 30), f"nodos antes: {nodos_previos_bid}")
+    else:
+        print("INFO no había veredicto de bid pendiente para el moderador", flush=True)
+    puntajes_antes = sorted(int(x) for x in re.findall(r"(\d+)\s*pts", cuerpo(host)))
+
     # ---------- cerrar fases: dispara las sugerencias de Groq
     for _ in range(3):
         boton_cerrar_fase = host.locator('button:has-text("Cerrar fase actual")')
@@ -262,7 +288,7 @@ with sync_playwright() as p:
     hugo.screenshot(path="flujo-02-movil-horizontal.png")
 
     # ---------- cierre y puntaje
-    boton_cierre = host.locator('button:has-text("Cerrar el debate ahora")')
+    boton_cierre = host.locator('button:has-text("Cerrar el debate ahora"), button.boton-peligro:has-text("Cerrar debate")')
     if boton_cierre.count():
         boton_cierre.first.scroll_into_view_if_needed()
         boton_cierre.first.click()
@@ -270,8 +296,10 @@ with sync_playwright() as p:
     host.screenshot(path="flujo-03-ranking.png", full_page=True)
     texto_ranking = cuerpo(host)
     check("El ranking incluye a los 8 participantes", all(n in texto_ranking for n in NOMBRES))
-    puntajes = [int(x) for x in re.findall(r"(\d+)\s*pts", texto_ranking)]
-    check("Hay puntajes positivos (el argumento puntúa al aprobarse y las exposiciones ajustan)", any(v > 0 for v in puntajes), f"{sorted(set(puntajes))[-5:]}")
+    puntajes = sorted(int(x) for x in re.findall(r"(\d+)\s*pts", texto_ranking))
+    check("Hay puntajes positivos (el argumento puntúa al aprobarse)", any(v > 0 for v in puntajes), f"{sorted(set(puntajes))[-5:]}")
+    check("Al cerrar se aplican los ajustes de las exposiciones calificadas (el total cambia)",
+          sum(puntajes) != sum(puntajes_antes), f"suma antes {sum(puntajes_antes)} → después {sum(puntajes)}")
     check("El informe exportable está presente", host.locator(".informe-del-debate").count() > 0)
 
     # ---------- errores de JavaScript en cualquier pantalla
