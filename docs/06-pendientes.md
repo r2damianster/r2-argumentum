@@ -4,7 +4,7 @@ Decisiones abiertas o trabajo técnico que todavía no se ha hecho, y registro d
 
 ## Abierto
 
-- **Acción tuya, crítica: crear `HOST_USER` y `HOST_PASSWORD` en Vercel** (Settings → Environment Variables, marcadas Sensitive, entornos Production y Preview) **con una clave NUEVA**. Sin ellas `/api/host-login` responde 503 y nadie puede entrar a la consola. La clave anterior estuvo publicada en un repositorio público (código y `docs/10`) y sigue en el historial de git: considérala comprometida y no la reutilices.
+- **Guarda la clave nueva del host.** `HOST_USER` y `HOST_PASSWORD` ya están en Vercel (Production, Sensitive) desde el 24-sep-2026 con una clave generada al azar que se te entregó una sola vez en la conversación: guárdala en tu gestor de contraseñas o cámbiala (Vercel → Settings → Environment Variables → `HOST_PASSWORD`, y redespliega). La clave anterior estuvo en un repositorio público y sigue en el historial de git: está comprometida.
 - **Sin verificar en navegador:** exposición de turnos y calificación de co-moderadores, bids, conexión libre y celular físico (`scripts/prueba-e2e/` cubre oyentes, cortacircuitos, podio y reparto de posturas).
 
 ## Cerrado
@@ -13,6 +13,7 @@ Decisiones abiertas o trabajo técnico que todavía no se ha hecho, y registro d
   - **Clave del host fuera del código**: login y verificación en el servidor (`api/host-login.js`, `api/_sesionDelHost.js`), token firmado con caducidad; `/api/ably-token` solo da la identidad `host` con ese token. Con pruebas.
   - **Capacidad de los tokens de Ably** limitada a `debate:*` y `clientId` validado (`api/ably-token.js`). Con pruebas.
   - **Apertura simultánea retirada** (fase, eventos `apertura.*`, estado, `tiempoAperturaMinutos`, semáforo, `FormularioDeArgumento.jsx` que solo la servía): con el ingreso confirmado en la sala de espera era inalcanzable (ningún Programa de ejemplo la traía; el contador «X de Y» solo contaba confirmados). Programas antiguos con esa fase se cargan igual: se descarta.
+  - **Verificado en producción tras el despliegue** (24-sep-2026): login correcto (200), clave mala y clave vieja (401), token de `host` con sesión 200 / sin sesión 401 / falso 401, participante con capacidad `debate:*`, `clientId` inválido 400, y el e2e completo con login por pantalla: 17 PASS / 0 FAIL.
   - **Reparto de posturas verificado**: 3 salas × 6 participantes entrando en paralelo dieron 2/2/2 (`scripts/prueba-e2e/bandos.py`). El «3 de 4 en la misma postura» visto antes fue un error del script de prueba (contaba «Matizada» como «Estado»), no un fallo de la aplicación.
 ## Cerrado
 

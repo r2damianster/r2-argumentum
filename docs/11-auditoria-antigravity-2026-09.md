@@ -85,7 +85,9 @@ Decisiones del docente y lo hecho:
 | Reparto de posturas | Repetir la prueba | 3 salas × 6 en paralelo: 2/2/2. El caso «3 de 4» era un error del script de prueba. |
 | Tokens de Ably sin restringir | Limitar y probar | Capacidad `debate:*` y `clientId` validado, con pruebas. |
 
-Pruebas automáticas: 230/230 (eran 224).
+Pruebas automáticas: 230/230 (eran 224). Verificado en producción tras el despliegue (`4ff122c` + redespliegue con las variables nuevas): login 200 / clave mala 401 / clave vieja 401, token de host con y sin sesión (200/401), capacidad `debate:*` en tokens de participante, y e2e en navegador 17 PASS / 0 FAIL.
+
+**Nota de proceso:** el hook `auto-push` empujó el commit apenas se creó, antes de que existieran las variables; hubo que redesplegar (`vercel redeploy`) para que `/api/host-login` dejara de responder 503. Con cambios que dependen de variables de entorno nuevas, créalas **antes** de commitear.
 
 ## 5. Recomendaciones de proceso
 1. Antes de cada push a `main`: `npm test && npm run build` (un script `npm run verificar` lo automatiza).
