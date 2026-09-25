@@ -83,6 +83,38 @@ export function elegirPosturaMenosRepresentada(
   return candidatas[lugarEnLaSala(participantId, participantesEnLaSala) % candidatas.length].id;
 }
 
+// Solo para la asignación ALEATORIA (modo Rolplay), donde el reparto tiene que ser equitativo.
+// Como cada cliente elige su postura con lo que ya sabe, dos personas que confirman casi a la vez
+// pueden calcular con un conteo viejo y dejar los bandos desparejos (1/3/4 con 8 personas en una
+// prueba en vivo). Por eso, justo antes de confirmar se comprueba el cupo: ninguna postura puede
+// pasar de ceil(personas en la sala / posturas). Si ya lo llenó, se sugiere la menos representada.
+// En «libre» y «por argumento» no se usa: una sola persona defendiendo un punto no es problema.
+export function verificarCupoDePostura(estado, posturas, stanceId, { participantId = '', participantesEnLaSala = [] } = {}) {
+  const idsDeLaSala = new Set(participantesEnLaSala);
+  for (const [id, participante] of Object.entries(estado.participantes)) {
+    if (participante.ingresoConfirmado) {
+      idsDeLaSala.add(id);
+    }
+  }
+  idsDeLaSala.add(participantId);
+
+  const conteoPorPostura = new Map(posturas.map((postura) => [postura.id, 0]));
+  for (const [id, participante] of Object.entries(estado.participantes)) {
+    if (id === participantId || !participante.ingresoConfirmado || !conteoPorPostura.has(participante.stanceId)) {
+      continue;
+    }
+    conteoPorPostura.set(participante.stanceId, conteoPorPostura.get(participante.stanceId) + 1);
+  }
+
+  const cupo = Math.ceil(idsDeLaSala.size / posturas.length);
+  if (!conteoPorPostura.has(stanceId) || conteoPorPostura.get(stanceId) < cupo) {
+    return { permitida: true, posturaSugerida: stanceId, cupo };
+  }
+  const minimo = Math.min(...conteoPorPostura.values());
+  const posturaSugerida = posturas.find((postura) => conteoPorPostura.get(postura.id) === minimo).id;
+  return { permitida: false, posturaSugerida, cupo };
+}
+
 // El debate no puede cerrarse hasta que cada participante haya intervenido al menos una vez,
 // sea por argumento escrito o por turno hablado (decisión del usuario, ver docs/04). Los
 // oyentes no cuentan: nunca entraron al debate.

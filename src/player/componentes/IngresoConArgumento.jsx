@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
 import { resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.js';
 import { decidirValidacion, DECISIONES } from '../../shared/argumentos/decidirValidacion.js';
-import { elegirPosturaMenosRepresentada } from '../../shared/ingreso/reglasDeIngreso.js';
+import { elegirPosturaMenosRepresentada, verificarCupoDePostura } from '../../shared/ingreso/reglasDeIngreso.js';
 import { buscarArgumentoParecido } from '../../shared/argumentos/buscarArgumentoParecido.js';
 import { nombreDeParticipante } from '../../shared/estado/seleccionesDerivadas.js';
 
@@ -143,6 +143,21 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
   // Un solo momento de publicación: el argumento, la postura y la confirmación de ingreso
   // viajan juntos. Antes de esto el canal no sabe que esta persona existe.
   async function confirmarIngreso() {
+    // Solo con asignación aleatoria el reparto tiene que ser equitativo: si mientras escribías
+    // otras personas llenaron tu postura, te toca otra y hay que ajustar el argumento.
+    if (modoAsignacion === 'aleatoria') {
+      const cupo = verificarCupoDePostura(estado, posturas, stanceElegido, { participantId, participantesEnLaSala });
+      if (!cupo.permitida) {
+        const posturaNueva = posturas.find((postura) => postura.id === cupo.posturaSugerida);
+        setStanceElegido(cupo.posturaSugerida);
+        setResultado({
+          decision: 'cupo_de_postura_lleno',
+          mensaje: `Mientras escribías, otras personas confirmaron esa postura y los bandos quedaron desparejos. Para que el debate sea diverso, ahora te toca defender «${posturaNueva?.etiqueta}».`,
+          sugerencia: 'Ajusta tu argumento a esa postura y vuelve a revisarlo.',
+        });
+        return;
+      }
+    }
     setConfirmando(true);
     const argumentId = generarId('argumento');
     const attemptId = generarId('intento');

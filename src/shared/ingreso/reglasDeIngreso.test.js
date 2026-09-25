@@ -10,6 +10,7 @@ import {
   seAlcanzoElMinimoDeParticipacion,
   ingresoEstaCerrado,
   analizarBalanceDePosturas,
+  verificarCupoDePostura,
 } from './reglasDeIngreso.js';
 
 const POSTURAS = [
@@ -219,5 +220,57 @@ describe('analizarBalanceDePosturas', () => {
 
     const analisis = analizarBalanceDePosturas(estado, presencia, POSTURAS);
     expect(analisis.hayDesbalanceExtremo).toBe(false);
+  });
+});
+
+describe('cupo de postura al confirmar (solo asignación aleatoria)', () => {
+  const TRES_POSTURAS = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+  const confirmados = (asignaciones) =>
+    reducirTodos(asignaciones.map(([participantId, stanceId]) => evento(EVENTOS.INGRESO_CONFIRMADO, { participantId, stanceId })));
+
+  it('permite la postura mientras no llene su cupo', () => {
+    const estado = confirmados([['p1', 'a'], ['p2', 'b']]);
+    const resultado = verificarCupoDePostura(estado, TRES_POSTURAS, 'c', {
+      participantId: 'p3',
+      participantesEnLaSala: ['p1', 'p2', 'p3'],
+    });
+
+    expect(resultado).toMatchObject({ permitida: true, cupo: 1 });
+  });
+
+  it('con 8 personas y 3 posturas el cupo es 3: la cuarta persona de una postura no pasa', () => {
+    const estado = confirmados([['p1', 'b'], ['p2', 'b'], ['p3', 'b'], ['p4', 'a'], ['p5', 'c'], ['p6', 'c'], ['p7', 'a']]);
+    const sala = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8'];
+    const resultado = verificarCupoDePostura(estado, TRES_POSTURAS, 'b', { participantId: 'p8', participantesEnLaSala: sala });
+
+    expect(resultado.permitida).toBe(false);
+    expect(resultado.cupo).toBe(3);
+    // 'a' y 'c' tienen 2 cada una: la sugerida es una de las menos representadas, nunca 'b'.
+    expect(['a', 'c']).toContain(resultado.posturaSugerida);
+  });
+
+  it('el reparto 1/3/4 de la prueba en vivo ya no es posible: la cuarta de mercado se desvía a la que tiene una', () => {
+    const estado = confirmados([['p1', 'a'], ['p2', 'b'], ['p3', 'b'], ['p4', 'c'], ['p5', 'c'], ['p6', 'c'], ['p7', 'b']]);
+    const sala = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8'];
+    const resultado = verificarCupoDePostura(estado, TRES_POSTURAS, 'c', { participantId: 'p8', participantesEnLaSala: sala });
+
+    expect(resultado).toMatchObject({ permitida: false, posturaSugerida: 'a' });
+  });
+
+  it('no cuenta a la propia persona si ya figuraba en la postura', () => {
+    const estado = confirmados([['p1', 'a'], ['p2', 'b']]);
+    const resultado = verificarCupoDePostura(estado, TRES_POSTURAS, 'a', {
+      participantId: 'p1',
+      participantesEnLaSala: ['p1', 'p2', 'p3'],
+    });
+
+    expect(resultado.permitida).toBe(true);
+  });
+
+  it('una postura que no está en la lista (propuesta nueva) no se bloquea', () => {
+    const estado = confirmados([['p1', 'a']]);
+    const resultado = verificarCupoDePostura(estado, TRES_POSTURAS, 'nueva', { participantId: 'p2', participantesEnLaSala: ['p1', 'p2'] });
+
+    expect(resultado.permitida).toBe(true);
   });
 });
