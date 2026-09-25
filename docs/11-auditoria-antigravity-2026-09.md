@@ -100,6 +100,11 @@ Decisiones del docente: ampliar el e2e a turnos/co-moderadores/bids/conexión li
 - **Proceso:** GitHub Action verde en los dos commits siguientes; el hook pre-push corrió tests+build al hacer push. `ably` 2.28.0 → 2.29.0. `npm audit --omit=dev`: 0 vulnerabilidades.
 - **Historial de git:** se deja como está (la clave vieja ya no sirve).
 
+## 4E. Vulnerabilidades de dependencias y móviles (24-sep-2026, noche)
+
+- **`npm audit`: de 5 a 0.** Todas venían de herramientas de desarrollo (vite 5, esbuild, vitest 2 y su UI) y exigían un salto de versión mayor: vite 8.3.1, vitest 5.0.1, plugin-react 6.1.1. Se regeneró el `package-lock.json`; 244 pruebas, build, servidor de desarrollo, GitHub Action y despliegue de Vercel correctos.
+- **Móviles emulados (8 modelos):** un fallo real (panel de co-moderador desbordado a 320–360 px) y dos ajustes menores (objetivo táctil de 31 → 44 px; etiquetas de 11,2 → 12 px). Reverificado. **Sigue pendiente una pasada con celulares físicos.**
+
 ## 5. Recomendaciones de proceso
 1. Antes de cada push a `main`: `npm test && npm run build` (un script `npm run verificar` lo automatiza).
 2. Trabajo de agentes externos en ramas y Preview de Vercel; fusionar a `main` solo con build verde.

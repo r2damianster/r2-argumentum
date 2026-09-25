@@ -303,7 +303,20 @@ Reparto de posturas (`bandos.py`): 3 salas × 6 participantes en paralelo → 2/
 
 `volver_config.py` (sala de espera → «Volver a configuración»): se descubrió que **abre una sala con otro código** y que quienes ya habían entrado quedaban varados sin aviso; ahora el host recibe una confirmación antes (ver `06-pendientes.md`).
 
-No cubierto por los scripts: celular físico y calificación del moderador sobre exposiciones (botones «Descartar calificaciones» / evaluar).
+**Móviles emulados (`moviles.py`, 8 modelos):** iPhone SE 320×568, iPhone 13, 13 Pro Max, Pixel 7, Galaxy S9+ 320×658, Galaxy S8 360×740, Moto G4 y iPad Mini; toques reales (`tap`), teclado virtual emulado (área visible al 55 %) y giro a horizontal. Se mide en 12 pantallas del flujo (entrada, ingreso con argumento, aprobado, sala de espera, debate, oferta de turno, exposición, co-moderador, preparar argumento, oyente, horizontal, cierre).
+
+| Qué se midió | Resultado |
+|---|---|
+| Desbordamiento horizontal | ✅ ninguno (tras el arreglo) |
+| Controles táctiles < 44 px | ✅ ninguno (el «✕» del aviso medía 31 px; corregido) |
+| Campo de texto tapado con el teclado abierto | ✅ ninguno |
+| Capa instruccional fija > 40 % del alto | ✅ ninguna |
+| Errores de JavaScript | ✅ ninguno |
+| Texto < 13 px | ⚠️ etiquetas de postura y pasos del ingreso (12–12,8 px); tolerable |
+
+**Fallo real encontrado por esta prueba:** el panel de co-moderador se desbordaba en pantallas de 320–360 px (documento de 381 px en 360 px; botones «Coherente con el punto» y «No está hablando» fuera de pantalla). Corregido con `flex-wrap` en `.botonera-de-bid`; comprobado con el CSS compilado: antes 381 px, ahora 360 px exactos.
+
+No cubierto por los scripts: **celular físico** (teclado virtual real, notch, rendimiento, gestos) y la evaluación del moderador sobre exposiciones («Descartar calificaciones»).
 
 ## 7. Pendiente de verificar
 
