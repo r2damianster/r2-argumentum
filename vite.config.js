@@ -7,8 +7,8 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        host: resolve(__dirname, 'host.html'),
-        player: resolve(__dirname, 'player.html'),
+        host: resolve(import.meta.dirname, 'host.html'),
+        player: resolve(import.meta.dirname, 'player.html'),
       },
       output: {
         // El mapa de argumentos (React Flow + dagre) es lo más pesado y cambia poco: en su propio
