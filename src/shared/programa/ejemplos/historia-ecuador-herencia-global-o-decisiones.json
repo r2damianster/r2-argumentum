@@ -1,0 +1,85 @@
+{
+  "programId": "historia-ecuador-causas-del-presente-2026",
+  "titulo": "¿Qué explica más el Ecuador de hoy?",
+  "categoria": "Historia",
+  "version": "1.0.0",
+  "creadoPor": "arturo.rodriguez@uleam.edu.ec",
+  "fechaCreacion": "2026-10-04",
+
+  "temaCentral": "La situación socioeconómica e institucional actual del Ecuador tiene varias raíces posibles: la herencia colonial, la posición del país en la economía mundial, las decisiones políticas tomadas desde 1830 y las luchas sociales que lo transformaron. ¿Cuál pesa más?",
+  "preguntaGuia": "¿Qué factor explica más el Ecuador de hoy?",
+  "objetivoAprendizaje": "Pensamiento histórico: sostener una explicación causal con hechos concretos (fechas, leyes, personajes, cifras) y reconocer que la misma evidencia puede leerse desde posturas distintas, por ejemplo la cultura.",
+  "instruccionesParaEstudiantes": "Defiende tu postura con un hecho histórico concreto: una fecha, una ley, un personaje, un proceso económico o una cifra. «Todo viene de la Colonia» o «los políticos son corruptos» no es un argumento; «la Constitución de 1830 solo permitía votar a varones alfabetizados con propiedades, y eso mantuvo el poder de los terratenientes» sí lo es. La cultura (idioma, religión, arte, regionalismo, migración) no es una postura: es evidencia que puedes usar para defender cualquiera de ellas. Aquí se evalúa la calidad de tu argumento, no si la postura te gusta.",
+
+  "posturas": [
+    { "id": "herencia_colonial", "etiqueta": "Herencia colonial", "color": "#9c6644" },
+    { "id": "dependencia_global", "etiqueta": "Dependencia global", "color": "#277da1" },
+    { "id": "decisiones_internas", "etiqueta": "Decisiones internas de la República", "color": "#d1495b" },
+    { "id": "luchas_sociales", "etiqueta": "Luchas sociales y agencia popular", "color": "#2a9d8f" },
+    { "id": "matizada", "etiqueta": "Varios factores a la vez", "color": "#8a8a8a", "esMatizada": true }
+  ],
+  "asignacionPostura": "aleatoria",
+  "permiteCambioPostura": false,
+
+  "fases": [
+    { "tipo": "escritura_argumentos", "ronda": 1, "limiteArgumentos": 3, "duracionMin": 12 },
+    { "tipo": "escritura_argumentos", "ronda": 2, "limiteArgumentos": "segun_ronda_1", "duracionMin": 10 },
+    { "tipo": "conexion_sugerida", "disparadoPor": "moderador" },
+    { "tipo": "conexion_libre", "ventanaAbierta": "toda_la_sesion" },
+    { "tipo": "cierre_y_ranking" }
+  ],
+
+  "valoresBasePosicion": [10, 8, 3],
+  "descuentoRonda2": 0.7,
+  "descuentoViaCoModerador": 0.5,
+  "maxIntentosGroqPorArgumento": 2,
+  "puntajeCoModerador": { "bidAprobado": 5, "bidRechazado": 0 },
+  "visualizacionRanking": "por_postura_con_tiers",
+  "tiers": ["Sólido", "Consistente", "En desarrollo"],
+
+  "mecanismoTurno": "ruleta_ponderada_con_prioridad_a_no_participantes",
+  "timeoutAceptacion": 20,
+  "maxRechazosAntesDeForzar": 3,
+  "tiempoLimiteEvaluacionBid": 20,
+  "duracionMaximaIntervencionPrincipal": 90,
+  "duracionMaximaIntervencionBid": 45,
+
+  "maxConexionesSalientesPorArgumento": 1,
+  "requiereSeleccionDeTipo": true,
+
+  "criterioValidacion": "claim_mas_razon",
+  "ejemplosPorTema": [
+    {
+      "malo": "Todo lo malo de Ecuador viene de la Colonia.",
+      "bueno": "La herencia colonial pesa porque la Constitución de 1830 solo dejaba votar a varones alfabetizados con propiedades, así que el poder siguió en manos de los terratenientes igual que en la Real Audiencia.",
+      "porque": "El malo es una generalización sin hecho concreto; el bueno cita una ley, una fecha y explica la continuidad."
+    },
+    {
+      "malo": "Los políticos siempre han sido corruptos.",
+      "bueno": "Las decisiones internas pesan más porque entre 1997 y 2005 cayeron tres presidentes, y esa inestabilidad impidió sostener una política de Estado para diversificar la economía.",
+      "porque": "El malo es una acusación sin caso ni razón; el bueno nombra un periodo, un hecho y su consecuencia."
+    },
+    {
+      "malo": "Dependemos de los países ricos.",
+      "bueno": "La dependencia global explica la crisis de los años 80 porque, tras la caída del precio del petróleo, la deuda externa obligó a aceptar ajustes del FMI que redujeron el gasto social.",
+      "porque": "El malo es una frase abierta; el bueno enlaza un producto, una crisis y una consecuencia concreta."
+    },
+    {
+      "malo": "El pueblo siempre ha luchado.",
+      "bueno": "Las luchas sociales cambiaron el país porque el levantamiento indígena de 1990 llevó a que la Constitución de 2008 reconociera la plurinacionalidad y los derechos colectivos.",
+      "porque": "El malo es una afirmación sin ejemplo; el bueno muestra un hecho y el cambio legal que produjo."
+    }
+  ],
+  "promptSistemaFase1": "Evalúa si el argumento del estudiante tiene una afirmación (claim) sobre qué explica el Ecuador actual y una razón o evidencia explícita (un hecho, fecha, ley, personaje, proceso económico o cifra, o un conector como 'porque', 'ya que'). No evalúes si la postura es correcta, si el dato histórico es exacto ni qué explicación del Ecuador es mejor. Responde solo si cumple el criterio estructural.",
+  "promptSistemaFase2": "A partir de los argumentos de esta fase, sugiere posibles conexiones (apoyo, contraargumento, dilema, reformulación, concesión) entre pares de argumentos de distinta postura o de la misma postura. Un mismo hecho histórico puede usarse para posturas distintas, por ejemplo el regionalismo o la migración; señálalo como candidato a dilema o reformulación. No decidas cuál es correcta, solo sugiere candidatos para que el moderador confirme.",
+
+  "formulaCoModeradores": "ceil(n * 0.10)_min_1",
+  "topeMaximoCoModeradores": null,
+  "exclusionMutua": true,
+
+  "exportaJSON": { "eventLogCompleto": true, "mapaArgumental": true, "rankingPorPostura": true, "perfilPorEstudiante": true },
+  "exportaPDF": true,
+
+  "canalAbly": "debate:historia-ecuador-causas-del-presente-2026:{sessionId}",
+  "duracionTotalEstimada": 45
+}

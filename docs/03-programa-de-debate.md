@@ -155,6 +155,7 @@ Están en `src/shared/programa/ejemplos/` y se registran en `index.js`:
 - Política: izquierda vs. derecha (3 posturas, asignación aleatoria).
 - Filosofía: libre albedrío vs. determinismo, y «¿qué nos hace humanos?» (12 posturas, asignación libre).
 - Educación: «¿Ha sido útil la formación en investigación?» (3 posturas: sí, no, depende/matizada; asignación libre, porque cada estudiante opina desde su experiencia real). Pensado para grupos que han cursado varios semestres de asignaturas de investigación.
+- Historia: «¿Qué explica más el Ecuador de hoy?» (4 posturas causales: herencia colonial, dependencia global, decisiones internas y luchas sociales, más una matizada; asignación aleatoria). La cultura es evidencia transversal, no una postura.
 
 ## Flujo de creación (wizard para el profesor)
 
