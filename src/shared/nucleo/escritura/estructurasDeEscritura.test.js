@@ -66,3 +66,26 @@ describe('distribución y número de párrafos', () => {
     expect(describirLaEstructuraPedida({ estructura: 'spre', numeroDeParrafos: 1 })).toContain('dentro de cada párrafo');
   });
 });
+
+describe('muestra pedagógica de las estructuras de serie', () => {
+  const ESTRUCTURAS_CON_PARTES = ['peel', 'spre', 'prep', 'cer'];
+
+  it('cada estructura explica en qué consiste y trae un ejemplo con una oración por parte, en español e inglés', () => {
+    for (const id of ESTRUCTURAS_CON_PARTES) {
+      for (const idioma of ['es', 'en']) {
+        const estructura = resolverEstructuraDelPrograma({ estructura: id }, idioma);
+        expect(estructura.queEs.length, `${id} ${idioma}: qué es`).toBeGreaterThan(40);
+        expect(estructura.ejemplo, `${id} ${idioma}: ejemplo`).toHaveLength(estructura.partes.length);
+        expect(estructura.ejemplo.every((oracion) => oracion.length > 15)).toBe(true);
+      }
+    }
+  });
+
+  it('la escritura libre da una orientación pero no un ejemplo; una estructura propia no inventa uno', () => {
+    const libre = resolverEstructuraDelPrograma({ estructura: 'libre' });
+    expect(libre.queEs).toContain('Sin estructura obligatoria');
+    expect(libre.ejemplo).toBeNull();
+    const propia = resolverEstructuraDelPrograma({ estructura: { nombre: 'Mi esquema', partes: [{ nombre: 'Idea' }] } });
+    expect(propia).toMatchObject({ queEs: '', ejemplo: null });
+  });
+});

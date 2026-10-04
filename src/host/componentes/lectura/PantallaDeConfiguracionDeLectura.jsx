@@ -21,6 +21,7 @@ import {
   resolverVentanaDeConfirmacionMin,
 } from '../../../actividades/controlDeLectura/programaDeLectura.js';
 import { SelectorDeIntegridad } from '../SelectorDeIntegridad.jsx';
+import { MuestraPedagogicaDeLaEstructura } from '../../../shared/componentes/lectura/MuestraPedagogicaDeLaEstructura.jsx';
 
 const ID_DE_LA_ESTRUCTURA_PROPIA = 'propia';
 
@@ -130,6 +131,7 @@ export function PantallaDeConfiguracionDeLectura({ programaBase, onConfirmarConf
           Número de párrafos
           <input type="number" min="1" max="12" value={numeroDeParrafos} onChange={(evento) => setNumeroDeParrafos(evento.target.value)} />
         </label>
+        <MuestraPedagogicaDeLaEstructura programa={{ estructura: estructuraPedida, distribucion }} idioma={idioma} />
         {!estructuraResuelta.esLibre && (
           <ul className="lista-de-perfiles">
             {Object.values(DISTRIBUCIONES_DE_ESTRUCTURA).map((valor) => (

@@ -16,6 +16,7 @@ import { PantallaDeConfiguracionDeLectura } from '../../host/componentes/lectura
 import { ResumenDeConfiguracionDeLectura } from '../../host/componentes/lectura/ResumenDeConfiguracionDeLectura.jsx';
 import { CalificadorDeEntrega } from '../../host/componentes/lectura/CalificadorDeEntrega.jsx';
 import { IndicadorDePegado } from '../../shared/componentes/lectura/IndicadorDePegado.jsx';
+import { MuestraPedagogicaDeLaEstructura } from '../../shared/componentes/lectura/MuestraPedagogicaDeLaEstructura.jsx';
 import { RevisionesDeParesDeUnaEntrega } from '../../host/componentes/lectura/RevisionesDeParesDeUnaEntrega.jsx';
 import { VistaDeProyeccion } from '../../host/componentes/VistaDeProyeccion.jsx';
 import { construirColaDelDocente } from '../../shared/nucleo/entregas/estadoPrivadoDelDocente.js';
@@ -500,5 +501,59 @@ describe('pantallas del control de lectura: pegado y descuento automático', () 
     expect(html).toContain('−3.5');
     expect(html).toContain('Descartar la marca');
     expect(html).toContain('nunca este número');
+  });
+});
+
+describe('muestra pedagógica de la estructura de escritura', () => {
+  it('el docente la ve al configurar y cambia con la estructura elegida', () => {
+    const peel = renderizar(
+      h(PantallaDeConfiguracionDeLectura, { programaBase: PROGRAMA_COMPLETO, onConfirmarConfiguracion: () => {}, onCambiarPrograma: () => {} })
+    );
+    expect(peel).toContain('¿Qué es PEEL?');
+    expect(peel).toContain('Un párrafo en cuatro movimientos');
+    expect(peel).toContain('Ejemplo');
+    expect(peel).toContain('Leer en voz alta mejora');
+
+    const spre = renderizar(
+      h(PantallaDeConfiguracionDeLectura, {
+        programaBase: { ...PROGRAMA_COMPLETO, estructura: 'spre' },
+        onConfirmarConfiguracion: () => {},
+        onCambiarPrograma: () => {},
+      })
+    );
+    expect(spre).toContain('¿Qué es SPRE?');
+    expect(spre).toContain('Cuenta un problema y su solución');
+  });
+
+  it('la sala de espera la deja a mano para explicarla a la clase', () => {
+    const html = renderizar(
+      h(ResumenDeConfiguracionDeLectura, { estado: construirEstado(INGRESOS), presencia: PRESENCIA, programa: PROGRAMA, onModificarConfiguracion: () => {} })
+    );
+    expect(html).toContain('Para explicar a la clase');
+    expect(html).toContain('Un párrafo en cuatro movimientos');
+  });
+
+  it('el estudiante la ve antes de ingresar', () => {
+    const html = renderizar(h(IngresoAlControlDeLectura, { programa: PROGRAMA, participantId: 'ana', nombre: 'Ana', emoji: '🦊', publicar }));
+    expect(html).toContain('¿Qué es PEEL?');
+    expect(html).toContain('Evidencia');
+    expect(html).toContain('Ejemplo');
+  });
+
+  it('con una estructura «desarrollada» el ejemplo va una parte por párrafo; con «compacta», todo en un párrafo', () => {
+    const desarrollada = renderizar(h(MuestraPedagogicaDeLaEstructura, { programa: { estructura: 'peel', distribucion: 'desarrollada' } }));
+    expect(desarrollada).toContain('una parte por párrafo');
+    expect((desarrollada.match(/parrafo-de-ejemplo/g) ?? []).length).toBe(4);
+
+    const compacta = renderizar(h(MuestraPedagogicaDeLaEstructura, { programa: { estructura: 'peel', distribucion: 'compacta' } }));
+    expect(compacta).toContain('una parte por oración');
+    expect((compacta.match(/parrafo-de-ejemplo/g) ?? []).length).toBe(1);
+  });
+
+  it('en inglés muestra el ejemplo en inglés, y la escritura libre solo una orientación', () => {
+    expect(renderizar(h(MuestraPedagogicaDeLaEstructura, { programa: { estructura: 'peel' }, idioma: 'en' }))).toContain('Reading aloud improves');
+    const libre = renderizar(h(MuestraPedagogicaDeLaEstructura, { programa: { estructura: 'libre' } }));
+    expect(libre).toContain('Sin estructura obligatoria');
+    expect(libre).not.toContain('Ejemplo');
   });
 });

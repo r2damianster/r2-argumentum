@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { EVENTOS } from '../../../shared/eventos/nombresDeEventos.js';
 import { AvisoDeIntegridad } from '../../../shared/componentes/foro/AdvertenciaDeIntegridad.jsx';
 import { GuiaDeLaConsigna } from '../../../shared/componentes/lectura/GuiaDeLaConsigna.jsx';
+import { MuestraPedagogicaDeLaEstructura } from '../../../shared/componentes/lectura/MuestraPedagogicaDeLaEstructura.jsx';
+import { resolverIdiomaDelDebate } from '../../../shared/programa/idiomaDelDebate.js';
 import { resolverNivelDeIntegridad } from '../../../shared/nucleo/integridad/nivelesDeIntegridad.js';
 import { penalizacionPorPegadoEstaActiva } from '../../../shared/nucleo/integridad/penalizacionPorPegado.js';
 
@@ -19,6 +21,7 @@ export function IngresoAlControlDeLectura({ programa, participantId, nombre, emo
     <section className="tarjeta-de-ingreso">
       <h2>Para entrar al control de lectura</h2>
       <GuiaDeLaConsigna programa={programa} conPartes={false} />
+      <MuestraPedagogicaDeLaEstructura programa={programa} idioma={resolverIdiomaDelDebate(programa)} />
       {programa.instruccionesParaEstudiantes && <p className="texto-de-ayuda">{programa.instruccionesParaEstudiantes}</p>}
       <AvisoDeIntegridad nivel={resolverNivelDeIntegridad(programa)} conDescuento={penalizacionPorPegadoEstaActiva(programa)} />
       <div className="paso-de-ingreso">

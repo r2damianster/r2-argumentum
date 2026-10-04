@@ -12,6 +12,7 @@ import {
   resolverVentanaDeConfirmacionMin,
 } from '../../../actividades/controlDeLectura/programaDeLectura.js';
 import { GuiaDeLaConsigna } from '../../../shared/componentes/lectura/GuiaDeLaConsigna.jsx';
+import { MuestraPedagogicaDeLaEstructura } from '../../../shared/componentes/lectura/MuestraPedagogicaDeLaEstructura.jsx';
 
 // La sala de espera del control de lectura: la consigna y lo que quedó configurado, más quiénes ya
 // entraron. No hay marcador ni posturas.
@@ -25,7 +26,8 @@ export function ResumenDeConfiguracionDeLectura({ estado, presencia, programa, o
 
   return (
     <>
-      <GuiaDeLaConsigna programa={programa} />
+      <GuiaDeLaConsigna programa={programa} conPartes={false} />
+      <MuestraPedagogicaDeLaEstructura programa={programa} idioma={idioma} titulo="Para explicar a la clase: ¿en qué consiste la estructura elegida?" />
 
       <div className="tarjeta-resumen-configuracion">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
