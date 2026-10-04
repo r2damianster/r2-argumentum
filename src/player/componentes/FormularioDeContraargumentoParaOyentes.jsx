@@ -3,6 +3,7 @@ import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEvento
 import { decidirValidacion, DECISIONES } from '../../shared/argumentos/decidirValidacion.js';
 import { buscarArgumentoParecido } from '../../shared/argumentos/buscarArgumentoParecido.js';
 import { resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.js';
+import { validarArgumentoConGroq } from '../../shared/argumentos/validarArgumentoConGroq.js';
 import { nombreDeParticipante } from '../../shared/estado/seleccionesDerivadas.js';
 import { AdvertenciaDeIntegridad, AvisoDeIntegridad } from '../../shared/componentes/foro/AdvertenciaDeIntegridad.jsx';
 import { useControlDeIntegridad } from '../../shared/nucleo/integridad/useControlDeIntegridad.js';
@@ -65,24 +66,13 @@ export function FormularioDeContraargumentoParaOyentes({
     }
 
     setRevisando(true);
-    let respuesta;
-    try {
-      const peticion = await fetch('/api/groq-validar-argumento', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          texto,
-          ejemplos: programa.ejemplosPorTema,
-          posturas: programa.posturas,
-          idioma: resolverIdiomaDelDebate(programa),
-        }),
-      });
-      respuesta = peticion.ok
-        ? await peticion.json()
-        : { aprobado: false, motivo: 'El validador no respondió, inténtalo de nuevo.' };
-    } catch {
-      respuesta = { aprobado: false, motivo: 'No se pudo validar (error de conexión).' };
-    }
+    // Si Groq no responde, el contraargumento pasa con un aviso: la IA nunca condiciona participar.
+    const respuesta = await validarArgumentoConGroq({
+      texto,
+      ejemplos: programa.ejemplosPorTema,
+      posturas: programa.posturas,
+      idioma: resolverIdiomaDelDebate(programa),
+    });
 
     setUltimaRespuestaDeGroq(respuesta);
     setTextoRevisado(texto);
@@ -251,7 +241,11 @@ export function FormularioDeContraargumentoParaOyentes({
 
           {resultado?.decision === DECISIONES.APROBADO && !integridad.advertenciaPendiente && (
             <div className="mensaje-de-exito">
-              <p>✅ Tu contraargumento cumple con la estructura requerida.</p>
+              {resultado.sinRevisarPorIA ? (
+                <p className="texto-de-ayuda">{resultado.mensaje}</p>
+              ) : (
+                <p>✅ Tu contraargumento cumple con la estructura requerida.</p>
+              )}
               <button
                 type="button"
                 className="boton-exito"

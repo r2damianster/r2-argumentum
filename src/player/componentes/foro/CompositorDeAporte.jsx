@@ -4,6 +4,7 @@ import { buscarArgumentoParecido } from '../../../shared/argumentos/buscarArgume
 import { MINIMO_DE_PALABRAS_DE_UN_APORTE, contarPalabras } from '../../../shared/argumentos/contarPalabras.js';
 import { nombreDeParticipante } from '../../../shared/estado/seleccionesDerivadas.js';
 import { solicitarSugerenciaDeEvaluacion } from '../../../shared/nucleo/sugerenciaDeIA/solicitarSugerencia.js';
+import { AVISO_SIN_REVISION_DE_IA } from '../../../shared/argumentos/validarArgumentoConGroq.js';
 import { SugerenciaDeIA } from '../../../shared/componentes/foro/SugerenciaDeIA.jsx';
 import { AdvertenciaDeIntegridad, AvisoDeIntegridad } from '../../../shared/componentes/foro/AdvertenciaDeIntegridad.jsx';
 import { useControlDeIntegridad } from '../../../shared/nucleo/integridad/useControlDeIntegridad.js';
@@ -87,6 +88,8 @@ export function CompositorDeAporte({
   const [texto, setTexto] = useState(() => leerBorrador(clave));
   const [tipoDeReplica, setTipoDeReplica] = useState(tipoSugerido);
   const [aviso, setAviso] = useState('');
+  // Persiste después de publicar: avisa que la IA no pudo pre-revisar el último aporte.
+  const [avisoSinRevisionDeIA, setAvisoSinRevisionDeIA] = useState('');
   const [aporteParecido, setAporteParecido] = useState(null);
   const [consultando, setConsultando] = useState(false);
   const [publicando, setPublicando] = useState(false);
@@ -194,6 +197,7 @@ export function CompositorDeAporte({
       return;
     }
     setAviso('');
+    setAvisoSinRevisionDeIA('');
     setAporteParecido(null);
     if (!validarLocalmente()) {
       return;
@@ -213,7 +217,8 @@ export function CompositorDeAporte({
     setConsultando(false);
 
     if (respuesta.fallo) {
-      // La IA ayuda pero no es requisito: si no responde, el aporte se publica igual.
+      // La IA ayuda pero no es requisito: si no responde, el aporte se publica igual y se avisa.
+      setAvisoSinRevisionDeIA(AVISO_SIN_REVISION_DE_IA);
       enviar(null);
       return;
     }
@@ -292,6 +297,7 @@ export function CompositorDeAporte({
       </p>
 
       {aviso && <p className="mensaje-de-error">{aviso}</p>}
+      {avisoSinRevisionDeIA && <p className="texto-de-ayuda">{avisoSinRevisionDeIA}</p>}
       {aporteParecido && (
         <div className="aviso-de-validacion">
           <p className="mensaje-de-error">

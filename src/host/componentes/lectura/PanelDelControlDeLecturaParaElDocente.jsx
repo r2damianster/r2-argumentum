@@ -6,6 +6,7 @@ import {
   ESTADOS_DE_CALIFICACION,
   construirColaDelDocente,
   construirDevolucionParaElEstudiante,
+  NOTA_MINIMA_PARA_APROBAR_EN_LOTE,
   datosDeCalificacionDesdeSugerencia,
   resumirLaCola,
   seleccionarParaAprobarEnLote,
@@ -260,13 +261,20 @@ export function PanelDelControlDeLecturaParaElDocente({
     return `control-de-lectura-${programaVigente.programId}-${new Date().toISOString().slice(0, 10)}.${extension}`;
   }
 
-  const paraAprobarEnLote = seleccionarParaAprobarEnLote(cola);
+  const paraAprobarEnLote = seleccionarParaAprobarEnLote(cola, {
+    rubrica,
+    entregasConMarcas: new Set(
+      cola
+        .filter((item) => hayAlgoQueRevisar(integridadPorEntrega[item.participantId]) || item.descuentoAutomatico > 0)
+        .map((item) => item.participantId)
+    ),
+  });
 
   // Una decisión del docente (botón con confirmación): la IA solo sugiere.
   function aprobarEnLoteLasSugerencias() {
     if (
       !window.confirm(
-        `Vas a aprobar tal cual las sugerencias de la IA de ${paraAprobarEnLote.length} entrega(s) con confianza alta. Podrás cambiar cualquiera después. ¿Aprobar?`
+        `Vas a aprobar tal cual las sugerencias de la IA de ${paraAprobarEnLote.length} entrega(s): confianza alta, nota sugerida de ${NOTA_MINIMA_PARA_APROBAR_EN_LOTE} o más y sin marcas de integridad. Las demás las revisas tú. Podrás cambiar cualquiera después. ¿Aprobar?`
       )
     ) {
       return;
@@ -438,7 +446,7 @@ export function PanelDelControlDeLecturaParaElDocente({
               </ul>
               {paraAprobarEnLote.length > 0 && (
                 <button type="button" className="boton-secundario" disabled={guardando} onClick={aprobarEnLoteLasSugerencias}>
-                  ✨ Aprobar las {paraAprobarEnLote.length} sugerencias de confianza alta
+                  ✨ Aprobar las {paraAprobarEnLote.length} sugerencias claras (nota alta, sin marcas)
                 </button>
               )}
               {resumen.porDevolver > 0 && (

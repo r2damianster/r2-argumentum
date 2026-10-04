@@ -1,6 +1,6 @@
-// Prueba EN VIVO del foro escrito, EN LOCAL: Chrome real + servidor /api local + Ably real (4-oct-2026).
-// No va contra producción. Necesita ABLY_API_KEY, HOST_USER y HOST_PASSWORD en .env.local, el servidor /api
-// local en el puerto 3001 y `vite` con proxy de /api en el 5173, y `npm i playwright-core` fuera del repo.
+// Prueba EN VIVO del foro escrito, EN LOCAL: Chrome real + servidor /api local + Ably real + Groq real (4-oct-2026).
+// No va contra producción. Necesita ABLY_API_KEY, GROQ_API_KEY, HOST_USER y HOST_PASSWORD en .env.local, el servidor
+// /api local en el puerto 3001 y `vite` con proxy de /api en el 5173, y `npm i playwright-core` fuera del repo.
 // Se corrió con HOST_USER=prueba y HOST_PASSWORD=prueba-local (valores solo locales).
 import { chromium } from 'playwright-core';
 
@@ -14,6 +14,7 @@ const esperar = (ms) => new Promise((resolver) => setTimeout(resolver, ms));
 
 const navegador = await chromium.launch({ channel: 'chrome', headless: true });
 const consola = [];
+const sugerenciasDeLaIA = [];
 
 async function nuevaPagina() {
   const contexto = await navegador.newContext({ viewport: { width: 390, height: 844 }, acceptDownloads: true });
@@ -74,18 +75,29 @@ for (const participante of participantes) {
 }
 anotar('un participante quedó como co-moderador y no ve el cuadro de publicar', Boolean(coModerador) && (await coModerador.pagina.locator('#compositor-del-foro').count()) === 0);
 
+
+// Con Groq real el envío tiene pasos: sugerencia de la IA → «Publicar así» → (si hay señales) advertencia → «Enviar igual».
+async function terminarEnvio(pagina) {
+  for (let intento = 0; intento < 30; intento += 1) {
+    const asi = pagina.getByRole('button', { name: /Publicar así|Publicar respuesta así/ });
+    if (await asi.count()) {
+      sugerenciasDeLaIA.push((await pagina.locator('body').innerText()).match(/(completo|incompleto|sin razón).{0,60}/i)?.[0] ?? 'sugerencia');
+      await asi.click();
+    }
+    const igual = pagina.getByRole('button', { name: 'Enviar igual' });
+    if (await igual.count()) await igual.click();
+    if ((await pagina.locator('#compositor-del-foro textarea').inputValue().catch(() => '')) === '') return;
+    await esperar(500);
+  }
+}
+
 // --- Publicar posts (teclado simulado con fill) y manejar la advertencia de integridad si sale
 async function publicarPost(participante, texto, botonDeEnvio = /Publicar post/) {
   const { pagina } = participante;
   await pagina.locator('#compositor-del-foro textarea').fill(texto);
   await pagina.getByRole('button', { name: botonDeEnvio }).click();
-  await esperar(1500);
-  // Sin Groq local, el aporte se publica directo; si hubiera advertencia de integridad, se envía igual.
-  const igual = pagina.getByRole('button', { name: 'Enviar igual' });
-  if (await igual.count()) await igual.click();
-  const asi = pagina.getByRole('button', { name: /Publicar así|Publicar respuesta así/ });
-  if (await asi.count()) await asi.click();
-  await esperar(1500);
+  await terminarEnvio(pagina);
+  await esperar(1000);
 }
 
 const [p1, p2, p3, p4] = quienesEscriben;
@@ -96,13 +108,12 @@ const textoP3 = await p3.pagina.locator('body').innerText();
 anotar('los posts llegan a los demás en tiempo real', textoP3.includes('formular una pregunta') && textoP3.includes('poco útil'));
 anotar('los demás no ven la sugerencia de la IA ni etiquetas de falacia', !/falacia/i.test(textoP3));
 
+anotar('Groq sugirió (completo/incompleto) a quien escribe antes de publicar', sugerenciasDeLaIA.length >= 2, JSON.stringify(sugerenciasDeLaIA));
 // Réplica
 await p3.pagina.getByRole('button', { name: /Responder/ }).first().click();
 await p3.pagina.locator('#compositor-del-foro textarea').fill('Viví algo parecido: en estadística tampoco analizamos datos reales y por eso me costó aplicarlo después en mi proyecto.');
 await p3.pagina.getByRole('button', { name: /Publicar respuesta/ }).click();
-await esperar(1500);
-const igualP3 = p3.pagina.getByRole('button', { name: 'Enviar igual' });
-if (await igualP3.count()) await igualP3.click();
+await terminarEnvio(p3.pagina);
 await esperar(2500);
 anotar('la réplica aparece en el hilo para todos', (await p1.pagina.locator('body').innerText()).includes('estadística tampoco analizamos'));
 
@@ -126,11 +137,15 @@ anotar('una reacción suma un conteo visible', /Me convenció\s*·\s*1/.test(awa
     campo.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertFromPaste' }));
   }, largo);
   await pagina.getByRole('button', { name: /Publicar post/ }).click();
-  await esperar(2000);
-  const advertencia = await pagina.locator('body').innerText();
+  let advertencia = '';
+  for (let intento = 0; intento < 30 && !/El moderador verá esta marca/.test(advertencia); intento += 1) {
+    const asi = pagina.getByRole('button', { name: /Publicar así/ });
+    if (await asi.count()) await asi.click();
+    await esperar(500);
+    advertencia = await pagina.locator('body').innerText();
+  }
   anotar('al pegar sale «El moderador verá esta marca» con Enviar igual / Reescribir', /El moderador verá esta marca/.test(advertencia));
-  const igual = pagina.getByRole('button', { name: 'Enviar igual' });
-  if (await igual.count()) await igual.click();
+  await terminarEnvio(pagina);
   await esperar(3000);
 }
 const textoHostVivo = await host.locator('body').innerText();

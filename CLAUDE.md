@@ -11,6 +11,7 @@ Plataforma de debate argumental en tiempo real para uso en aula (ULEAM). No es u
 - **Sin base de datos para el estado en vivo.** Ably es el "sistema nervioso" del debate (pub/sub + presence), nunca un registro académico permanente. Cada sesión se exporta a JSON/PDF al cierre.
 - **La proyección en otra ventana no abre otra conexión a Ably ni otro motor**: la consola del host (única que corre `motorDeSesion.js`) le pasa su estado por `BroadcastChannel`. No reintroducir un segundo cliente completo: dos motores publicarían decisiones duplicadas.
 - **Los "Programas de Debate"** (plantillas: tema, posturas, reglas de puntaje, ejemplos para Groq) se guardan como archivos JSON reutilizables — sin backend en v1.
+- **Groq nunca condiciona el trabajo.** Si falla (cuota 429, 5xx, sin clave, sin red), el texto pasa y se avisa «no fue pre-revisado por límites de la IA». Validación de argumentos: `src/shared/argumentos/validarArgumentoConGroq.js`; foro y calificación ya publican/califican sin sugerencia. No agregues un uso de Groq que bloquee el avance.
 - **Groq nunca es juez autoritativo.** Dos checkpoints controlados únicamente:
   1. Validación de forma al escribir un argumento (¿tiene claim + razón? criterio estructural — "porque/ya que/evidencia" —, nunca un juicio filosófico de "qué es un buen argumento").
   2. Sugerencia de conexiones en lote, disparada manualmente por el moderador al cerrar una fase — nunca por cada clic individual de conexión.

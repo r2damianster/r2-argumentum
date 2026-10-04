@@ -218,7 +218,31 @@ describe('aprobar en lote las sugerencias', () => {
       estado: estadoPublicoConEntregas(['ana', 1], ['beto', 2], ['carla', 3], ['dani', 4]),
       rubrica: RUBRICA,
     });
-    expect(seleccionarParaAprobarEnLote(cola).map((item) => item.participantId)).toEqual(['ana']);
+    expect(seleccionarParaAprobarEnLote(cola, { rubrica: RUBRICA }).map((item) => item.participantId)).toEqual(['ana']);
+  });
+
+  it('una nota sugerida baja nunca entra al lote, aunque la IA diga que está segura', () => {
+    const estadoPrivado = reducirRegistrosPrivados([
+      texto('ana', 'A'),
+      texto('beto', 'B'),
+      sugerenciaDe('ana', { confianza: 0.95, niveles: { a: 'bueno', b: 'bueno' } }),
+      sugerenciaDe('beto', { confianza: 0.95, niveles: { a: 'insuficiente', b: 'aceptable' } }),
+    ]);
+    const cola = construirColaDelDocente({ estadoPrivado, estado: estadoPublicoConEntregas(['ana', 1], ['beto', 2]), rubrica: RUBRICA });
+    expect(seleccionarParaAprobarEnLote(cola, { rubrica: RUBRICA }).map((item) => item.participantId)).toEqual(['ana']);
+  });
+
+  it('una entrega con marcas de integridad se revisa a mano, no en lote', () => {
+    const estadoPrivado = reducirRegistrosPrivados([texto('ana', 'A'), texto('beto', 'B'), sugerenciaDe('ana', { confianza: 0.9 }), sugerenciaDe('beto', { confianza: 0.9 })]);
+    const cola = construirColaDelDocente({ estadoPrivado, estado: estadoPublicoConEntregas(['ana', 1], ['beto', 2]), rubrica: RUBRICA });
+    const seleccion = seleccionarParaAprobarEnLote(cola, { rubrica: RUBRICA, entregasConMarcas: new Set(['beto']) });
+    expect(seleccion.map((item) => item.participantId)).toEqual(['ana']);
+  });
+
+  it('sin la rúbrica no se puede saber la nota sugerida y no se ofrece nada', () => {
+    const estadoPrivado = reducirRegistrosPrivados([texto('ana', 'A'), sugerenciaDe('ana', { confianza: 0.9 })]);
+    const cola = construirColaDelDocente({ estadoPrivado, estado: estadoPublicoConEntregas(['ana', 1]), rubrica: RUBRICA });
+    expect(seleccionarParaAprobarEnLote(cola)).toEqual([]);
   });
 
   it('convierte la sugerencia en datos de calificación, sin compartir referencias', () => {

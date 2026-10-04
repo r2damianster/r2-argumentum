@@ -96,7 +96,8 @@ La app **no restringe** lo que se escribe: solo cuenta palabras y párrafos y mu
 
 - Por cada entrega, el host consulta a Groq (`api/groq-sugerir-calificacion.js`): nivel sugerido por criterio, comentarios por criterio, partes de la estructura detectadas, comentario general y confianza. Todo se valida: criterios y niveles inexistentes se descartan.
 - **Solo el host puede pedirlo** (exige el token de su sesión): protege la cuota y las claves de la lectura. Un texto de menos de 5 palabras no gasta una llamada.
-- El estudiante **nunca** ve la sugerencia. El docente la ve anónima y decide: «Usar como punto de partida», «Aprobar tal cual» (si es completa) o, en lote, «Aprobar las N sugerencias de confianza alta» (≥ 80 %, con confirmación; la IA no aprueba nada sola).
+- El estudiante **nunca** ve la sugerencia. El docente la ve anónima y decide: «Usar como punto de partida», «Aprobar tal cual» (si es completa) o, en lote, «Aprobar las N sugerencias claras» (con confirmación; la IA no aprueba nada sola).
+- **Qué entra al lote:** sugerencia completa, confianza ≥ 80 %, **nota sugerida ≥ 6** y **sin marcas de integridad**. Lo comprobó la prueba con Groq real: la «confianza» que informa el modelo mide qué tan seguro está, no qué tan bueno es el texto, y es inestable (el mismo texto flojo dio 20 %, 30 %, 80 % y 90 % en distintas corridas). Por eso una nota baja o una posible copia las mira el docente una por una, aunque Groq diga estar seguro.
 - Las llamadas salen **a medida que llegan las entregas**, en cola con 2 a la vez; un fallo se reintenta una vez tras 15 s y queda para «Reintentar». Con 40+ estudiantes son unas 40 llamadas de ~2.000 tokens (~80.000 en total), sin ráfaga al cerrar. La sugerencia queda en el canal privado del docente: un refresco no repite llamadas.
 - Esto **no cambia** «Groq no es juez autoritativo»: es una sugerencia que el docente aprueba o corrige. Se actualizó la línea correspondiente de `CLAUDE.md`.
 
@@ -167,7 +168,7 @@ Servidor `/api` local con la clave de Ably y un navegador real con 1 host y 3 pa
 
 ## Pendiente
 
-- **Groq real:** no hay `GROQ_API_KEY` en local, así que la sugerencia de calificación solo se probó con pruebas unitarias; falta ver su calidad y la cuota con una sala grande.
+- **Groq real, verificado en local (4-oct-2026):** el modelo distingue un texto bueno (todo «excelente», 4 de 4 partes de PEEL detectadas), uno flojo (todo «insuficiente») y uno fuera de tema; los comentarios por criterio son útiles y se dirigen a la persona; responde en ~1 s por entrega. Falta ver la **cuota con una sala de 40** y repetirlo en producción.
 - **En producción:** repetir la prueba tras el despliegue (login del host, ingreso, canales privados).
 - **Celular físico:** escribir 2 párrafos (teclado, borrador, cuenta atrás) y revisar a 320 px.
 - No hay script E2E (`scripts/prueba-e2e/`) para esta actividad: se podría escribir cuando haya una sala de prueba; mientras tanto, usa el procedimiento de `docs/10-guia-prueba-manual-chrome.md`.

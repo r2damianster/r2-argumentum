@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
 import { resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.js';
+import { validarArgumentoConGroq } from '../../shared/argumentos/validarArgumentoConGroq.js';
 import { decidirValidacion, DECISIONES } from '../../shared/argumentos/decidirValidacion.js';
 import { elegirPosturaMenosRepresentada, verificarCupoDePostura } from '../../shared/ingreso/reglasDeIngreso.js';
 import { buscarArgumentoParecido } from '../../shared/argumentos/buscarArgumentoParecido.js';
@@ -118,19 +119,13 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
       return;
     }
     setRevisando(true);
-    let respuesta;
-    try {
-      const peticion = await fetch('/api/groq-validar-argumento', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto, ejemplos: programa.ejemplosPorTema, posturas, idioma: resolverIdiomaDelDebate(programa) }),
-      });
-      respuesta = peticion.ok
-        ? await peticion.json()
-        : { aprobado: false, motivo: 'El validador no respondió, inténtalo de nuevo.' };
-    } catch {
-      respuesta = { aprobado: false, motivo: 'No se pudo validar (error de conexión).' };
-    }
+    // Si Groq no responde, el argumento pasa con un aviso: la IA nunca condiciona el ingreso.
+    const respuesta = await validarArgumentoConGroq({
+      texto,
+      ejemplos: programa.ejemplosPorTema,
+      posturas,
+      idioma: resolverIdiomaDelDebate(programa),
+    });
 
     setUltimaRespuestaDeGroq(respuesta);
     const decisionCalculada = decidirValidacion({
@@ -292,7 +287,34 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
         />
 
         <AvisoDeIntegridad nivel={integridad.nivel} />
-        {resultado && resultado.decision !== DECISIONES.APROBADO && (
+        {resultado?.decision === DECISIONES.ELEGIR_POSTURA_A_MANO && (
+          <div className="aviso-de-validacion">
+            <p className="texto-de-ayuda">{resultado.mensaje}</p>
+            <div className="lista-de-posturas-para-elegir">
+              {posturas.map((postura) => (
+                <button
+                  key={postura.id}
+                  type="button"
+                  className="boton-secundario"
+                  style={{ borderColor: postura.color }}
+                  onClick={() => {
+                    setStanceElegido(postura.id);
+                    setResultado({
+                      decision: DECISIONES.APROBADO,
+                      mensaje: resultado.mensaje.replace(' Elige tú la postura que defiende tu argumento.', ''),
+                      sugerencia: '',
+                      posturaDetectada: postura.id,
+                      sinRevisarPorIA: true,
+                    });
+                  }}
+                >
+                  {postura.etiqueta}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {resultado && resultado.decision !== DECISIONES.APROBADO && resultado.decision !== DECISIONES.ELEGIR_POSTURA_A_MANO && (
           <div className="aviso-de-validacion">
             <p className="mensaje-de-error">{resultado.mensaje}</p>
             {resultado.sugerencia && <p className="texto-de-ayuda">{resultado.sugerencia}</p>}

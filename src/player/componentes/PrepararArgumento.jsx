@@ -5,6 +5,7 @@ import { CONTEXTOS_DE_REDACCION } from '../../shared/nucleo/integridad/canalPriv
 import { useEffect, useRef, useState } from 'react';
 import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
 import { resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.js';
+import { validarArgumentoConGroq } from '../../shared/argumentos/validarArgumentoConGroq.js';
 import { decidirValidacion, DECISIONES } from '../../shared/argumentos/decidirValidacion.js';
 import { buscarArgumentoParecido } from '../../shared/argumentos/buscarArgumentoParecido.js';
 import { nombreDeParticipante, siguientePosicionParaParticipante } from '../../shared/estado/seleccionesDerivadas.js';
@@ -78,6 +79,8 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
   const [resultado, setResultado] = useState(null);
   const [avisoDeCampoFaltante, setAvisoDeCampoFaltante] = useState('');
   const [argumentoRepetido, setArgumentoRepetido] = useState(null);
+  // Se queda a la vista después de publicar: avisa que Groq no pudo pre-revisar el último argumento.
+  const [avisoSinRevisionDeIA, setAvisoSinRevisionDeIA] = useState('');
   // Entre publicar el argumento aprobado y que el canal lo devuelva pasa un instante en el que el
   // botón seguiría activo: sin esto, un doble clic publicaba el mismo argumento dos veces.
   const [publicando, setPublicando] = useState(false);
@@ -134,24 +137,13 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
     setArgumentoRepetido(null);
     setRevisando(true);
 
-    let respuesta;
-    try {
-      const peticion = await fetch('/api/groq-validar-argumento', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          texto,
-          ejemplos: programa.ejemplosPorTema,
-          posturas: programa.posturas,
-          idioma: resolverIdiomaDelDebate(programa),
-        }),
-      });
-      respuesta = peticion.ok
-        ? await peticion.json()
-        : { aprobado: false, motivo: 'El validador no respondió, inténtalo de nuevo.' };
-    } catch {
-      respuesta = { aprobado: false, motivo: 'No se pudo validar (error de conexión).' };
-    }
+    // Si Groq no responde, el argumento pasa con un aviso: la IA nunca condiciona participar.
+    const respuesta = await validarArgumentoConGroq({
+      texto,
+      ejemplos: programa.ejemplosPorTema,
+      posturas: programa.posturas,
+      idioma: resolverIdiomaDelDebate(programa),
+    });
 
     const decision = decidirValidacion({
       resultadoDeGroq: respuesta,
@@ -161,6 +153,7 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
       permiteCambioDePostura: programa.asignacionPostura === 'libre',
     });
     setResultado(decision);
+    setAvisoSinRevisionDeIA(decision.sinRevisarPorIA ? decision.mensaje : '');
 
     if (decision.decision === DECISIONES.APROBADO) {
       integridad.intentarEnviar({ alEnviar: publicarArgumentoAprobado });
@@ -361,6 +354,8 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
           {resultado.sugerencia && <p className="texto-de-ayuda">{resultado.sugerencia}</p>}
         </div>
       )}
+
+      {avisoSinRevisionDeIA && <p className="texto-de-ayuda">{avisoSinRevisionDeIA}</p>}
 
       {avisoDeCampoFaltante && <p className="mensaje-de-error">{avisoDeCampoFaltante}</p>}
 

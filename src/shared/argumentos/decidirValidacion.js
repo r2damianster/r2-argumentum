@@ -10,6 +10,8 @@ export const DECISIONES = {
   POSTURA_DISTINTA: 'postura_distinta',
   POSTURA_NUEVA_PROPUESTA: 'postura_nueva_propuesta',
   POSTURA_FUERA_DEL_DEBATE: 'postura_fuera_del_debate',
+  // Groq no pudo clasificar y nadie eligió postura (asignación por argumento): la elige la persona.
+  ELEGIR_POSTURA_A_MANO: 'elegir_postura_a_mano',
 };
 
 // Por debajo de esta confianza no se contradice la postura que el estudiante eligió: él sabe
@@ -27,6 +29,27 @@ export function decidirValidacion({
   permiteCambioDePostura = true,
   asignacionPostura = 'libre',
 }) {
+  // Groq no estuvo disponible: pasa con la postura que la persona ya eligió y se le avisa. Nunca bloquea.
+  if (resultadoDeGroq.sinRevisarPorIA) {
+    // Sin clasificación de la IA y sin postura previa, no se adivina: la persona elige la que corresponde.
+    if (!stanceElegido) {
+      return {
+        decision: DECISIONES.ELEGIR_POSTURA_A_MANO,
+        mensaje: `${resultadoDeGroq.motivo} Elige tú la postura que defiende tu argumento.`,
+        sugerencia: '',
+        posturaDetectada: null,
+        sinRevisarPorIA: true,
+      };
+    }
+    return {
+      decision: DECISIONES.APROBADO,
+      mensaje: resultadoDeGroq.motivo,
+      sugerencia: '',
+      posturaDetectada: stanceElegido,
+      sinRevisarPorIA: true,
+    };
+  }
+
   if (!resultadoDeGroq.aprobado) {
     return {
       decision: DECISIONES.FORMA_INVALIDA,

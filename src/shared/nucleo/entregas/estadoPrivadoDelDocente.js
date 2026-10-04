@@ -367,9 +367,12 @@ export function resumirLaCola(cola) {
   };
 }
 
-// Confianza mínima para ofrecer la aprobación en lote de las sugerencias de la IA. Por debajo, cada
-// entrega se revisa a mano.
+// Aprobación en lote de las sugerencias de la IA. La «confianza» que informa Groq mide qué tan seguro está el
+// modelo, no qué tan bueno es el texto, y es inestable (el mismo texto flojo dio 0,2 y 0,9 en dos corridas): por
+// sí sola no basta. Por eso el lote solo ofrece lo que además es una nota sugerida decente y no tiene marcas de
+// integridad. Una nota baja o una posible copia las mira el docente una por una.
 export const CONFIANZA_MINIMA_PARA_APROBAR_EN_LOTE = 0.8;
+export const NOTA_MINIMA_PARA_APROBAR_EN_LOTE = 6;
 
 // Lo que se guarda como calificación cuando el docente acepta la sugerencia (completa o para editarla).
 export function datosDeCalificacionDesdeSugerencia(sugerencia, { aprobada }) {
@@ -384,12 +387,23 @@ export function datosDeCalificacionDesdeSugerencia(sugerencia, { aprobada }) {
 // Las entregas que se pueden aprobar en lote: sin calificación del docente y con una sugerencia completa
 // y de confianza alta. Aprobar en lote es una decisión del docente (un botón con confirmación), no un
 // automatismo: la IA solo sugiere.
-export function seleccionarParaAprobarEnLote(cola, umbral = CONFIANZA_MINIMA_PARA_APROBAR_EN_LOTE) {
-  return cola.filter(
-    (item) =>
-      item.estadoDeCalificacion === ESTADOS_DE_CALIFICACION.SIN_CALIFICAR &&
-      !item.textoPendiente &&
-      item.sugerencia?.completa &&
-      (item.sugerencia.confianza ?? 0) >= umbral
-  );
+// `rubrica`: para calcular la nota que sugiere la IA. `entregasConMarcas`: Set de participantId con alguna marca de
+// integridad por revisar (no entran al lote).
+export function seleccionarParaAprobarEnLote(
+  cola,
+  { rubrica, entregasConMarcas = new Set(), umbral = CONFIANZA_MINIMA_PARA_APROBAR_EN_LOTE, notaMinima = NOTA_MINIMA_PARA_APROBAR_EN_LOTE } = {}
+) {
+  return cola.filter((item) => {
+    if (
+      item.estadoDeCalificacion !== ESTADOS_DE_CALIFICACION.SIN_CALIFICAR ||
+      item.textoPendiente ||
+      !item.sugerencia?.completa ||
+      (item.sugerencia.confianza ?? 0) < umbral ||
+      entregasConMarcas.has(item.participantId)
+    ) {
+      return false;
+    }
+    const notaSugerida = rubrica ? calcularNotaDeRubrica(rubrica, item.sugerencia.niveles) : null;
+    return notaSugerida !== null && notaSugerida >= notaMinima;
+  });
 }
