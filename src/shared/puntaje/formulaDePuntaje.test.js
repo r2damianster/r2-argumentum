@@ -3,11 +3,10 @@ import {
   calcularPuntajeDeArgumento,
   calcularPuntajeDeTurnoVerbal,
   calcularPenalidadPorRechazoDeTurno,
-  calcularBonosDeCoModerador,
-  calcularNumeroDeCoModeradores,
   resolverParametrosDePuntaje,
   PERFILES_DE_PUNTAJE,
 } from './formulaDePuntaje.js';
+import { calcularPuntajeMaximoDeRevisor } from '../nucleo/revision/calcularPuntajeDeRevisores.js';
 
 describe('tabla de docs/05 con el perfil estándar', () => {
   const estandar = PERFILES_DE_PUNTAJE.estandar;
@@ -76,18 +75,11 @@ describe('penalidad por rechazar el turno', () => {
   });
 });
 
-describe('bonos de co-moderación', () => {
-  it('escalan con el perfil para seguir siendo comparables al puntaje de argumentar', () => {
-    const conLiviano = calcularBonosDeCoModerador(PERFILES_DE_PUNTAJE.liviano);
-    const conEstricto = calcularBonosDeCoModerador(PERFILES_DE_PUNTAJE.estricto);
-
-    expect(conLiviano.CASO_ESCALADO_RATIFICADO).toBe(8);
-    expect(conEstricto.CASO_ESCALADO_RATIFICADO).toBe(800);
-  });
-
-  it('marcar falta sin justificar sigue restando en todos los perfiles', () => {
+describe('puntaje máximo de un co-moderador', () => {
+  it('es lo que gana un debatiente con todas sus posiciones, así el rol sigue siendo comparable en cualquier perfil', () => {
     for (const perfil of Object.values(PERFILES_DE_PUNTAJE)) {
-      expect(calcularBonosDeCoModerador(perfil).FALTA_SIN_JUSTIFICAR_O_REVERTIDA).toBeLessThan(0);
+      const todasLasPosiciones = perfil.valoresBasePosicion.reduce((suma, valor) => suma + valor, 0);
+      expect(calcularPuntajeMaximoDeRevisor(perfil)).toBe(todasLasPosiciones);
     }
   });
 });
@@ -111,15 +103,5 @@ describe('resolverParametrosDePuntaje', () => {
 
   it('sin Programa cae al perfil por defecto', () => {
     expect(resolverParametrosDePuntaje(null).valoresBasePosicion).toEqual([10, 8, 3]);
-  });
-});
-
-describe('sorteo de co-moderadores', () => {
-  it('respeta el tope máximo configurado', () => {
-    expect(calcularNumeroDeCoModeradores(100, 4)).toBe(4);
-  });
-
-  it('nunca devuelve cero por la fórmula (el piso de 2 argumentadores lo aplica el motor)', () => {
-    expect(calcularNumeroDeCoModeradores(1)).toBe(1);
   });
 });

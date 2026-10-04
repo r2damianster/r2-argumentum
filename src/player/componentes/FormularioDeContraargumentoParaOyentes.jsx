@@ -4,6 +4,9 @@ import { decidirValidacion, DECISIONES } from '../../shared/argumentos/decidirVa
 import { buscarArgumentoParecido } from '../../shared/argumentos/buscarArgumentoParecido.js';
 import { resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.js';
 import { nombreDeParticipante } from '../../shared/estado/seleccionesDerivadas.js';
+import { AdvertenciaDeIntegridad, AvisoDeIntegridad } from '../../shared/componentes/foro/AdvertenciaDeIntegridad.jsx';
+import { useControlDeIntegridad } from '../../shared/nucleo/integridad/useControlDeIntegridad.js';
+import { CONTEXTOS_DE_REDACCION } from '../../shared/nucleo/integridad/canalPrivado.js';
 
 function generarId(prefijo) {
   return `${prefijo}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -17,6 +20,7 @@ export function FormularioDeContraargumentoParaOyentes({
   nombre,
   emoji,
   publicar,
+  publicarIntegridad,
 }) {
   const [argumentoObjetivoId, setArgumentoObjetivoId] = useState('');
   const [texto, setTexto] = useState('');
@@ -29,6 +33,13 @@ export function FormularioDeContraargumentoParaOyentes({
   // Un contraargumento suele defender la postura contraria a la del argumento que rebate, así que
   // no se hereda la del objetivo: la persona elige desde qué postura contraargumenta.
   const [posturaElegidaId, setPosturaElegidaId] = useState('');
+
+  const integridad = useControlDeIntegridad({
+    programa,
+    contexto: CONTEXTOS_DE_REDACCION.CONTRAARGUMENTO_DE_OYENTE,
+    texto,
+    publicarIntegridad,
+  });
 
   const argumentosPosibles = Object.values(estado.argumentos ?? {});
   const argumentoObjetivoSeleccionado = estado.argumentos?.[argumentoObjetivoId];
@@ -92,8 +103,11 @@ export function FormularioDeContraargumentoParaOyentes({
     if (!argumentoObjetivoId || !texto.trim() || !posturaElegidaId || texto !== textoRevisado) {
       return;
     }
+    integridad.intentarEnviar({ alEnviar: publicarContraargumento });
+  }
+
+  function publicarContraargumento(argumentId) {
     setEnviando(true);
-    const argumentId = generarId('argumento');
     const attemptId = generarId('intento');
     const stanceId = posturaElegidaId;
 
@@ -205,9 +219,11 @@ export function FormularioDeContraargumentoParaOyentes({
             </select>
           </label>
 
+          <AvisoDeIntegridad nivel={integridad.nivel} />
           <label style={{ marginTop: '12px' }}>
             Tu contraargumento (debe incluir premisa y razón)
             <textarea
+              {...integridad.propsDelCampo}
               value={texto}
               rows={4}
               onChange={(evento) => {
@@ -225,7 +241,15 @@ export function FormularioDeContraargumentoParaOyentes({
             </div>
           )}
 
-          {resultado?.decision === DECISIONES.APROBADO && (
+          {integridad.advertenciaPendiente && (
+            <AdvertenciaDeIntegridad
+              resumen={integridad.advertenciaPendiente}
+              onEnviarIgual={integridad.confirmarEnvioPendiente}
+              onReescribir={integridad.cancelarEnvioPendiente}
+            />
+          )}
+
+          {resultado?.decision === DECISIONES.APROBADO && !integridad.advertenciaPendiente && (
             <div className="mensaje-de-exito">
               <p>✅ Tu contraargumento cumple con la estructura requerida.</p>
               <button

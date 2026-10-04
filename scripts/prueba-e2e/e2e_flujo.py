@@ -126,7 +126,10 @@ with sync_playwright() as p:
     vigilar(host, "HOST")
     host.on("dialog", lambda dialogo: dialogo.accept())
     host.goto(BASE + "/host.html")
-    host.wait_for_selector("text=Elige el Programa de Debate a abrir", timeout=30000)
+    # Desde octubre de 2026 el host elige primero la actividad (docs/13).
+    host.wait_for_selector("text=¿Qué actividad vas a hacer?", timeout=30000)
+    host.click('button.opcion-de-actividad:has-text("Debate hablado")')
+    host.wait_for_selector("text=elige el Programa a abrir", timeout=30000)
     host.click('button:has-text("Izquierda o derecha")')
     host.wait_for_selector('button:has-text("Confirmar configuración y abrir sala")', timeout=15000)
     host.click('button:has-text("Confirmar configuración y abrir sala")')

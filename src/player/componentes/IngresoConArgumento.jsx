@@ -5,6 +5,9 @@ import { decidirValidacion, DECISIONES } from '../../shared/argumentos/decidirVa
 import { elegirPosturaMenosRepresentada, verificarCupoDePostura } from '../../shared/ingreso/reglasDeIngreso.js';
 import { buscarArgumentoParecido } from '../../shared/argumentos/buscarArgumentoParecido.js';
 import { nombreDeParticipante } from '../../shared/estado/seleccionesDerivadas.js';
+import { AdvertenciaDeIntegridad, AvisoDeIntegridad } from '../../shared/componentes/foro/AdvertenciaDeIntegridad.jsx';
+import { useControlDeIntegridad } from '../../shared/nucleo/integridad/useControlDeIntegridad.js';
+import { CONTEXTOS_DE_REDACCION } from '../../shared/nucleo/integridad/canalPrivado.js';
 
 function generarId(prefijo) {
   return `${prefijo}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -15,7 +18,7 @@ function generarId(prefijo) {
 //
 // Groq se consulta por HTTP directo, sin publicar nada al canal, así que corregir el borrador
 // las veces que haga falta no gasta cuota de Ably. Recién al confirmar se publican los eventos.
-export function IngresoConArgumento({ estado, programa, presencia, participantId, nombre, emoji, publicar }) {
+export function IngresoConArgumento({ estado, programa, presencia, participantId, nombre, emoji, publicar, publicarIntegridad }) {
   const posturas = programa.posturas;
   const modoAsignacion = programa.asignacionPostura ?? 'aleatoria';
   const asignacionEsLibre = modoAsignacion === 'libre';
@@ -34,6 +37,12 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
       : elegirPosturaMenosRepresentada(estado, posturas, { participantId, participantesEnLaSala })
   );
   const [texto, setTexto] = useState('');
+  const integridad = useControlDeIntegridad({
+    programa,
+    contexto: CONTEXTOS_DE_REDACCION.INGRESO,
+    texto,
+    publicarIntegridad,
+  });
   const [revisando, setRevisando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [resultado, setResultado] = useState(null);
@@ -158,8 +167,11 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
         return;
       }
     }
+    integridad.intentarEnviar({ alEnviar: publicarIngreso });
+  }
+
+  function publicarIngreso(argumentId) {
     setConfirmando(true);
-    const argumentId = generarId('argumento');
     const attemptId = generarId('intento');
 
     publicar(EVENTOS.ARGUMENTO_INTENTO, {
@@ -267,6 +279,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
             : 'No alcanza con afirmar algo: tiene que incluir la razón, la evidencia o el ejemplo que lo sostiene.'}
         </p>
         <textarea
+          {...integridad.propsDelCampo}
           value={texto}
           rows={5}
           spellCheck
@@ -278,6 +291,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
           placeholder="Ej. Los países con X lograron Y, porque…"
         />
 
+        <AvisoDeIntegridad nivel={integridad.nivel} />
         {resultado && resultado.decision !== DECISIONES.APROBADO && (
           <div className="aviso-de-validacion">
             <p className="mensaje-de-error">{resultado.mensaje}</p>
@@ -340,9 +354,18 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
       {estaAprobado && (
         <div className="paso-de-ingreso">
           <h3>{asignacionPorArgumento ? '2 · Confirmar' : '3 · Confirmar'}</h3>
-          <button type="submit" className="boton-exito" disabled={confirmando} onClick={confirmarIngreso}>
-            {confirmando ? 'Entrando…' : 'Confirmar mi ingreso al debate'}
-          </button>
+          {integridad.advertenciaPendiente && (
+            <AdvertenciaDeIntegridad
+              resumen={integridad.advertenciaPendiente}
+              onEnviarIgual={integridad.confirmarEnvioPendiente}
+              onReescribir={integridad.cancelarEnvioPendiente}
+            />
+          )}
+          {!integridad.advertenciaPendiente && (
+            <button type="submit" className="boton-exito" disabled={confirmando} onClick={confirmarIngreso}>
+              {confirmando ? 'Entrando…' : 'Confirmar mi ingreso al debate'}
+            </button>
+          )}
         </div>
       )}
     </section>

@@ -6,6 +6,12 @@ import { useEstadoDeSesion } from '../shared/estado/useEstadoDeSesion.js';
 import { EVENTOS, TIPOS_DE_FASE } from '../shared/eventos/nombresDeEventos.js';
 import { useMotorDeSesion } from './useMotorDeSesion.js';
 import { PantallaDeConfiguracionInicial } from './componentes/PantallaDeConfiguracionInicial.jsx';
+import { SelectorDeActividad } from './componentes/SelectorDeActividad.jsx';
+import { PanelDeDesignacionDeCoModeradores } from './componentes/PanelDeDesignacionDeCoModeradores.jsx';
+import { PanelDelForoParaElModerador } from './componentes/PanelDelForoParaElModerador.jsx';
+import { PanelDeRevisionDelModerador } from './componentes/PanelDeRevisionDelModerador.jsx';
+import { PanelDeIntegridadDelModerador } from './componentes/PanelDeIntegridadDelModerador.jsx';
+import { useSenalesDeIntegridadDelHost } from './useSenalesDeIntegridadDelHost.js';
 import { PanelDeGuiaPedagogica } from './componentes/PanelDeGuiaPedagogica.jsx';
 import { ControlDeFases } from './componentes/ControlDeFases.jsx';
 import { PanelDeEvaluacionDeExposiciones } from './componentes/PanelDeEvaluacionDeExposiciones.jsx';
@@ -27,6 +33,18 @@ import { PERFILES_DE_PUNTAJE, PERFIL_POR_DEFECTO } from '../shared/puntaje/formu
 import { IDIOMAS_DEL_DEBATE } from '../shared/programa/idiomaDelDebate.js';
 import { textoDeCreditos } from '../shared/creditos.js';
 import { guardarSesionDelHost, iniciarSesionDelHost, leerSesionDelHost } from '../shared/ably/sesionDelHost.js';
+import { normalizarModeracion } from '../shared/nucleo/coModeracion/calcularCoModeradores.js';
+import {
+  ETIQUETA_DEL_NIVEL_DE_INTEGRIDAD,
+  integridadEstaActiva,
+  resolverNivelDeIntegridad,
+} from '../shared/nucleo/integridad/nivelesDeIntegridad.js';
+import { ID_FORO_ESCRITO } from '../actividades/foroEscrito/definicion.js';
+import {
+  buscarActividadPorId,
+  listarActividadesHabilitadas,
+  resolverActividadDelPrograma,
+} from '../actividades/registroDeActividades.js';
 
 const CLAVE_DE_SESION_ACTIVA = 'r2-argumentum-sesion-activa';
 
@@ -147,16 +165,36 @@ function resolverSesionInicial() {
   return null;
 }
 
+// Con una sola actividad habilitada no hay nada que elegir: se salta el paso.
+function resolverActividadInicial(sesionRestaurada) {
+  if (sesionRestaurada?.programa) {
+    return resolverActividadDelPrograma(sesionRestaurada.programa).id;
+  }
+  const habilitadas = listarActividadesHabilitadas();
+  return habilitadas.length === 1 ? habilitadas[0].id : null;
+}
+
 function ConsolaDelHost({ onCerrarSesion }) {
   const [sesionRestaurada] = useState(resolverSesionInicial);
+  const [idDeActividadElegida, setIdDeActividadElegida] = useState(() => resolverActividadInicial(sesionRestaurada));
   const [programaBaseSeleccionado, setProgramaBaseSeleccionado] = useState(null);
   const [programaActivo, setProgramaActivo] = useState(sesionRestaurada?.programa ?? null);
   const [codigoDeSala, setCodigoDeSala] = useState(sesionRestaurada?.codigoDeSala ?? null);
   const [identificadorDeSesion, setIdentificadorDeSesion] = useState(sesionRestaurada?.identificadorDeSesion ?? null);
   const [errorDeCarga, setErrorDeCarga] = useState('');
 
+  const actividadesHabilitadas = listarActividadesHabilitadas();
+  const actividadElegida = buscarActividadPorId(idDeActividadElegida);
+
+  // Un Programa de otra actividad no se puede abrir con esta: la actividad manda cómo se juega.
   function seleccionarProgramaBase(programa) {
-    setProgramaBaseSeleccionado(programa);
+    const actividadDelPrograma = resolverActividadDelPrograma(programa);
+    if (programa.actividad && actividadDelPrograma.id !== actividadElegida.id) {
+      throw new Error(
+        `Este Programa es de otra actividad («${actividadDelPrograma.etiqueta}»). Cambia de actividad o elige otro Programa.`
+      );
+    }
+    setProgramaBaseSeleccionado({ ...programa, actividad: actividadElegida.id });
     setErrorDeCarga('');
   }
 
@@ -199,6 +237,11 @@ function ConsolaDelHost({ onCerrarSesion }) {
     }
   }
 
+  function cambiarActividad() {
+    setIdDeActividadElegida(actividadesHabilitadas.length === 1 ? actividadesHabilitadas[0].id : null);
+    setErrorDeCarga('');
+  }
+
   function cambiarPrograma() {
     setProgramaBaseSeleccionado(null);
     setProgramaActivo(null);
@@ -218,9 +261,27 @@ function ConsolaDelHost({ onCerrarSesion }) {
     }
   }
 
+  // Etapa 1.0: elegir la actividad (debate hablado, foro escrito…) antes de elegir el Programa
+  if (!programaActivo && !programaBaseSeleccionado && !actividadElegida) {
+    return (
+      <main>
+        <div className="barra-superior">
+          <h1>Consola del host</h1>
+          <button type="button" className="boton-cerrar-sesion" onClick={onCerrarSesion}>
+            Cerrar sesión
+          </button>
+        </div>
+        <SelectorDeActividad actividades={actividadesHabilitadas} onElegirActividad={setIdDeActividadElegida} />
+      </main>
+    );
+  }
+
   // Etapa 1.1: Si aún no se selecciona ningún programa base ni hay sesión activa
   if (!programaActivo && !programaBaseSeleccionado) {
-    const categoriasDeEjemplos = agruparProgramasPorCategoria(PROGRAMAS_DE_EJEMPLO);
+    const programasDeLaActividad = PROGRAMAS_DE_EJEMPLO.filter(
+      (programa) => resolverActividadDelPrograma(programa).id === actividadElegida.id
+    );
+    const categoriasDeEjemplos = agruparProgramasPorCategoria(programasDeLaActividad);
 
     return (
       <main>
@@ -231,7 +292,14 @@ function ConsolaDelHost({ onCerrarSesion }) {
           </button>
         </div>
         <section className="tarjeta-de-programa">
-          <h2>Elige el Programa de Debate a abrir</h2>
+          <h2>
+            {actividadElegida.icono} {actividadElegida.etiqueta}: elige el Programa a abrir
+          </h2>
+          {actividadesHabilitadas.length > 1 && (
+            <button type="button" className="boton-cambiar-programa" onClick={cambiarActividad}>
+              ↩️ Cambiar de actividad
+            </button>
+          )}
           <p className="texto-de-ayuda">
             Un Programa define el tema, las posturas, las reglas de puntaje y los ejemplos para Groq de esta
             sesión. Ver <code>docs/03-programa-de-debate.md</code>.
@@ -255,6 +323,12 @@ function ConsolaDelHost({ onCerrarSesion }) {
               </ul>
             </div>
           ))}
+
+          {programasDeLaActividad.length === 0 && (
+            <p className="texto-de-ayuda">
+              Esta actividad todavía no trae Programas de ejemplo: carga uno propio con el botón de arriba.
+            </p>
+          )}
 
           {errorDeCarga && <p className="mensaje-de-error">{errorDeCarga}</p>}
         </section>
@@ -320,6 +394,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
   }
 
   const [modoProyeccion, setModoProyeccion] = useState(false);
+  const [incluirAnexoDeIntegridad, setIncluirAnexoDeIntegridad] = useState(false);
   const [rankingParcialVisible, setRankingParcialVisible] = useState(false);
   const [avisoDeVentanaBloqueada, setAvisoDeVentanaBloqueada] = useState(false);
   const programaYaPublicadoRef = useRef(false);
@@ -359,8 +434,16 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
   const mostrarRanking =
     estado.fase.actual?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING || estado.sesion.cerrada || rankingParcialVisible;
   const programaVisible = estado.programa ?? programa;
+  const esForo = resolverActividadDelPrograma(programaVisible).id === ID_FORO_ESCRITO;
 
   useEmisorDeProyeccion({ codigoDeSala, estado, presencia, programa: programaVisible, conexion });
+
+  // Señales de integridad: solo el host lee el canal privado. Con la integridad apagada no se conecta.
+  const integridadActiva = integridadEstaActiva(programaVisible);
+  const { registros: registrosDeIntegridad } = useSenalesDeIntegridadDelHost({
+    sessionId: codigoDeSala,
+    activo: integridadActiva,
+  });
 
   function alternarRankingParcial() {
     const seVaAMostrar = !rankingParcialVisible;
@@ -478,6 +561,12 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
           <TarjetaResumenDeConfiguracion programa={programaVisible} onModificarConfiguracion={onModificarConfiguracion && pedirModificarConfiguracion} />
 
           <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
+          <PanelDeDesignacionDeCoModeradores
+            estado={estado}
+            presencia={presencia}
+            programa={programaVisible}
+            motor={motor}
+          />
           <PanelDeAvisos estado={estado} presencia={presencia} motor={motor} />
           <PanelDePosturasPropuestas
             estado={estado}
@@ -497,6 +586,15 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
         // Debate en vivo (Etapa 3)
         <>
           <PanelDeAvisos estado={estado} presencia={presencia} motor={motor} />
+          {integridadActiva && (
+            <PanelDeIntegridadDelModerador
+              estado={estado}
+              presencia={presencia}
+              registros={registrosDeIntegridad}
+              esForo={esForo}
+              publicar={publicar}
+            />
+          )}
           {!estado.sesion.cerrada && (
             <ControlDeFases
               estado={estado}
@@ -513,7 +611,6 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
             rankingParcialVisible={rankingParcialVisible}
             onAlternarRankingParcial={alternarRankingParcial}
           />
-          <FeedDeActividad estado={estado} presencia={presencia} />
           {!estado.sesion.cerrada && (
             <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
           )}
@@ -523,12 +620,36 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
             identificadorDeSesion={identificadorDeSesion}
             publicar={publicar}
           />
-          <PanelDeDecisionDeBids estado={estado} motor={motor} />
-          <PanelDeEvaluacionDeExposiciones estado={estado} presencia={presencia} publicar={publicar} />
-          <VistaEspejoDeParticipante estado={estado} presencia={presencia} programa={programaVisible} />
+          {esForo ? (
+            <>
+              {!estado.sesion.cerrada && (
+                <PanelDeRevisionDelModerador estado={estado} presencia={presencia} publicar={publicar} />
+              )}
+              <PanelDelForoParaElModerador
+                estado={estado}
+                presencia={presencia}
+                programa={programaVisible}
+                publicar={publicar}
+              />
+            </>
+          ) : (
+            <>
+              <FeedDeActividad estado={estado} presencia={presencia} />
+              <PanelDeDecisionDeBids estado={estado} motor={motor} />
+              <PanelDeEvaluacionDeExposiciones estado={estado} presencia={presencia} publicar={publicar} />
+              <VistaEspejoDeParticipante estado={estado} presencia={presencia} programa={programaVisible} />
+            </>
+          )}
           <GrafoDeArgumentos estado={estado} programa={programaVisible} presencia={presencia} />
           {mostrarRanking && (
-            <InformeDelDebate estado={estado} programa={programaVisible} presencia={presencia} eventos={eventos} />
+            <InformeDelDebate
+              estado={estado}
+              programa={programaVisible}
+              presencia={presencia}
+              eventos={eventos}
+              registrosDeIntegridad={registrosDeIntegridad}
+              incluirAnexoDeIntegridad={incluirAnexoDeIntegridad}
+            />
           )}
           {mostrarRanking && (
             <PantallaDeRanking
@@ -538,6 +659,10 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
               presencia={presencia}
               motor={motor}
               onNuevoDebate={onCambiarPrograma}
+              integridadActiva={integridadActiva}
+              registrosDeIntegridad={registrosDeIntegridad}
+              incluirAnexoDeIntegridad={incluirAnexoDeIntegridad}
+              onAlternarAnexoDeIntegridad={() => setIncluirAnexoDeIntegridad((incluir) => !incluir)}
             />
           )}
         </>
@@ -554,6 +679,12 @@ function TarjetaResumenDeConfiguracion({ programa, onModificarConfiguracion }) {
     aleatoria: '🎲 Rolplay (Asignación Aleatoria)',
     por_argumento: '✍️ Postura Propia (Auto-detectada)',
     libre: '🖐️ Elección Libre (Por botones)',
+  };
+
+  const NOMBRES_MODO_MODERACION = {
+    reglamentario: '📏 Reglamentario (uno por cada 10 participantes)',
+    fijo: `🔢 Número fijo (${programa.moderacion?.numeroFijo ?? '—'})`,
+    ninguno: '🙋 Sin co-moderadores',
   };
 
   return (
@@ -573,6 +704,8 @@ function TarjetaResumenDeConfiguracion({ programa, onModificarConfiguracion }) {
         <li><strong>Modo de asignación:</strong> {NOMBRES_MODO_ASIGNACION[programa.asignacionPostura] ?? programa.asignacionPostura}</li>
         <li><strong>Modo de calificación:</strong> {perfilObj.etiqueta} ({perfilObj.valoresBasePosicion.join(' / ')} pts)</li>
         <li><strong>Idioma:</strong> {idiomaObj.etiqueta}</li>
+        <li><strong>Co-moderadores:</strong> {NOMBRES_MODO_MODERACION[normalizarModeracion(programa.moderacion).modo]}</li>
+        <li><strong>Integridad:</strong> {ETIQUETA_DEL_NIVEL_DE_INTEGRIDAD[resolverNivelDeIntegridad(programa)]}</li>
         <li><strong>Posturas nuevas propuestas:</strong> {programa.permitirPosturasNuevas ? 'Permitidas' : 'No permitidas'}</li>
       </ul>
     </div>

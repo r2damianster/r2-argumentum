@@ -18,7 +18,10 @@ with sync_playwright() as p:
     pagina.fill('input[autocomplete="username"]', usuario)
     pagina.fill('input[type="password"]', clave)
     pagina.click('button[type="submit"]')
-    pagina.wait_for_selector("text=Elige el Programa de Debate a abrir", timeout=30000)
+    # Desde octubre de 2026 el host elige primero la actividad (docs/13).
+    pagina.wait_for_selector("text=¿Qué actividad vas a hacer?", timeout=30000)
+    pagina.click('button.opcion-de-actividad:has-text("Debate hablado")')
+    pagina.wait_for_selector("text=elige el Programa a abrir", timeout=30000)
     print("LOGIN_OK: la consola del host abrió con la sesión del servidor", flush=True)
     sesion = pagina.evaluate("localStorage.getItem('r2-argumentum-host-sesion') !== null")
     print("Token guardado en localStorage:", sesion, flush=True)

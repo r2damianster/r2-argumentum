@@ -1,0 +1,254 @@
+/* Foro escrito — ver docs/13-foro-escrito-y-nucleo-reutilizable.md.
+   Mismos principios que el resto: sin scroll horizontal a 320 px y controles de al menos 44 px. */
+
+.barra-de-tiempo {
+  margin: 0 0 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.barra-de-tiempo--final {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.barra-de-tiempo--agotado {
+  background: #f1f5f9;
+  border-color: var(--color-borde);
+  color: #334155;
+}
+
+.franja-de-metricas {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.franja-de-metricas li {
+  flex: 1 1 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 8px;
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 10px;
+  font-size: 0.8rem;
+}
+
+.franja-de-metricas strong {
+  font-size: 1.15rem;
+}
+
+.franja-de-metricas .metrica-con-pendiente {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.aviso-del-foro {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+}
+
+.aviso-del-foro p {
+  margin: 0 0 0.5rem;
+}
+
+.lista-de-hilos,
+.lista-de-respuestas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lista-de-hilos > li {
+  margin-bottom: 12px;
+}
+
+.aporte-del-foro > article {
+  padding: 10px 12px;
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 10px;
+}
+
+.aporte-del-foro--oculto > article {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
+.lista-de-respuestas {
+  margin: 6px 0 0 14px;
+  padding-left: 10px;
+  border-left: 3px solid var(--color-borde);
+}
+
+.lista-de-respuestas > li {
+  margin-bottom: 8px;
+}
+
+.lista-de-respuestas--plana {
+  margin-left: 0;
+}
+
+.encabezado-del-aporte {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 0.85rem;
+}
+
+.tipo-del-aporte {
+  color: #475569;
+}
+
+.etiqueta-sin-debatir,
+.etiqueta-oculto {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.etiqueta-sin-debatir {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.etiqueta-oculto {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.texto-del-aporte {
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.reacciones-del-aporte,
+.acciones-del-aporte {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.boton-de-reaccion,
+.acciones-del-aporte button {
+  min-height: 44px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-borde);
+  background: white;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.boton-de-reaccion--mia {
+  border-color: var(--color-marca);
+  background: #f0fdfa;
+  font-weight: 700;
+}
+
+.reaccion-solo-lectura {
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.compositor-del-foro {
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid var(--color-marca);
+  border-radius: 12px;
+}
+
+.compositor-del-foro textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.compositor-del-foro .contador-de-palabras {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.compositor-del-foro--respondiendo {
+  border-width: 2px;
+}
+
+.orden-de-hilos {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 0.5rem;
+}
+
+.orden-de-hilos select {
+  min-height: 44px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barra-de-tiempo {
+    transition: none;
+  }
+}
+
+/* Sugerencia de la IA: orienta, no puntúa. */
+.sugerencia-de-ia {
+  margin: 6px 0;
+  padding: 6px 10px;
+  border-left: 3px solid #94a3b8;
+  background: #f8fafc;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.etiqueta-de-sugerencia {
+  margin: 0 0 4px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.chip-de-completitud {
+  display: inline-block;
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.chip-de-completitud--completo {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.chip-de-completitud--incompleto {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.chip-de-completitud--sin_razon {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.lista-de-falacias {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}

@@ -11,7 +11,21 @@ import {
   EVENTOS,
   CALIDADES_DE_EXPOSICION,
   DECISIONES_DEL_MODERADOR_SOBRE_EXPOSICION,
+  TIPOS_DE_REACCION,
 } from '../eventos/nombresDeEventos.js';
+import { NIVELES_DE_REVISION_DE_APORTE } from '../puntaje/puntajeDeAportes.js';
+import { DECISIONES_DEL_MODERADOR_SOBRE_REVISION } from '../nucleo/revision/calcularPuntajeDeRevisores.js';
+
+const NIVELES_DE_REVISION_VALIDOS = Object.values(NIVELES_DE_REVISION_DE_APORTE);
+const IDENTIDAD_DEL_MODERADOR = 'host';
+
+// Los eventos de moderación y de reacción solo valen si quien los publicó es quien dice ser: Ably
+// pone el `clientId` real del emisor (y solo el moderador puede conectarse como «host», ver
+// api/ably-token.js). Así un estudiante no puede falsificar la decisión del moderador ni votar como
+// co-moderador a nombre de otra persona. Sin `clientId` (pruebas o copias locales antiguas) se acepta.
+function elEmisorEs(evento, identidadEsperada) {
+  return evento.clientId === undefined || evento.clientId === identidadEsperada;
+}
 
 export function estadoInicial() {
   return {
@@ -23,6 +37,10 @@ export function estadoInicial() {
     // co-moderador una vez) y qué decidió el moderador. Se aplica al puntaje al cerrar la sesión
     // (ver evaluacionDeExposiciones.js).
     exposiciones: {},
+    // Reacciones a los aportes de las actividades escritas: { [argumentId]: { [participantId]: tipo } }.
+    reacciones: {},
+    // Revisión humana de los aportes: { [argumentId]: { niveles: { [coModeradorId]: nivel }, decisionModerador } }.
+    revisiones: {},
     participantes: {},
     coModeradores: null,
     turnos: {
@@ -92,8 +110,9 @@ function conParticipanteActualizado(estado, participantId, actualizar) {
 // Cualquier evento publicado por el motor puede traer una `claveDeIdempotencia`: queda
 // registrada en el estado para que un motor nuevo (host que refrescó) no repita esa acción.
 export function reducirEventos(estado, evento) {
-  // Una copia local guardada antes de que existieran las exposiciones no trae ese campo.
-  const estadoCompleto = estado.exposiciones ? estado : { ...estado, exposiciones: {} };
+  // Una copia local guardada antes de que existieran las exposiciones o las reacciones no trae
+  // esos campos.
+  const estadoCompleto = { exposiciones: {}, reacciones: {}, revisiones: {}, ...estado };
   const siguiente = aplicarEvento(estadoCompleto, evento);
   const clave = evento.data?.claveDeIdempotencia;
   if (!clave || siguiente.accionesDelMotor?.[clave]) {
@@ -119,7 +138,16 @@ function aplicarEvento(estado, evento) {
     case EVENTOS.FASE_INICIADA:
       return {
         ...estado,
-        fase: { ...estado.fase, actual: { tipo: data.phaseType, ronda: data.ronda ?? null, iniciadaEn: data.timestamp } },
+        fase: {
+          ...estado.fase,
+          actual: {
+            tipo: data.phaseType,
+            ronda: data.ronda ?? null,
+            iniciadaEn: data.timestamp,
+            // Solo las fases con tiempo total (el foro) traen duración; las demás las cierra el moderador.
+            ...(data.duracionMin ? { duracionMin: data.duracionMin, extensionesMin: 0 } : {}),
+          },
+        },
         turnos: {
           ...estado.turnos,
           fallosConsecutivosDeOferta: 0,
@@ -127,6 +155,23 @@ function aplicarEvento(estado, evento) {
           motivoPausa: null,
         },
       };
+
+    // El moderador suma minutos a una fase con tiempo total (el foro).
+    case EVENTOS.FASE_EXTENDIDA: {
+      if (!estado.fase.actual?.duracionMin || !(data.minutos > 0)) {
+        return estado;
+      }
+      return {
+        ...estado,
+        fase: {
+          ...estado.fase,
+          actual: {
+            ...estado.fase.actual,
+            extensionesMin: (estado.fase.actual.extensionesMin ?? 0) + data.minutos,
+          },
+        },
+      };
+    }
 
     case EVENTOS.FASE_CERRADA: {
       const faseCerrada = estado.fase.actual
@@ -227,6 +272,16 @@ function aplicarEvento(estado, evento) {
 
     case EVENTOS.COMODERADORES_SELECCIONADOS: {
       let siguienteEstado = { ...estado, coModeradores: data };
+      // Si el moderador vuelve a designar (se arrepintió, o ajustó la lista), quien ya no está en
+      // la lista deja de ser co-moderador. Antes el rol solo se agregaba y quedaban fantasmas.
+      for (const participante of Object.values(estado.participantes)) {
+        if (participante.rol === 'co_moderador' && !data.participantIds.includes(participante.participantId)) {
+          siguienteEstado = conParticipanteActualizado(siguienteEstado, participante.participantId, (actual) => ({
+            ...actual,
+            rol: 'participante',
+          }));
+        }
+      }
       for (const participantId of data.participantIds) {
         siguienteEstado = conParticipanteActualizado(siguienteEstado, participantId, (participante) => ({
           ...participante,
@@ -690,6 +745,98 @@ function aplicarEvento(estado, evento) {
           ...estado.bids,
           [data.bidId]: { ...bidExistente, decisionFinal: data.decisionFinal, estado: 'resuelto' },
         },
+      };
+    }
+
+    // Una reacción por persona y por aporte; nadie reacciona a lo propio. `tipo: null` la quita.
+    case EVENTOS.REACCION_REGISTRADA: {
+      const aporte = estado.argumentos[data.argumentId];
+      const esTipoValido = data.tipo === null || Object.values(TIPOS_DE_REACCION).includes(data.tipo);
+      if (!aporte || !esTipoValido || aporte.participantId === data.participantId || !elEmisorEs(evento, data.participantId)) {
+        return estado;
+      }
+      const reaccionesDelAporte = { ...(estado.reacciones[data.argumentId] ?? {}) };
+      if (data.tipo === null) {
+        delete reaccionesDelAporte[data.participantId];
+      } else {
+        reaccionesDelAporte[data.participantId] = data.tipo;
+      }
+      return { ...estado, reacciones: { ...estado.reacciones, [data.argumentId]: reaccionesDelAporte } };
+    }
+
+    case EVENTOS.APORTE_OCULTADO:
+    case EVENTOS.APORTE_RESTAURADO: {
+      const aporte = estado.argumentos[data.argumentId];
+      if (!aporte) {
+        return estado;
+      }
+      const seOculta = name === EVENTOS.APORTE_OCULTADO;
+      // Ocultan el moderador y los co-moderadores; restaura solo el moderador.
+      const actor = evento.clientId ?? data.porId;
+      const puedeActuar = seOculta
+        ? actor === IDENTIDAD_DEL_MODERADOR || estado.participantes[actor]?.rol === 'co_moderador'
+        : actor === IDENTIDAD_DEL_MODERADOR;
+      if (!puedeActuar) {
+        return estado;
+      }
+      return {
+        ...estado,
+        argumentos: {
+          ...estado.argumentos,
+          [data.argumentId]: {
+            ...aporte,
+            oculto: seOculta,
+            ocultadoPor: seOculta ? data.porId ?? null : null,
+            motivoDeOcultar: seOculta ? data.motivo ?? '' : '',
+          },
+        },
+      };
+    }
+
+    // Cada co-moderador decide una vez por aporte (la última reemplaza a la anterior). Solo cuentan los
+    // votos de co-moderadores reales sobre aportes ajenos y con un nivel válido.
+    case EVENTOS.REVISION_REGISTRADA: {
+      const aporte = estado.argumentos[data.argumentId];
+      const esCoModerador = estado.participantes[data.revisorId]?.rol === 'co_moderador';
+      if (
+        !aporte ||
+        !esCoModerador ||
+        aporte.participantId === data.revisorId ||
+        !NIVELES_DE_REVISION_VALIDOS.includes(data.nivel) ||
+        !elEmisorEs(evento, data.revisorId)
+      ) {
+        return estado;
+      }
+      const revisionPrevia = estado.revisiones[data.argumentId] ?? { niveles: {}, decisionModerador: null };
+      return {
+        ...estado,
+        revisiones: {
+          ...estado.revisiones,
+          [data.argumentId]: { ...revisionPrevia, niveles: { ...revisionPrevia.niveles, [data.revisorId]: data.nivel } },
+        },
+      };
+    }
+
+    // El moderador puede cambiar de idea hasta cerrar; «sin_evaluar» deshace su decisión.
+    case EVENTOS.REVISION_DECIDIDA_POR_MODERADOR: {
+      if (!estado.argumentos[data.argumentId] || !elEmisorEs(evento, IDENTIDAD_DEL_MODERADOR)) {
+        return estado;
+      }
+      let decisionModerador = null;
+      if (data.decision === DECISIONES_DEL_MODERADOR_SOBRE_REVISION.DESCARTADA) {
+        decisionModerador = { decision: data.decision, nivel: null };
+      } else if (
+        data.decision === DECISIONES_DEL_MODERADOR_SOBRE_REVISION.EVALUADA &&
+        NIVELES_DE_REVISION_VALIDOS.includes(data.nivel)
+      ) {
+        decisionModerador = { decision: data.decision, nivel: data.nivel };
+      } else if (data.decision !== DECISIONES_DEL_MODERADOR_SOBRE_REVISION.SIN_EVALUAR) {
+        return estado;
+      }
+      const revisionPrevia = estado.revisiones[data.argumentId] ?? { niveles: {}, decisionModerador: null };
+      return {
+        ...estado,
+        revisiones: { ...estado.revisiones, [data.argumentId]: { ...revisionPrevia, decisionModerador } },
       };
     }
 

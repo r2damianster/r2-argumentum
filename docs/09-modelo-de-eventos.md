@@ -81,10 +81,10 @@ Se publica una vez por participante, antes de que pueda escribir su primer argum
 ## Selección de co-moderadores
 
 ```
-comod.selected   { participantIds: [...], formulaUsada, totalParticipantes, timestamp }
+comod.selected   { participantIds: [...], formulaUsada, totalParticipantes, origen, timestamp }
 ```
 
-Publicado una vez por el Moderador al iniciar la sesión, tras aplicar `ceil(n * 0.10)` (o el override del Programa) sobre el conteo de presence.
+`origen`: `sorteo_del_moderador` o `manual` (el moderador designó en la sala de espera; se respeta al iniciar) o `automatico` (el motor sorteó al iniciar, o el moderador quitó la designación). Cuántos co-moderadores corresponden lo decide el modo de moderación del Programa (`04-roles-y-turnos.md`). Cada publicación **reemplaza** la lista anterior: quien deja de estar en la lista deja de ser co-moderador.
 
 ## Turnos
 
@@ -179,7 +179,7 @@ argument.submitted {
   timestamp
 }
 
-argument.validated {   // publicado después, por un co-moderador
+argument.validated {   // RETIRADO (oct. 2026): ya no se emite; el reducer lo sigue entendiendo para sesiones antiguas
   argumentId, coModeradorId,
   tipoFinal,             // puede diferir del tipoDeclarado
   puntajeAsignado,
@@ -224,7 +224,7 @@ bid.decision_moderador {
 }
 ```
 
-Si `decisionFinal: "aprobado"`, se publica inmediatamente un `argument.submitted` normal (texto = el del bid, sin pasar por Groq) y los `score.updated` correspondientes: uno para el participante (fórmula de posición, igual que cualquier argumento) y uno por cada co-moderador cuyo voto coincidió con la decisión final (+5, ver `05-reglas-de-puntaje.md`).
+Si `decisionFinal: "aprobado"`, se publica inmediatamente un `argument.submitted` normal (texto = el del bid, sin pasar por Groq) y el `score.updated` del participante (fórmula de posición, igual que cualquier argumento). Los votos de los co-moderadores no puntúan en ese momento: cuentan al cerrar la sesión, dentro de su porcentaje de acierto (ver `05-reglas-de-puntaje.md`).
 
 ## Conexiones
 
@@ -260,6 +260,27 @@ score.updated {
 ```
 
 Se publica cada vez que la fórmula de `05-reglas-de-puntaje.md` produce un cambio: al validar un argumento, al resolver una conexión, o al registrarse una acción de co-moderación.
+
+## Foro escrito y actividades escritas
+
+```
+phase.started        { phaseType: "foro_escrito", duracionMin }         // fases con tiempo total llevan su duración
+fase.extendida       { minutos }                                         // el moderador suma minutos a la fase en curso
+reaccion.registrada  { argumentId, participantId, tipo | null }          // me_convencio | me_hizo_dudar | aporta_evidencia; null la quita
+aporte.ocultado      { argumentId, porId, motivo? }                      // moderador o co-moderador
+aporte.restaurado    { argumentId, porId }                               // solo el moderador
+revision.registrada  { argumentId, revisorId, nivel }                    // un co-moderador: 1 cuenta · 0,5 parcial · 0 no cuenta
+revision.decidida_moderador { argumentId, decision: "evaluada" | "descartada" | "sin_evaluar", nivel? }
+```
+
+- `ingreso.confirmado` puede traer `argumentId: null`: en el foro no se exige un argumento previo.
+- `argument.submitted` puede traer `sugerenciaDeIA: { completitud, falacias, comentario, confianza }` y, en una réplica, `argumentoObjetivoId` (se lee junto con `link.created`, así no importa cuál llegue primero). Siempre con `pendienteDeExposicion: false`.
+- **Quién puede publicar qué.** El reducer acepta `revision.registrada`, `revision.decidida_moderador`, `aporte.ocultado`, `aporte.restaurado` y `reaccion.registrada` solo si el `clientId` real del emisor (el que pone Ably) coincide con quien dice ser: `revisorId`, `participantId`, `host` o un co-moderador. Sin `clientId` (pruebas o copias locales antiguas) se acepta.
+- Los ajustes de puntaje de las revisiones se publican al cerrar como `score.updated`, con la clave de idempotencia `evaluaciones-finales`.
+
+### Canal privado de integridad
+
+`debate:integridad:{sala}`, evento `integridad.senal`: `{ participantId, argumentId, contexto, senales: [{ tipo, gravedad, detalle }], gravedadMaxima, estadisticas, advertenciaMostrada, enviadoEn }`. **No pasa por el reducer ni por el canal de la sesión.** Los participantes publican por REST; solo el host lo lee, y descarta cualquier mensaje cuyo `clientId` no coincida con `participantId`.
 
 ## Cierre de sesión
 

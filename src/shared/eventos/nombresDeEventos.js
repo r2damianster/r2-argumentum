@@ -72,6 +72,21 @@ export const EVENTOS = {
 
   PUNTAJE_ACTUALIZADO: 'score.updated',
 
+  // Actividades escritas, como el foro (ver docs/13-foro-escrito-y-nucleo-reutilizable.md).
+  // El moderador suma minutos a la fase en curso.
+  FASE_EXTENDIDA: 'fase.extendida',
+  // Una reacción con sentido a un aporte («me convenció», «me hizo dudar»…): una por persona y por
+  // aporte; publicar otra reemplaza la anterior y `tipo: null` la quita.
+  REACCION_REGISTRADA: 'reaccion.registrada',
+  // Moderador y co-moderadores pueden ocultar un aporte; solo el moderador lo restaura. Sigue en el
+  // log, no se ve y no puntúa.
+  APORTE_OCULTADO: 'aporte.ocultado',
+  APORTE_RESTAURADO: 'aporte.restaurado',
+  // Un co-moderador decide si un aporte cuenta (1), cuenta parcial (0,5) o no cuenta (0); el moderador
+  // decide con la última palabra (o descarta las de los co-moderadores). Se aplica al cerrar.
+  REVISION_REGISTRADA: 'revision.registrada',
+  REVISION_DECIDIDA_POR_MODERADOR: 'revision.decidida_moderador',
+
   SESION_CERRADA: 'session.closed',
 };
 
@@ -98,6 +113,8 @@ export const TIPOS_DE_BID = {
 
 export const TIPOS_DE_FASE = {
   ESCRITURA_ARGUMENTOS: 'escritura_argumentos',
+  // Fase única del foro escrito: posts y réplicas libres durante un tiempo total.
+  FORO_ESCRITO: 'foro_escrito',
   CONEXION_SUGERIDA: 'conexion_sugerida',
   CONEXION_LIBRE: 'conexion_libre',
   CIERRE_Y_RANKING: 'cierre_y_ranking',
@@ -111,4 +128,13 @@ export const TIPOS_DE_RELACION = {
   PREGUNTA: 'pregunta',
   CONCESION: 'concesion',
   CONEXION: 'conexion',
+};
+
+// Reacciones con sentido a un aporte. No hay «me gusta» genérico: premiaría popularidad y la
+// plataforma premia estructura argumental. «Me convenció» de alguien de la postura contraria es
+// el «convencimiento cruzado» (se cuenta y se muestra al moderador, sin puntos en la v1).
+export const TIPOS_DE_REACCION = {
+  ME_CONVENCIO: 'me_convencio',
+  ME_HIZO_DUDAR: 'me_hizo_dudar',
+  APORTA_EVIDENCIA: 'aporta_evidencia',
 };

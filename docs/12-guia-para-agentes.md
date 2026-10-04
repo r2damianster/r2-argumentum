@@ -64,6 +64,13 @@ La «apertura simultánea» (temporizador con semáforo y selector de tiempo) se
 ### Regla 9 — Las decisiones de arquitectura no se reabren
 Sin base de datos para el estado en vivo (Ably). La proyección usa `BroadcastChannel`, no otro cliente de Ably. Groq **nunca** es juez: solo valida la forma al escribir y sugiere conexiones en lote cuando el moderador lo pide. Un solo esquema de puntaje. Detalle y motivos en `CLAUDE.md`.
 
+### Regla 9a — Actividades y núcleo (octubre de 2026)
+- Lo que sirve para más de una actividad vive en `src/shared/nucleo/` como **función pura**, sin importar nada de una actividad concreta. Lo propio de una actividad vive en `src/actividades/<actividad>/` y se declara con `definirActividad`.
+- El motor base (`src/host/motorDeSesion.js`) no debe conocer ninguna actividad por su nombre: llama a los procesos que la actividad aporta. Si necesitas un `if (actividad === ...)` en el motor, falta un gancho en el contrato.
+- Los eventos de moderación, revisión y reacción solo valen si los publicó quien dice ser: el reducer compara el `clientId` real. `useEstadoDeSesion` tiene que pasárselo; sin eso la protección no existe.
+- Las señales de integridad **nunca** van por el canal de la sesión: solo por `debate:integridad:*`, que los participantes no pueden leer. Y nunca se imprimen en el informe general.
+- Groq solo **sugiere**. En el foro no puntúa ni de forma provisional.
+
 ### Regla 9b — Créditos y podio final
 - Los créditos (nombre, ORCID, herramientas de IA, foto) salen **solo** de `src/shared/creditos.js` y del componente `Creditos`; no copies el ORCID ni el nombre a mano. Se muestran **solo al ingresar y en el podio final**, nunca durante el debate.
 - La foto es `public/autor.webp` (10 KB). No cargues `public/avatar.png` (3,2 MB) en pantallas de estudiantes.
@@ -90,6 +97,8 @@ El hook global `auto-commit` de Claude Code ignora este repositorio (existe `.no
 | 24-sep | Reparto de posturas 1/3/4 con 8 personas en asignación aleatoria | Cada cliente calculaba con conteos viejos | e2e | Cupo por postura al confirmar (`verificarCupoDePostura`) |
 | 24-sep | `/api/host-login` respondió 503 tras un push | El auto-push desplegó antes de crear las variables de entorno | Producción | Regla 6 |
 | 25-sep | Podio final: al llevarlo a la pantalla, la **capa instruccional fija** tapaba su primera línea y el botón «Saltar la animación» no recibía el toque | `scrollIntoView` sin contar con elementos `sticky`/`fixed`; la comprobación «está en pantalla» (`y ≥ 0`) no detectaba el solapamiento | `moviles.py` (Playwright: «intercepts pointer events») | Con el debate cerrado la capa va sin fijar; las pruebas verifican con `elementFromPoint` que el botón recibe el toque |
+| 4-oct | La protección contra eventos falsificados **no funcionaba**: `useEstadoDeSesion` llamaba al reducer sin el `clientId` real del emisor | Se escribió la comprobación en el reducer sin verificar que el hook le entregara el dato | Revisión del hook al preparar el canal privado | El hook pasa el `clientId`; las pruebas del reducer cubren «publicado a nombre de otra persona» |
+| 4-oct | Los scripts de `prueba-e2e/` dejaron de encontrar la pantalla de Programas | Se agregó el paso «¿Qué actividad vas a hacer?» antes de la lista | Revisión de los scripts al terminar el hito del selector | Los scripts eligen «Debate hablado» primero |
 | 24-sep | Falso «zoom 30 %» en un navegador automatizado (tapaba botones) | `viewport` fijo en una ventana con otro tamaño | Capturas del e2e | El script usa `no_viewport` |
 
 ## 4. Cómo probar
@@ -104,6 +113,7 @@ El hook global `auto-commit` de Claude Code ignora este repositorio (existe `.no
 | Reparto de posturas | `bandos.py`, `confirmaciones_simultaneas.py` | |
 | Volver a configuración | `volver_config.py` | |
 | Móviles | `python scripts/prueba-e2e/moviles.py` | 8 modelos, táctil, teclado, horizontal |
+| Foro escrito | `python scripts/prueba-e2e/foro.py` | actividad, moderación, integridad, IA, revisión, cierre e informe (sin ejecutar aún en producción) |
 
 Los scripts manejan **producción** (Ably y Groq solo existen en Vercel) y consumen unas pocas llamadas reales. El login del host lo escribe el docente (o `login_host.py` con la clave que él entregue); ver `scripts/prueba-e2e/README.md`.
 
@@ -121,6 +131,8 @@ Los scripts manejan **producción** (Ably y Groq solo existen en Vercel) y consu
 | Dónde | Qué vive ahí |
 |---|---|
 | `src/host/motorDeSesion.js` | Autoridad del debate: turnos, puntaje, fases (solo corre en la consola del host) |
+| `src/actividades/` | Contrato y registro de actividades; `debateHablado/` y `foroEscrito/` |
+| `src/shared/nucleo/` | Piezas puras reutilizables: co-moderación, revisión, temporizador, conciencia, reacciones, IA, integridad, informe |
 | `src/shared/estado/reducirEventos.js` | Estado derivado del log de eventos (event sourcing) |
 | `src/shared/eventos/nombresDeEventos.js` | Catálogo de eventos (documentado en `docs/09`) |
 | `src/shared/ingreso/reglasDeIngreso.js` | Oyentes vs participantes, reparto de posturas, cupo |

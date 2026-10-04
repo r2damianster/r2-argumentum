@@ -1,9 +1,14 @@
 import { calcularAvisosParaElModerador, GRAVEDAD } from '../../shared/instrucciones/calcularAvisos.js';
+import { calcularAvisosDelForo } from '../../shared/instrucciones/calcularAvisosDelForo.js';
+import { resolverActividadDelPrograma } from '../../actividades/registroDeActividades.js';
+import { ID_FORO_ESCRITO } from '../../actividades/foroEscrito/definicion.js';
 
 // Avisos automáticos para que el docente no tenga que vigilar cinco paneles a la vez: quién no
 // preparó argumento, quién no ha hablado todavía, qué queda sin revisar.
 export function PanelDeAvisos({ estado, presencia, motor }) {
-  const avisos = calcularAvisosParaElModerador(estado, presencia);
+  // Cada actividad tiene sus propios avisos: en el foro no hay ruleta ni turnos.
+  const esForo = resolverActividadDelPrograma(estado.programa).id === ID_FORO_ESCRITO;
+  const avisos = esForo ? calcularAvisosDelForo(estado, presencia) : calcularAvisosParaElModerador(estado, presencia);
 
   if (avisos.length === 0) {
     return null;
@@ -25,6 +30,13 @@ export function PanelDeAvisos({ estado, presencia, motor }) {
                   onClick={() => motor.reasignarRolplayEquilibrado()}
                 >
                   🎲 Reasignar a Rolplay (balancear 50/50)
+                </button>
+              </div>
+            )}
+            {aviso.id === 'tiempo-final' && motor?.extenderTiempo && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <button type="button" className="boton-cambiar-programa" onClick={() => motor.extenderTiempo()}>
+                  ➕ Extender 5 minutos
                 </button>
               </div>
             )}

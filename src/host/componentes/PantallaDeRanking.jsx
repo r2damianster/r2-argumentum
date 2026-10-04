@@ -3,23 +3,44 @@ import {
   calcularPodioDePosturas,
   calcularPodioIndividual,
 } from '../../shared/estado/seleccionesDerivadas.js';
-import { exportarSesion, descargarComoJSON } from '../../shared/estado/exportarSesion.js';
+import { exportarAnexoDeIntegridad, exportarSesion, descargarComoJSON } from '../../shared/estado/exportarSesion.js';
+import { resolverActividadDelPrograma } from '../../actividades/registroDeActividades.js';
+import { ID_FORO_ESCRITO } from '../../actividades/foroEscrito/definicion.js';
 import { imprimirInformeComoPDF } from '../imprimirInforme.js';
 
-export function PantallaDeRanking({ estado, eventos, programa, presencia, motor, onNuevoDebate }) {
+export function PantallaDeRanking({
+  estado,
+  eventos,
+  programa,
+  presencia,
+  motor,
+  onNuevoDebate,
+  integridadActiva = false,
+  registrosDeIntegridad = [],
+  incluirAnexoDeIntegridad = false,
+  onAlternarAnexoDeIntegridad = () => {},
+}) {
+  const esForo = resolverActividadDelPrograma(estado.programa ?? programa).id === ID_FORO_ESCRITO;
   const podioPosturas = calcularPodioDePosturas(estado, programa, presencia);
   const podioIndividual = calcularPodioIndividual(estado, presencia);
   const ranking = calcularRankingPorPostura(estado, programa, presencia);
   const posturaPorId = Object.fromEntries(programa.posturas.map((postura) => [postura.id, postura]));
   const sesionCerrada = estado.sesion.cerrada;
-  const hayExposicionesPorAplicar = Object.values(estado.exposiciones ?? {}).some(
-    (exposicion) => exposicion.estado === 'terminada'
-  );
+  // Hasta cerrar, el marcador es provisional: al cerrar se aplican las exposiciones y las revisiones.
+  const hayAjustesPorAplicar =
+    Object.values(estado.exposiciones ?? {}).some((exposicion) => exposicion.estado === 'terminada') ||
+    Object.keys(estado.revisiones ?? {}).length > 0 ||
+    Object.values(estado.argumentos ?? {}).some((aporte) => aporte.oculto);
 
   function manejarDescargaDeJSON() {
     const sesionExportada = exportarSesion({ eventos, estado, programa, presencia });
     const sufijo = sesionCerrada ? '' : '-parcial';
     descargarComoJSON(sesionExportada, `r2-argumentum-${programa.programId}${sufijo}-${Date.now()}.json`);
+  }
+
+  function manejarDescargaDelAnexoDeIntegridad() {
+    const anexo = exportarAnexoDeIntegridad({ registros: registrosDeIntegridad, estado, programa, presencia });
+    descargarComoJSON(anexo, `r2-argumentum-${programa.programId}-integridad-${Date.now()}.json`);
   }
 
   function manejarNuevoDebate() {
@@ -34,10 +55,11 @@ export function PantallaDeRanking({ estado, eventos, programa, presencia, motor,
   return (
     <section className="tarjeta-de-ranking" id="ranking-del-debate">
       <h3>{sesionCerrada ? '🏆 Marcador y Podios finales' : '📊 Marcador y Podios parciales (el debate sigue)'}</h3>
-      {!sesionCerrada && hayExposicionesPorAplicar && (
+      {!sesionCerrada && hayAjustesPorAplicar && (
         <p className="texto-de-ayuda">
-          Este marcador es provisional: al cerrar el debate se aplican las evaluaciones de las exposiciones
-          (co-moderadores y tuyas). Revísalas antes en «Evaluación de exposiciones».
+          Este marcador es provisional: al cerrar {esForo ? 'el foro' : 'el debate'} se aplican las revisiones{' '}
+          {esForo ? 'de los aportes (co-moderadores y tuyas)' : 'de las exposiciones (co-moderadores y tuyas)'}. Revísalas
+          antes en «{esForo ? 'Revisión de aportes' : 'Evaluación de exposiciones'}».
         </p>
       )}
 
@@ -134,7 +156,7 @@ export function PantallaDeRanking({ estado, eventos, programa, presencia, motor,
       <div className="acciones-del-ranking">
         {!sesionCerrada && (
           <button type="button" className="boton-peligro" onClick={motor.cerrarSesion}>
-            🛑 Cerrar debate
+            {esForo ? '🛑 Cerrar y calcular los puntajes' : '🛑 Cerrar debate'}
           </button>
         )}
         <button type="button" className="boton-exito" onClick={() => imprimirInformeComoPDF(programa.titulo)}>
@@ -143,15 +165,30 @@ export function PantallaDeRanking({ estado, eventos, programa, presencia, motor,
         <button type="button" className="boton-secundario" onClick={manejarDescargaDeJSON}>
           💾 Descargar sesión (.json)
         </button>
+        {integridadActiva && (
+          <button type="button" className="boton-secundario" onClick={manejarDescargaDelAnexoDeIntegridad}>
+            🛡️ Descargar anexo de integridad (.json)
+          </button>
+        )}
         {sesionCerrada && (
           <button type="button" className="boton-primario" onClick={manejarNuevoDebate}>
             ➕ Iniciar un debate nuevo
           </button>
         )}
       </div>
+      {integridadActiva && (
+        <label className="casilla-de-falta">
+          <input type="checkbox" checked={incluirAnexoDeIntegridad} onChange={onAlternarAnexoDeIntegridad} />
+          Incluir el anexo de integridad en el PDF (confidencial)
+        </label>
+      )}
       <p className="texto-de-ayuda">
-        El PDF se genera con el diálogo de impresión del navegador: elige «Guardar como PDF» como destino. El
-        JSON conserva el registro completo de eventos.
+        El PDF se genera con el diálogo de impresión del navegador: elige «Guardar como PDF» como destino. Incluye el
+        desglose del puntaje de cada persona
+        {esForo ? ' y la revisión de cada aporte' : ''}. El JSON conserva el registro completo de eventos.
+        {integridadActiva
+          ? ' Las señales de integridad van en un archivo aparte y no se imprimen salvo que marques la casilla.'
+          : ''}
       </p>
     </section>
   );

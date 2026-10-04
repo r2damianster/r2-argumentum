@@ -349,3 +349,19 @@ No cubierto por los scripts: **celular físico** (teclado virtual real, notch, r
 ## 8. Cierre
 
 Resumen de máximo 4 líneas: fallos por severidad, si hubo regresiones, y si el ciclo completo (ingreso con argumento → preparación → turno → exposición → puntaje → bid → cierre → ranking → informe) se completó de punta a punta o dónde se cortó.
+
+
+## Foro escrito (prueba manual y automática)
+
+Lo que no se puede probar en local y hay que ver en producción: que el canal privado de integridad llegue al host, que un participante **no** pueda leerlo, y el flujo completo con Groq y Ably reales. Automática: `python scripts/prueba-e2e/foro.py` (1 host + 6 participantes, unos 6 minutos; **se escribió sin poder ejecutarla**, la primera corrida puede pedir ajustes). A mano, con 1 host y 6 pestañas:
+
+1. **Host:** elige «Foro escrito» → el Programa de foro → en la configuración marca «Con advertencias» → «Confirmar configuración y abrir sala».
+2. **Participantes (6):** entran con nombre y avatar y eligen postura. Debe verse el aviso de integridad, y **no** debe pedirse ningún argumento.
+3. **Host, sala de espera:** el panel «Co-moderadores» dice que con 6 personas corresponde 1; «Sortear ahora» → «Designados». Con menos de 6 debe decir que no hay co-moderadores. Pulsa «Iniciar foro»: aparece la cuenta atrás.
+4. **Primer post:** antes aparece «Aún no hay posts». Se publica con la sugerencia de la IA («Publicar así» / «Reescribir»). Los demás ven «sin debatir»; solo la autora ve la sugerencia de la IA.
+5. **Réplica y reacción:** «Responder» desde el aviso; a la autora le aparece «Te respondieron (1)». Una reacción «Me convenció» suma un conteo.
+6. **Pegado:** en un participante, pega un texto largo (Ctrl+V) y publícalo: debe salir «El moderador verá esta marca» con «Enviar igual» y «Reescribir». En el host aparece «Integridad (solo tú ves esto)» con la evidencia; **ningún participante** debe ver ese panel. Con el nivel «Restrictiva», pegar queda bloqueado.
+7. **Revisión:** el co-moderador (el sorteado, que no ve el cuadro para publicar) decide «Cuenta completo / Cuenta parcial / No cuenta». El moderador ve el conteo sin saber quién votó qué y puede decidir.
+8. **Cierre:** «Extender 5 minutos» suma tiempo; «Cerrar la escritura ahora» bloquea la escritura; «Cerrar y calcular los puntajes» aplica los ajustes y aparece el podio.
+9. **Informe:** «Descargar sesión (.json)» trae `actividad`, `desglosePorParticipante`, `evaluacionDeCoModeradores` y `foro`; «Descargar anexo de integridad (.json)» es un archivo aparte y confidencial; el PDF trae el desglose y la revisión, y **solo** incluye la integridad con la casilla marcada.
+10. **Móvil:** repite el compositor y la lista de hilos a 320 px (sin scroll horizontal, botones ≥ 44 px).

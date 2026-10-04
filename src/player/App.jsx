@@ -21,11 +21,16 @@ import { PanelDeBid } from './componentes/PanelDeBid.jsx';
 import { PanelDeCoModerador } from './componentes/PanelDeCoModerador.jsx';
 import { IngresoConArgumento } from './componentes/IngresoConArgumento.jsx';
 import { PrepararArgumento } from './componentes/PrepararArgumento.jsx';
+import { IngresoAlForo } from './componentes/foro/IngresoAlForo.jsx';
+import { VistaDelForo } from './componentes/foro/VistaDelForo.jsx';
 import { IntervencionVerbal } from './componentes/IntervencionVerbal.jsx';
 import { AvisoPreparateParaHablar } from './componentes/AvisoPreparateParaHablar.jsx';
 import { FormularioDeContraargumentoParaOyentes } from './componentes/FormularioDeContraargumentoParaOyentes.jsx';
 import { resolverIdiomaDelDebate } from '../shared/programa/idiomaDelDebate.js';
 import { ingresoEstaCerrado } from '../shared/ingreso/reglasDeIngreso.js';
+import { calcularInstruccionesDelForo } from '../shared/instrucciones/calcularInstruccionesDelForo.js';
+import { resolverActividadDelPrograma } from '../actividades/registroDeActividades.js';
+import { ID_FORO_ESCRITO } from '../actividades/foroEscrito/definicion.js';
 
 // Mismo set de emojis que R2 Quiz, ver docs/07-acceso-y-paginas.md.
 const EMOJIS_DISPONIBLES = [
@@ -228,7 +233,7 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
   // marca `ingresoConfirmado` en el reducer, no la presencia de Ably. Entrar antes de confirmar
   // es lo que le permite al host ver, en la sala de configuración previa, quién está conectado
   // pero todavía escribiendo (ver ListaDeParticipantes.jsx y PanelDeAvisos.jsx).
-  const { estado, presencia, publicar, cargando, conexion } = useEstadoDeSesion({
+  const { estado, presencia, publicar, publicarIntegridad, cargando, conexion } = useEstadoDeSesion({
     clientId: participantId,
     sessionId: codigoDeSala,
     datosDePresencia: { nombre, emoji },
@@ -280,8 +285,11 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
   // `lang` en la raíz de lo que ve el participante: lo heredan todos los campos de texto y de ahí
   // el corrector del navegador toma el idioma del debate (español por defecto).
   const idiomaDelDebate = resolverIdiomaDelDebate(programa);
+  // El foro escrito tiene su propia pantalla; el resto del debate hablado sigue igual.
+  const esForo = resolverActividadDelPrograma(programa).id === ID_FORO_ESCRITO;
 
-  if (!ingresoConfirmado && !ingresoCerrado) {
+  // En el foro se puede entrar en cualquier momento (no hay «oyentes»): solo hace falta elegir postura.
+  if (!ingresoConfirmado && (esForo || !ingresoCerrado)) {
     return (
       <main lang={idiomaDelDebate}>
         <div className="barra-superior">
@@ -291,15 +299,28 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
           {emoji} {nombre} · {programa.temaCentral}
         </p>
         <AvisoDeConexion conexion={conexion} />
-        <IngresoConArgumento
-          estado={estado}
-          programa={programa}
-          presencia={presencia}
-          participantId={participantId}
-          nombre={nombre}
-          emoji={emoji}
-          publicar={publicar}
-        />
+        {esForo ? (
+          <IngresoAlForo
+            estado={estado}
+            programa={programa}
+            presencia={presencia}
+            participantId={participantId}
+            nombre={nombre}
+            emoji={emoji}
+            publicar={publicar}
+          />
+        ) : (
+          <IngresoConArgumento
+            estado={estado}
+            programa={programa}
+            presencia={presencia}
+            participantId={participantId}
+            nombre={nombre}
+            emoji={emoji}
+            publicar={publicar}
+            publicarIntegridad={publicarIntegridad}
+          />
+        )}
       </main>
     );
   }
@@ -328,7 +349,13 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
       />
 
       <div className="layout-de-participante">
-        <CapaInstruccional estado={estado} presencia={presencia} participantId={participantId} sinFijar={estado.sesion.cerrada} />
+        <CapaInstruccional
+          estado={estado}
+          presencia={presencia}
+          participantId={participantId}
+          sinFijar={estado.sesion.cerrada}
+          calcularInstrucciones={esForo ? calcularInstruccionesDelForo : undefined}
+        />
 
         <div className="columna-de-trabajo">
           <AvisoPreparateParaHablar
@@ -345,6 +372,17 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
         </section>
       )}
 
+      {esForo ? (
+        <VistaDelForo
+          estado={estado}
+          presencia={presencia}
+          programa={programa}
+          participantId={participantId}
+          publicar={publicar}
+          publicarIntegridad={publicarIntegridad}
+        />
+      ) : (
+      <>
       {!sesionCerrada && !ingresoConfirmado && (
         <>
           <section className="tarjeta-de-turno-ofrecido">
@@ -361,6 +399,7 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
             nombre={nombre}
             emoji={emoji}
             publicar={publicar}
+            publicarIntegridad={publicarIntegridad}
           />
         </>
       )}
@@ -403,6 +442,7 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
             presencia={presencia}
             participantId={participantId}
             publicar={publicar}
+            publicarIntegridad={publicarIntegridad}
           />
         )}
 
@@ -435,6 +475,8 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
         }{' '}
         participante(s) en el debate.
       </p>
+      </>
+      )}
         </div>
       </div>
     </main>

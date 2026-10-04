@@ -7,7 +7,17 @@
 // estado y devuelve los cambios de puntaje que hay que publicar.
 
 import { CALIDADES_DE_EXPOSICION, DECISIONES_DEL_MODERADOR_SOBRE_EXPOSICION } from '../eventos/nombresDeEventos.js';
-import { calcularPuntajeDeArgumento, calcularBonosDeCoModerador } from './formulaDePuntaje.js';
+import { calcularPuntajeDeArgumento } from './formulaDePuntaje.js';
+import {
+  DECISIONES_DEL_MODERADOR_SOBRE_REVISION,
+  calcularPuntajeDeRevisores,
+  calcularPuntajeMaximoDeRevisor,
+  normalizarNivel,
+} from '../nucleo/revision/calcularPuntajeDeRevisores.js';
+
+// Las exposiciones califican en −1 / 0 / +1; la revisión del núcleo trabaja en 0 a 1.
+const ESCALA_DE_EXPOSICION = { minimo: -1, maximo: 1 };
+const ESCALA_DE_REVISION = { minimo: 0, maximo: 1 };
 
 // Misma escala que el turno hablado: «buena» duplica lo que ya valía el argumento (+base),
 // «aceptable» lo deja igual e «insuficiente» lo anula (−base). No haber hablado cuenta como lo peor.
@@ -50,8 +60,55 @@ export function resolverNivelDeExposicion(exposicion) {
   };
 }
 
+function nivelNormalizadoDeCalidad(calidad) {
+  const nivel = nivelDeCalidadDeExposicion(calidad);
+  return nivel === null ? null : normalizarNivel(nivel, ESCALA_DE_EXPOSICION, ESCALA_DE_REVISION);
+}
+
+// Traduce lo que el debate hablado revisa (calificar exposiciones y votar bids) a la forma genérica
+// del núcleo de revisión: un elemento con los niveles de cada co-moderador y la decisión del moderador.
+export function armarRevisionesDeCoModeradores(estado) {
+  const revisionesDeExposiciones = Object.values(estado.exposiciones ?? {})
+    .filter((exposicion) => exposicion.estado === 'terminada' && estado.argumentos[exposicion.argumentId])
+    .map((exposicion) => {
+      const nivelesPorRevisor = {};
+      for (const [coModeradorId, calificacion] of Object.entries(exposicion.calificaciones ?? {})) {
+        const nivel = nivelNormalizadoDeCalidad(calificacion.calidad);
+        if (nivel !== null) {
+          nivelesPorRevisor[coModeradorId] = nivel;
+        }
+      }
+      const decision = exposicion.decisionModerador;
+      let decisionDelModerador = null;
+      if (decision?.decision === DECISIONES_DEL_MODERADOR_SOBRE_EXPOSICION.DESCARTADA) {
+        decisionDelModerador = { decision: DECISIONES_DEL_MODERADOR_SOBRE_REVISION.DESCARTADA };
+      } else if (decision?.decision === DECISIONES_DEL_MODERADOR_SOBRE_EXPOSICION.EVALUADA) {
+        decisionDelModerador = {
+          decision: DECISIONES_DEL_MODERADOR_SOBRE_REVISION.EVALUADA,
+          nivel: nivelNormalizadoDeCalidad(decision.calidad),
+        };
+      }
+      return { elementoId: `exposicion:${exposicion.argumentId}`, nivelesPorRevisor, decisionDelModerador };
+    });
+
+  // Un bid se vota «aprueba» (1) o «rechaza» (0) y el moderador siempre tiene la última palabra.
+  const revisionesDeBids = Object.values(estado.bids ?? {})
+    .filter((bid) => bid.decisionFinal)
+    .map((bid) => ({
+      elementoId: `bid:${bid.bidId}`,
+      nivelesPorRevisor: Object.fromEntries(
+        Object.entries(bid.votos ?? {}).map(([coModeradorId, voto]) => [coModeradorId, voto === 'aprueba' ? 1 : 0])
+      ),
+      decisionDelModerador: {
+        decision: DECISIONES_DEL_MODERADOR_SOBRE_REVISION.EVALUADA,
+        nivel: bid.decisionFinal === 'aprobado' ? 1 : 0,
+      },
+    }));
+
+  return [...revisionesDeExposiciones, ...revisionesDeBids];
+}
+
 export function calcularAjustesDeExposiciones({ estado, parametros }) {
-  const bonos = calcularBonosDeCoModerador(parametros);
   const ajustes = [];
 
   for (const exposicion of Object.values(estado.exposiciones ?? {})) {
@@ -62,8 +119,7 @@ export function calcularAjustesDeExposiciones({ estado, parametros }) {
     }
 
     const { descartada, nivel, delModerador } = resolverNivelDeExposicion(exposicion);
-    // Si el moderador descartó las calificaciones no hay ajuste ni bonos: sin referencia fiable,
-    // nadie puede quedar como consistente o inconsistente.
+    // Si el moderador descartó las calificaciones, o nadie calificó, el expositor no tiene ajuste.
     if (descartada || nivel === null) {
       continue;
     }
@@ -87,35 +143,33 @@ export function calcularAjustesDeExposiciones({ estado, parametros }) {
           : 'Exposición calificada por los co-moderadores (promedio)',
       });
     }
+  }
 
-    const nivelesPorCoModerador = Object.entries(exposicion.calificaciones ?? {})
-      .map(([coModeradorId, calificacion]) => [coModeradorId, nivelDeCalidadDeExposicion(calificacion.calidad)])
-      .filter(([, nivelDelCoModerador]) => nivelDelCoModerador !== null);
-
-    for (const [coModeradorId, nivelDelCoModerador] of nivelesPorCoModerador) {
-      const nivelDelModerador = delModerador ? nivel : null;
-      if (nivelDelModerador !== null && nivelDelCoModerador === nivelDelModerador) {
-        ajustes.push({
-          participantId: coModeradorId,
-          delta: bonos.VOTO_DE_BID_COINCIDENTE,
-          categoria: 'co_moderacion',
-          motivo: 'Su calificación de una exposición coincidió con la del moderador',
-        });
-      }
-      const coincideConOtroCoModerador = nivelesPorCoModerador.some(
-        ([otroCoModeradorId, nivelDelOtro]) =>
-          otroCoModeradorId !== coModeradorId && nivelDelOtro === nivelDelCoModerador
-      );
-      if (coincideConOtroCoModerador) {
-        ajustes.push({
-          participantId: coModeradorId,
-          delta: bonos.CONSISTENCIA_EN_REVISION_CRUZADA,
-          categoria: 'co_moderacion',
-          motivo: 'Su calificación de una exposición coincidió con la de otro co-moderador',
-        });
-      }
+  // Los co-moderadores puntúan por su porcentaje de acierto sobre el azar y por cuánto revisaron,
+  // no por coincidir exacta y puntualmente (ver nucleo/revision y docs/05). Si el moderador no
+  // evaluó, rige el consenso entre ellos, así que igual puntúan.
+  const puntajeDeLosRevisores = calcularPuntajeDeRevisores({
+    revisiones: armarRevisionesDeCoModeradores(estado),
+    escala: ESCALA_DE_REVISION,
+    puntajeMaximo: calcularPuntajeMaximoDeRevisor(parametros),
+  });
+  for (const revisor of puntajeDeLosRevisores) {
+    if (revisor.puntos > 0) {
+      ajustes.push({
+        participantId: revisor.revisorId,
+        delta: revisor.puntos,
+        categoria: 'co_moderacion',
+        motivo: describirPuntajeDeRevisor(revisor),
+      });
     }
   }
 
   return ajustes;
+}
+
+export function describirPuntajeDeRevisor(revisor) {
+  const porcentajeDeAcierto = Math.round(revisor.acierto * 100);
+  return revisor.conReferencia > 0
+    ? `Calidad de sus revisiones: ${porcentajeDeAcierto} % de acierto sobre el azar en ${revisor.conReferencia} de ${revisor.revisadas} casos`
+    : `Revisó ${revisor.revisadas} caso(s) sin referencia contra la cual medir su acierto`;
 }

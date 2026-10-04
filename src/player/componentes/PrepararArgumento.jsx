@@ -1,4 +1,7 @@
 import { TarjetaDeExposicionEnCurso } from './TarjetaDeExposicionEnCurso.jsx';
+import { AdvertenciaDeIntegridad, AvisoDeIntegridad } from '../../shared/componentes/foro/AdvertenciaDeIntegridad.jsx';
+import { useControlDeIntegridad } from '../../shared/nucleo/integridad/useControlDeIntegridad.js';
+import { CONTEXTOS_DE_REDACCION } from '../../shared/nucleo/integridad/canalPrivado.js';
 import { useEffect, useRef, useState } from 'react';
 import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
 import { resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.js';
@@ -66,7 +69,7 @@ function guardarBorrador(participantId, borrador) {
 // hasta que el argumento queda aprobado, así corregirlo no cuesta cuota de Ably. Al aprobarse SÍ se
 // publica: el argumento entra al mapa y puntúa desde ese momento; el turno solo sirve para
 // exponerlo en voz alta (los co-moderadores califican esa exposición, ver docs/04).
-export function PrepararArgumento({ estado, programa, presencia = [], participantId, publicar }) {
+export function PrepararArgumento({ estado, programa, presencia = [], participantId, publicar, publicarIntegridad }) {
   const [borradorGuardado] = useState(() => leerBorrador(participantId));
   const [tipoDeclarado, setTipoDeclarado] = useState(borradorGuardado?.tipoDeclarado ?? TIPOS_DE_RELACION.NUEVO);
   const [argumentoObjetivoId, setArgumentoObjetivoId] = useState(borradorGuardado?.argumentoObjetivoId ?? '');
@@ -78,6 +81,13 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
   // Entre publicar el argumento aprobado y que el canal lo devuelva pasa un instante en el que el
   // botón seguiría activo: sin esto, un doble clic publicaba el mismo argumento dos veces.
   const [publicando, setPublicando] = useState(false);
+
+  const integridad = useControlDeIntegridad({
+    programa,
+    contexto: CONTEXTOS_DE_REDACCION.PREPARACION,
+    texto,
+    publicarIntegridad,
+  });
 
   const requiereObjetivo = TIPOS_QUE_REQUIEREN_OBJETIVO.includes(tipoDeclarado);
   // Se responde a argumentos ajenos: apuntar a uno propio no tiene sentido como réplica.
@@ -153,7 +163,7 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
     setResultado(decision);
 
     if (decision.decision === DECISIONES.APROBADO) {
-      publicarArgumentoAprobado();
+      integridad.intentarEnviar({ alEnviar: publicarArgumentoAprobado });
     }
     setRevisando(false);
   }
@@ -162,8 +172,7 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
   // exponerlo). Si tiene objetivo, la arista se publica de una vez, sin esperar una sugerencia de
   // Groq ni que la persona conecte a mano (igual que en un bid aprobado): sin ella el nodo quedaba
   // suelto en la fila raíz del grafo.
-  function publicarArgumentoAprobado() {
-    const argumentId = generarId('argumento');
+  function publicarArgumentoAprobado(argumentId) {
     const objetivoElegido = requiereObjetivo ? argumentoObjetivoId : null;
     setPublicando(true);
     publicar(EVENTOS.ARGUMENTO_PUBLICADO, {
@@ -304,9 +313,11 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
         </label>
       )}
 
+      <AvisoDeIntegridad nivel={integridad.nivel} />
       <label>
         Tu argumento
         <textarea
+          {...integridad.propsDelCampo}
           value={texto}
           rows={4}
           spellCheck
@@ -353,9 +364,19 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
 
       {avisoDeCampoFaltante && <p className="mensaje-de-error">{avisoDeCampoFaltante}</p>}
 
-      <button type="button" disabled={revisando || publicando} onClick={revisarYPreparar}>
-        {revisando ? 'Revisando…' : 'Revisar y publicar en el mapa'}
-      </button>
+      {integridad.advertenciaPendiente && (
+        <AdvertenciaDeIntegridad
+          resumen={integridad.advertenciaPendiente}
+          onEnviarIgual={integridad.confirmarEnvioPendiente}
+          onReescribir={integridad.cancelarEnvioPendiente}
+        />
+      )}
+
+      {!integridad.advertenciaPendiente && (
+        <button type="button" disabled={revisando || publicando} onClick={revisarYPreparar}>
+          {revisando ? 'Revisando…' : 'Revisar y publicar en el mapa'}
+        </button>
+      )}
     </section>
   );
 }

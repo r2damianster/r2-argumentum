@@ -17,7 +17,7 @@ export function AccionesDeCierre({ estado, presencia, motor, rankingParcialVisib
 
   function cerrarDebateAhora() {
     const aviso = participantesSinIntervenir > 0
-      ? `Todavía ${participantesSinIntervenir} participante(s) no han tomado la palabra. `
+      ? `Todavía ${participantesSinIntervenir} participante(s) no han intervenido. `
       : '';
     const confirmado = window.confirm(
       `${aviso}Vas a cerrar el debate ahora: se detienen los turnos, los bids y el puntaje, y el ranking queda como está. Esto no se puede deshacer. ¿Cerrar el debate?`

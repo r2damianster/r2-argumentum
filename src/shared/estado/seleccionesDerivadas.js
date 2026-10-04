@@ -78,15 +78,6 @@ function hayQuienPuedaRevisar(estado, autorId) {
   return (estado.coModeradores?.participantIds ?? []).some((coModeradorId) => coModeradorId !== autorId);
 }
 
-export function obtenerArgumentosSinValidar(estado, { excluirParticipantId = null } = {}) {
-  return Object.values(estado.argumentos).filter(
-    (argumento) =>
-      !argumento.validacion &&
-      argumento.participantId !== excluirParticipantId &&
-      hayQuienPuedaRevisar(estado, argumento.participantId)
-  );
-}
-
 export function obtenerIntervencionesSinCalificar(estado, { excluirParticipantId = null } = {}) {
   return Object.values(estado.intervencionesVerbales).filter(
     (intervencion) =>

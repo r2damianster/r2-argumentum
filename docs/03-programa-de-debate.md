@@ -12,7 +12,10 @@ En v1, un Programa se guarda y se carga como un **archivo JSON exportable/import
 
 ```
 programId, titulo, version, creadoPor, fechaCreacion
+actividad: "debate_hablado" | "foro_escrito"   // por defecto "debate_hablado"
 ```
+
+La **actividad** decide cómo participa la clase y qué motor la ejecuta (ver `13-foro-escrito-y-nucleo-reutilizable.md`). El moderador la elige antes de elegir el Programa, y un Programa de otra actividad no se puede abrir con la elegida.
 
 ### B. Contenido pedagógico
 
@@ -69,6 +72,20 @@ fases: [
 ```
 
 Cada fase tiene inicio y fin controlado explícitamente por el moderador — evita descontrol y llamadas a Groq impredecibles.
+
+**Foro escrito** (`actividad: "foro_escrito"`): una sola fase con tiempo total y el cierre.
+
+```
+fases: [
+  { tipo: "foro_escrito", duracionMin: 20 },   // tiempo total de escritura; se cierra sola al llegar a cero
+  { tipo: "cierre_y_ranking" }                 // revisión final y cierre; el moderador pulsa «Cerrar y calcular»
+]
+limitesDePuntaje: { maxPostsNuevos: 3, maxReplicasPuntuadas: 5 }   // los extras se publican pero valen 0
+sugerenciasDeIA: true                                              // false apaga la sugerencia de Groq
+integridad: { nivel: "ninguna" | "advertencias" | "restrictiva" }  // por defecto "ninguna"
+```
+
+No hay tiempos por respuesta. `duracionMin` solo lo consumen las fases con tiempo total (la del foro); en el debate hablado se conserva por compatibilidad pero no se aplica. El moderador puede extender el tiempo (+5 min) o cerrar antes. Detalle en `13-foro-escrito-y-nucleo-reutilizable.md`.
 
 En la **Ronda 1** (primera fase de intervenciones), el motor prioriza que al menos una persona que haya preparado su argumento dentro de cada postura activa reciba el turno de exposición en la ruleta antes de repetir posturas.
 
@@ -128,10 +145,16 @@ promptSistemaFase2: "..."              // sugerencia de conexión en lote
 ### I. Configuración de co-moderación
 
 ```
-formulaCoModeradores: "ceil(n * 0.10)_min_1"
-topeMaximoCoModeradores: null | number  // override opcional para grupos grandes
-exclusionMutua: true                    // un co-moderador sorteado no argumenta en la misma sesión
+moderacion: {
+  modo: "reglamentario" | "fijo" | "ninguno",   // por defecto "reglamentario"
+  numeroFijo: null | number,                     // solo con modo "fijo"
+  minimoParaCoModerar: 6                         // solo modo reglamentario; por defecto 6
+}
+topeMaximoCoModeradores: null | number           // override opcional para grupos grandes
+exclusionMutua: true                             // un co-moderador sorteado no argumenta en la misma sesión
 ```
+
+El moderador lo elige en la configuración de la sala (ver `04-roles-y-turnos.md`). Un Programa que no trae `moderacion` usa el modo reglamentario.
 
 ### J. Exportación al cierre
 

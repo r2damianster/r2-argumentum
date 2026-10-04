@@ -1,5 +1,7 @@
 # Roles y flujo de turnos
 
+> Esta guía describe el **debate hablado**. El **foro escrito** (sin turnos ni ruleta) y la moderación común a todas las actividades están en `13-foro-escrito-y-nucleo-reutilizable.md`.
+
 ## Los 3 roles
 
 | Rol | Quién | Qué hace |
@@ -10,11 +12,15 @@
 
 ### Selección de co-moderadores
 
-```
-n_co_moderadores = max(1, ceil(n_participantes * 0.10))
-```
+El moderador elige el **modo** en la configuración (aplica a todas las actividades):
 
-El profesor puede fijar un tope máximo para grupos grandes. Los co-moderadores se sorprenden al azar entre los inscritos (mismo mecanismo de presence de Ably usado para la ruleta de turnos) y, por defecto, no participan también como argumentadores en la misma sesión (evita conflicto de interés al validar sus propios argumentos).
+| Modo | Cuántos |
+|---|---|
+| **Reglamentario** (por defecto) | `ceil(participantes / 10)`, y solo si hay al menos 6 participantes; con menos no hay co-moderadores (con 3 debatientes, ninguno) |
+| **Número fijo** | El que fije el moderador, siempre que la sala conserve al menos 3 personas debatiendo |
+| **Sin co-moderadores** | Ninguno: todo lo decide el moderador y revisar es opcional |
+
+Se designan **en la sala de espera, cuando ya ingresó la gente** (`PanelDeDesignacionDeCoModeradores.jsx`): por sorteo (Fisher–Yates entre quienes confirmaron su ingreso) o eligiéndolos a mano, y se puede deshacer hasta pulsar «Iniciar». Una designación hecha por el moderador se respeta al iniciar; si no designó a nadie, el sorteo se hace al iniciar según el modo. Por defecto un co-moderador no participa también como argumentador (evita conflicto de interés). La lógica vive en `src/shared/nucleo/coModeracion/` y no depende de la actividad.
 
 ## Flujo de turno — exponer un argumento ya publicado
 
@@ -103,8 +109,8 @@ Al preparar un argumento que responde a otro, la lista de objetivos solo ofrece 
 
 - **Co-moderadores.** Desde que quien tiene la palabra anuncia su argumento, cada co-moderador ve en su panel la exposición «en curso» (con el argumento y el punto al que responde) y responde a dos preguntas en una: ¿está hablando? ¿es coherente con el debate y con el punto? Cuatro botones: *Coherente con el punto*, *Aceptable*, *Fuera de tema o sin razón* y *No está hablando*. Cada uno califica una vez (si vuelve a calificar reemplaza su nota) y nadie califica su propia exposición. Las que ya terminaron siguen en su cola hasta que las califique.
 - **Se promedian.** *Coherente* vale +1, *aceptable* 0, *fuera de tema* y *no está hablando* −1. Sin moderador de por medio, rige el promedio.
-- **Moderador.** Ve las mismas exposiciones en su consola y puede evaluar cada una (opcional, incluso mientras se expone), **descartar** las calificaciones de los co-moderadores o dejarla sin evaluar. De los co-moderadores ve cuántos calificaron y el promedio, nunca quién puso qué. Puede cambiar de idea hasta cerrar. Su evaluación manda sobre el promedio; si descarta, esa exposición no ajusta puntos ni reparte bonos.
-- **Al cerrar la sesión** (fase de cierre o «Cerrar el debate ahora») el motor aplica, una sola vez, el ajuste al expositor y los bonos de consistencia a los co-moderadores (ver `05-reglas-de-puntaje.md`). Hasta ese momento el marcador y el ranking parcial son **provisionales**.
+- **Moderador.** Ve las mismas exposiciones en su consola y puede evaluar cada una (opcional, incluso mientras se expone), **descartar** las calificaciones de los co-moderadores o dejarla sin evaluar. De los co-moderadores ve cuántos calificaron y el promedio, nunca quién puso qué. Puede cambiar de idea hasta cerrar. Su evaluación manda sobre el promedio; si descarta, esa exposición no ajusta puntos ni cuenta para el puntaje de los co-moderadores.
+- **Al cerrar la sesión** (fase de cierre o «Cerrar el debate ahora») el motor aplica, una sola vez, el ajuste al expositor y el puntaje de los co-moderadores por su porcentaje de acierto (ver `05-reglas-de-puntaje.md`). Hasta ese momento el marcador y el ranking parcial son **provisionales**.
 
 ### Argumento destacado y turno que queda abierto
 
@@ -121,7 +127,7 @@ Reglas de seguridad del turno:
 - **Tope de rechazos** — tras N rechazos consecutivos en la sesión, la siguiente oferta a esa persona ya no puede rechazarse (evita que todos rechacen para no participar). **Consecutivos** significa que tomar la palabra corta la racha: el contador vuelve a cero tanto al aceptar un turno como al recibir uno forzado. Sin ese reset, tres rechazos sueltos en toda la sesión dejaban a esa persona en modo forzado de forma permanente.
 - **Cortacircuitos de ruleta (prevención de bucle infinito)** — Si 4 ofertas consecutivas (rechazadas o expiradas por timeout) se acumulan sin que nadie tome la palabra, el motor pausa automáticamente la ruleta de turnos (`turn.roulette_paused`). Esto evita bucles infinitos de notificaciones a los estudiantes. El moderador recibe una alerta en su panel para reanudar la ruleta (`turn.roulette_resumed`), pausarla manualmente o dar por terminada la fase actual.
 - **Rechazar cuesta puntos**, y el botón lo avisa antes de confirmar. Se restan **sobre los puntos que el argumento ya dio** (el argumento se queda en el mapa). El descuento sale de la fórmula única y escala con el perfil elegido; el acumulado nunca baja de cero (ver `05-reglas-de-puntaje.md`). Rechazar no abre la calificación de la exposición: solo exponer permite ganar más.
-- El tipo de relación que el estudiante autodeclara **puede ser corregido** por el co-moderador al validar. El puntaje final depende del tipo confirmado, no del autodeclarado — evita que se autoetiquete como "contraargumento" solo para ganar más puntos.
+- El puntaje de un argumento sale de su posición, ronda y vía, **no de su tipo declarado**, así que autoetiquetarse como «contraargumento» no da más puntos. La antigua cola donde un co-moderador confirmaba el tipo se retiró (ver `05-reglas-de-puntaje.md`).
 
 ## Conexión libre (fuera de turno)
 
@@ -204,7 +210,7 @@ sigue la fórmula de puntaje normal por posición
 (05-reglas-de-puntaje.md), como cualquier argumento
 ```
 
-Al cerrarse el veredicto de cada bid, se calcula también el puntaje de cada co-moderador que votó sobre él: **+5 si su voto coincide con la decisión final del moderador** (ver `05-reglas-de-puntaje.md`).
+Los votos de cada bid cuentan, al cerrar la sesión, para el puntaje de los co-moderadores: se mide qué tan seguido su voto coincide con la decisión final del moderador (ver `05-reglas-de-puntaje.md`).
 
 ### Después del cierre — turno principal siguiente
 

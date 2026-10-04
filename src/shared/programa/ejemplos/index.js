@@ -7,6 +7,8 @@ import filosofiaLibreAlbedrioVsDeterminismo from './filosofia-libre-albedrio-vs-
 import filosofiaQueNosHaceHumanos from './filosofia-que-nos-hace-humanos.json';
 import educacionUtilidadDeLaInvestigacion from './educacion-utilidad-de-la-investigacion.json';
 import historiaEcuadorCausasDelPresente from './historia-ecuador-herencia-global-o-decisiones.json';
+import foroIaEnLaUniversidad from './foro-ia-en-la-universidad.json';
+import foroFormacionEnInvestigacion from './foro-formacion-en-investigacion.json';
 
 export const PROGRAMAS_DE_EJEMPLO = [
   politicaIzquierdaVsDerecha,
@@ -14,6 +16,8 @@ export const PROGRAMAS_DE_EJEMPLO = [
   filosofiaQueNosHaceHumanos,
   educacionUtilidadDeLaInvestigacion,
   historiaEcuadorCausasDelPresente,
+  foroIaEnLaUniversidad,
+  foroFormacionEnInvestigacion,
 ];
 
 export function agruparProgramasPorCategoria(programas) {

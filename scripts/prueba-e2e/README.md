@@ -26,8 +26,10 @@ with sync_playwright() as p:
 - `volver_config.py` — «Volver a configuración» en la sala de espera: aviso de sala nueva y reparto de posturas en ella.
 - `confirmaciones_simultaneas.py [rondas]` — 8 personas escriben y confirman a la vez; comprueba el reparto equitativo (asignación aleatoria) y cuenta los ajustes por cupo.
 - `moviles.py` — 8 modelos de móvil emulados (iPhone SE 320 px hasta iPad Mini) con toques reales, teclado emulado y horizontal; mide desbordes, controles < 44 px, texto pequeño, capas fijas y errores de JavaScript en 12 pantallas. Unos 6 minutos. Comprueba además que la barra de acción del turno («Aceptar/Rechazar», «Ya lo expuse») esté visible con cualquier scroll y con el botón principal verde y grande. No sustituye a un celular físico.
+- `foro.py` — **foro escrito** (docs/13): 1 host + 6 participantes; actividad, moderación e integridad, ingreso sin argumento, publicar con la sugerencia de la IA, responder, reaccionar, detectar un pegado (canal privado), revisar, extender y cerrar, y descargar el informe (JSON y anexo). Unos 6 minutos, ~6 llamadas a Groq. **Escrito sin poder ejecutarlo contra producción: la primera corrida real puede pedir ajustes.**
 - `bandos.py [salas] [participantes]` — mide el reparto de posturas con asignación aleatoria y entrada simultánea (por defecto 3 × 6). No confirma ingresos ni llama a Groq.
 
 ## Notas
+- Desde octubre de 2026 el host elige primero la actividad («¿Qué actividad vas a hacer?»); todos los scripts de debate hablado hacen clic en «Debate hablado» antes de elegir el Programa.
 - Los argumentos de prueba deben coincidir con la postura asignada al azar y no parecerse entre sí, o Groq / el filtro de similitud los rechazan.
 - Un `FAIL` de «Carla confirma ingreso» suele deberse a que dos participantes de la misma postura reciben el mismo texto (filtro de similitud), no a un fallo de la aplicación.

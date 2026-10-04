@@ -10,6 +10,17 @@ import {
   ETIQUETA_DE_CALIDAD_DE_EXPOSICION,
   describirNivelPromedio,
 } from '../../shared/puntaje/etiquetasDeExposicion.js';
+import { calcularEvaluacionDeCoModeradores } from '../../shared/estado/exportarSesion.js';
+import { resolverParametrosDePuntaje } from '../../shared/puntaje/perfilesDePuntaje.js';
+import { resolverActividadDelPrograma } from '../../actividades/registroDeActividades.js';
+import { ID_FORO_ESCRITO } from '../../actividades/foroEscrito/definicion.js';
+import { construirResumenDelForo } from '../../actividades/foroEscrito/informeDelForo.js';
+import {
+  AnexoDeIntegridad,
+  SeccionDeCoModeradores,
+  SeccionDeDesgloseDelPuntaje,
+  SeccionesDelForo,
+} from './SeccionesDelInforme.jsx';
 
 function describirDecisionParaElInforme(decisionModerador) {
   if (!decisionModerador) {
@@ -28,7 +39,15 @@ function describirDecisionParaElInforme(decisionModerador) {
 // buscable), no una imagen. Cero dependencias nuevas, y el mismo HTML sirve para imprimir en
 // papel. Ver docs/03, campo `exportaPDF`. El botón para generarlo vive una sola vez, junto al
 // ranking (PantallaDeRanking), con el resto de las acciones de cierre.
-export function InformeDelDebate({ estado, programa, presencia, eventos }) {
+export function InformeDelDebate({
+  estado,
+  programa,
+  presencia,
+  eventos,
+  // Confidencial: las señales de integridad no se imprimen salvo que el moderador lo pida.
+  registrosDeIntegridad = [],
+  incluirAnexoDeIntegridad = false,
+}) {
   const podioIndividual = calcularPodioIndividual(estado, presencia);
   const podioPosturas = calcularPodioDePosturas(estado, programa, presencia);
   const ranking = calcularRankingPorPostura(estado, programa, presencia);
@@ -39,6 +58,11 @@ export function InformeDelDebate({ estado, programa, presencia, eventos }) {
     (exposicion) => exposicion.estado === 'terminada'
   );
   const posturaPorId = Object.fromEntries(programa.posturas.map((postura) => [postura.id, postura]));
+  const esForo = resolverActividadDelPrograma(estado.programa ?? programa).id === ID_FORO_ESCRITO;
+  const evaluacionDeCoModeradores = calcularEvaluacionDeCoModeradores({ estado, programa, presencia });
+  const resumenDelForo = esForo
+    ? construirResumenDelForo({ estado, parametros: resolverParametrosDePuntaje(estado.programa ?? programa), presencia })
+    : null;
 
   const faltas = argumentos
     .filter((argumento) => argumento.validacion?.faltaMarcada)
@@ -56,7 +80,7 @@ export function InformeDelDebate({ estado, programa, presencia, eventos }) {
           <h1>{programa.titulo}</h1>
           {!estado.sesion.cerrada && (
             <p>
-              <strong>Informe parcial:</strong> el debate seguía en curso al generarlo.
+              <strong>Informe parcial:</strong> {esForo ? 'el foro' : 'el debate'} seguía en curso al generarlo.
             </p>
           )}
           <p>{programa.temaCentral}</p>
@@ -142,7 +166,12 @@ export function InformeDelDebate({ estado, programa, presencia, eventos }) {
           );
         })}
 
-        <h2>Evolución de los argumentos</h2>
+        <SeccionDeDesgloseDelPuntaje numero={3} eventos={eventos} estado={estado} presencia={presencia} />
+        <SeccionDeCoModeradores numero={4} evaluacion={evaluacionDeCoModeradores} />
+        {esForo && <SeccionesDelForo numeroInicial={5} resumen={resumenDelForo} programa={programa} />}
+
+        {!esForo && <h2>Evolución de los argumentos</h2>}
+        {!esForo && (
         <ol className="lista-del-informe">
           {argumentos.map((argumento) => {
             const postura = posturaPorId[argumento.stanceId];
@@ -156,8 +185,9 @@ export function InformeDelDebate({ estado, programa, presencia, eventos }) {
             );
           })}
         </ol>
+        )}
 
-        {conexiones.length > 0 && (
+        {!esForo && conexiones.length > 0 && (
           <>
             <h2>Conexiones entre argumentos</h2>
             <ul className="lista-del-informe">
@@ -214,6 +244,10 @@ export function InformeDelDebate({ estado, programa, presencia, eventos }) {
               ))}
             </ul>
           </>
+        )}
+
+        {incluirAnexoDeIntegridad && (
+          <AnexoDeIntegridad registros={registrosDeIntegridad} estado={estado} presencia={presencia} />
         )}
 
         <footer>

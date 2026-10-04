@@ -115,7 +115,7 @@ describe('decisión del moderador', () => {
     expect(deltaDe(ajustes, 'ana', 'argumento')).toBe(100);
   });
 
-  it('si el moderador descarta las calificaciones no hay ajuste ni bonos', () => {
+  it('si el moderador descarta las calificaciones no hay ajuste ni puntaje de revisión', () => {
     const ajustes = ajustesDe({
       calificaciones: { c1: { calidad: 'buena' }, c2: { calidad: 'buena' } },
       decisionModerador: { decision: 'descartada', calidad: null },
@@ -125,41 +125,101 @@ describe('decisión del moderador', () => {
   });
 });
 
-describe('consistencia de los co-moderadores', () => {
-  it('quien coincide con el moderador cobra el bono de coincidencia', () => {
+describe('puntaje de los co-moderadores por su acierto', () => {
+  // Estándar: puntaje máximo de un revisor = 100 + 80 + 30 = 210; con una sola exposición revisada
+  // el esfuerzo es 1/7, así que el acierto total vale 30 puntos (ver nucleo/revision).
+  const PUNTOS_CON_ACIERTO_TOTAL_Y_UNA_REVISION = 30;
+
+  it('quien coincide con el moderador puntúa y quien opina lo opuesto no suma', () => {
     const ajustes = ajustesDe({
       calificaciones: { c1: { calidad: 'buena' }, c2: { calidad: 'insuficiente' } },
       decisionModerador: { decision: 'evaluada', calidad: 'buena' },
     });
 
-    // Estándar: los bonos escalan ×10 (VOTO_DE_BID_COINCIDENTE = 5 → 50).
-    expect(deltaDe(ajustes, 'c1', 'co_moderacion')).toBe(50);
+    expect(deltaDe(ajustes, 'c1', 'co_moderacion')).toBe(PUNTOS_CON_ACIERTO_TOTAL_Y_UNA_REVISION);
     expect(deltaDe(ajustes, 'c2', 'co_moderacion')).toBe(0);
   });
 
-  it('con dos co-moderadores que coinciden entre sí cobran el bono de revisión cruzada', () => {
+  it('quedar a un paso del moderador equivale al azar: no suma por encima del azar', () => {
+    const cercaDelModerador = ajustesDe({
+      calificaciones: { c1: { calidad: 'buena' } },
+      decisionModerador: { decision: 'evaluada', calidad: 'aceptable' },
+    });
+
+    // Cercanía 0,5 = lo que se logra al azar: no hay mérito sobre el azar.
+    expect(deltaDe(cercaDelModerador, 'c1', 'co_moderacion')).toBe(0);
+  });
+
+  it('sin moderador rige el consenso: quien coincide con la mayoría puntúa', () => {
     const ajustes = ajustesDe({
       calificaciones: { c1: { calidad: 'buena' }, c2: { calidad: 'buena' }, c3: { calidad: 'insuficiente' } },
     });
 
-    // CONSISTENCIA_EN_REVISION_CRUZADA = 3 → 30 en Estándar; sin moderador, solo cuenta este.
-    expect(deltaDe(ajustes, 'c1', 'co_moderacion')).toBe(30);
-    expect(deltaDe(ajustes, 'c2', 'co_moderacion')).toBe(30);
+    expect(deltaDe(ajustes, 'c1', 'co_moderacion')).toBe(PUNTOS_CON_ACIERTO_TOTAL_Y_UNA_REVISION);
+    expect(deltaDe(ajustes, 'c2', 'co_moderacion')).toBe(PUNTOS_CON_ACIERTO_TOTAL_Y_UNA_REVISION);
     expect(deltaDe(ajustes, 'c3', 'co_moderacion')).toBe(0);
   });
 
-  it('coincidir con el moderador y con otro co-moderador suma los dos bonos', () => {
+  it('la referencia es el moderador aunque los co-moderadores coincidan entre sí', () => {
     const ajustes = ajustesDe({
       calificaciones: { c1: { calidad: 'buena' }, c2: { calidad: 'buena' } },
-      decisionModerador: { decision: 'evaluada', calidad: 'buena' },
+      decisionModerador: { decision: 'evaluada', calidad: 'insuficiente' },
     });
 
-    expect(deltaDe(ajustes, 'c1', 'co_moderacion')).toBe(80);
+    expect(deltaDe(ajustes, 'c1', 'co_moderacion')).toBe(0);
+    expect(deltaDe(ajustes, 'c2', 'co_moderacion')).toBe(0);
   });
 
-  it('un solo co-moderador sin moderador no puede coincidir con nadie', () => {
+  it('un solo co-moderador sin moderador igual recibe reconocimiento por su esfuerzo', () => {
     const ajustes = ajustesDe({ calificaciones: { c1: { calidad: 'buena' } } });
 
-    expect(deltaDe(ajustes, 'c1', 'co_moderacion')).toBe(0);
+    // Sin referencia el acierto es neutro (0,5): la mitad de lo que valdría acertar del todo.
+    expect(deltaDe(ajustes, 'c1', 'co_moderacion')).toBe(PUNTOS_CON_ACIERTO_TOTAL_Y_UNA_REVISION / 2);
+  });
+});
+
+describe('votos de bids en el puntaje de los co-moderadores', () => {
+  function ajustesDeBids(bids) {
+    return calcularAjustesDeExposiciones({
+      estado: { exposiciones: {}, argumentos: {}, bids },
+      parametros: PARAMETROS_ESTANDAR,
+    });
+  }
+
+  it('votar como decidió el moderador puntúa al cierre, no al resolverse el bid', () => {
+    const ajustes = ajustesDeBids({
+      b1: { bidId: 'b1', decisionFinal: 'aprobado', votos: { c1: 'aprueba', c2: 'rechaza' } },
+    });
+
+    expect(deltaDe(ajustes, 'c1', 'co_moderacion')).toBe(30);
+    expect(deltaDe(ajustes, 'c2', 'co_moderacion')).toBe(0);
+  });
+
+  it('los bids sin decisión final del moderador no entran en el cálculo', () => {
+    const ajustes = ajustesDeBids({ b1: { bidId: 'b1', decisionFinal: null, votos: { c1: 'aprueba' } } });
+
+    expect(ajustes).toEqual([]);
+  });
+
+  it('exposiciones y bids se suman en un mismo porcentaje de acierto y de esfuerzo', () => {
+    const ajustes = calcularAjustesDeExposiciones({
+      estado: {
+        argumentos: { a1: { argumentId: 'a1', posicionEnRonda: 1, ronda: 1 } },
+        exposiciones: {
+          a1: {
+            argumentId: 'a1',
+            participantId: 'ana',
+            estado: 'terminada',
+            calificaciones: { c1: { calidad: 'buena' } },
+            decisionModerador: { decision: 'evaluada', calidad: 'buena' },
+          },
+        },
+        bids: { b1: { bidId: 'b1', decisionFinal: 'aprobado', votos: { c1: 'aprueba' } } },
+      },
+      parametros: PARAMETROS_ESTANDAR,
+    });
+
+    // 2 revisiones con acierto total → esfuerzo 2/7 → 210 × 2/7 = 60
+    expect(deltaDe(ajustes, 'c1', 'co_moderacion')).toBe(60);
   });
 });

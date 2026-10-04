@@ -4,7 +4,25 @@ import { sesionDelHostEsValida } from './_sesionDelHost.js';
 
 // La clave de Ably solo puede operar en los canales del debate: aunque alguien obtenga un token,
 // no lo puede usar en otros canales de la cuenta.
-const CAPACIDAD_DE_LOS_TOKENS = { 'debate:*': ['publish', 'subscribe', 'presence', 'history'] };
+//
+// Hay dos tipos de canal (ver docs/13-foro-escrito-y-nucleo-reutilizable.md):
+//   debate:sala:{código}        el de la sesión: lo leen y escriben todos
+//   debate:integridad:{código}  las señales de integridad: los participantes solo pueden PUBLICAR;
+//                               leerlas (suscribirse o pedir el historial) es exclusivo del host. Así
+//                               una marca de «texto pegado» no la puede leer un compañero con las
+//                               herramientas del navegador.
+const CAPACIDAD_DE_LOS_PARTICIPANTES = {
+  'debate:sala:*': ['publish', 'subscribe', 'presence', 'history'],
+  'debate:integridad:*': ['publish'],
+};
+const CAPACIDAD_DEL_HOST = {
+  'debate:sala:*': ['publish', 'subscribe', 'presence', 'history'],
+  'debate:integridad:*': ['publish', 'subscribe', 'history'],
+};
+
+export function capacidadSegunLaIdentidad(clientId) {
+  return clientId === 'host' ? CAPACIDAD_DEL_HOST : CAPACIDAD_DE_LOS_PARTICIPANTES;
+}
 
 export default async function handler(request, response) {
   if (!process.env.ABLY_API_KEY) {
@@ -31,7 +49,7 @@ export default async function handler(request, response) {
   try {
     const solicitudDeToken = await clienteAbly.auth.createTokenRequest({
       clientId,
-      capability: JSON.stringify(CAPACIDAD_DE_LOS_TOKENS),
+      capability: JSON.stringify(capacidadSegunLaIdentidad(clientId)),
     });
     response.status(200).json(solicitudDeToken);
   } catch (error) {

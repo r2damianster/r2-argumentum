@@ -15,6 +15,10 @@ Sistema basado en eventos, no un CRUD de estudiantes/argumentos/calificaciones. 
 | Persistencia de sesión | Ninguna — event log de Ably + export JSON/PDF al cierre | Evita dependencia de base de datos en el MVP |
 | Persistencia de Programas | Archivo JSON exportable/importable | Plantillas reutilizables entre sesiones y cursos |
 
+## Actividades y núcleo reutilizable
+
+La plataforma ejecuta **actividades** (hoy el debate hablado y el foro escrito) que se arman con piezas independientes del núcleo (`src/shared/nucleo/`): co-moderación, revisión y puntaje de revisores, temporizador, métricas de participación, reacciones, sugerencia de IA, integridad e informe. Cada actividad se define con `definirActividad` y se registra en `src/actividades/registroDeActividades.js`; el motor base solo llama a los procesos que la actividad aporta. Agregar una actividad no toca el núcleo. El detalle, las decisiones y el plan están en `13-foro-escrito-y-nucleo-reutilizable.md`.
+
 ## Por qué no hay base de datos en v1
 
 - Reduce fricción de despliegue: no hay backend con estado que mantener ni migrar.
@@ -43,7 +47,13 @@ Web Speech API depende de navegadores Chrome/Edge y de conexión estable a los s
 
 Antes del checkpoint 1 corren dos **filtros deterministas locales** que no son Groq: `api/_revisarFormaMinima.js` (menos de 5 palabras, o un conector causal como «porque» sin razón real detrás — el caso «Este texto no debería presentarse porque ....») y `buscarArgumentoParecido.js` (argumento casi igual a otro ya publicado, por similitud de vocabulario con contenido; se ofrece convertirlo en refuerzo). Ahorran llamadas a Groq y no juzgan contenido. La ortografía queda a cargo del corrector del navegador (`lang="es"`, `spellCheck`); una ayuda con IA sería solo una sugerencia aceptable, nunca automática.
 
-Groq nunca asigna puntaje directamente ni decide de forma final sin que un humano (el propio estudiante o el co-moderador) confirme.
+3. **Sugerencia de evaluación (foro escrito).** Es el mismo checkpoint 1, ampliado (`api/groq-sugerir-evaluacion.js`): además de la forma, **sugiere** si el aporte está completo, incompleto o sin razón y señala posibles falacias (solo con confianza ≥ 0,6 y citando un fragmento que esté en el texto). La ve quien escribe, para mejorar, y quienes moderan, para decidir; los compañeros no. Cada aporte se consulta como máximo 2 veces.
+
+Groq nunca asigna puntaje directamente ni decide de forma final sin que un humano (el propio estudiante o el co-moderador) confirme. En el foro la IA ni siquiera puntúa de forma provisional: quien decide si un aporte cuenta son los co-moderadores y el moderador.
+
+## Canales de Ably y quién puede leerlos
+
+Los tokens (`api/ably-token.js`) solo operan en dos tipos de canal: `debate:sala:{código}` (el de la sesión: lo leen y escriben todos) y `debate:integridad:{código}` (las señales de integridad: los participantes solo pueden **publicar**; únicamente el host puede suscribirse y pedir el historial). Así una marca de «texto pegado» no la puede leer un compañero con las herramientas del navegador. Como el participante no puede enganchar ese canal, publica por REST.
 
 ## Zoom del navegador
 

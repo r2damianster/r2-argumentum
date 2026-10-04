@@ -85,3 +85,50 @@ describe('armarProgramaDeLaSesion', () => {
     expect(programa).toBeNull();
   });
 });
+
+describe('armarProgramaDeLaSesion: moderación', () => {
+  const base = {
+    programaBase,
+    posturasDelPrograma,
+    idsDePosturasSeleccionadas: new Set(['izquierda', 'derecha']),
+    perfilDePuntaje: 'liviano',
+  };
+
+  it('sin elegir nada rige el modo reglamentario', () => {
+    expect(armarProgramaDeLaSesion(base).moderacion).toEqual({ modo: 'reglamentario', numeroFijo: null });
+  });
+
+  it('conserva el modo y el número fijo que eligió el moderador', () => {
+    const programa = armarProgramaDeLaSesion({ ...base, moderacion: { modo: 'fijo', numeroFijo: 2 } });
+    expect(programa.moderacion).toEqual({ modo: 'fijo', numeroFijo: 2 });
+  });
+
+  it('un Programa que ya traía moderación la conserva si el moderador no cambia nada', () => {
+    const programa = armarProgramaDeLaSesion({
+      ...base,
+      programaBase: { ...programaBase, moderacion: { modo: 'ninguno' } },
+    });
+    expect(programa.moderacion.modo).toBe('ninguno');
+  });
+});
+
+describe('armarProgramaDeLaSesion: integridad', () => {
+  const base = {
+    programaBase,
+    posturasDelPrograma,
+    idsDePosturasSeleccionadas: new Set(['izquierda', 'derecha']),
+    perfilDePuntaje: 'liviano',
+  };
+
+  it('sin elegir nada la integridad queda apagada', () => {
+    expect(armarProgramaDeLaSesion(base).integridad).toEqual({ nivel: 'ninguna' });
+  });
+
+  it('conserva el nivel que eligió el moderador', () => {
+    expect(armarProgramaDeLaSesion({ ...base, integridad: { nivel: 'restrictiva' } }).integridad.nivel).toBe('restrictiva');
+  });
+
+  it('un nivel inválido vuelve a apagada', () => {
+    expect(armarProgramaDeLaSesion({ ...base, integridad: { nivel: 'inventado' } }).integridad.nivel).toBe('ninguna');
+  });
+});

@@ -2,6 +2,13 @@ import { useState } from 'react';
 import { armarProgramaDeLaSesion } from '../programaDeLaSesion.js';
 import { PERFILES_DE_PUNTAJE, PERFIL_POR_DEFECTO } from '../../shared/puntaje/formulaDePuntaje.js';
 import { IDIOMAS_DEL_DEBATE, resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.js';
+import {
+  MODOS_DE_CO_MODERACION,
+  normalizarModeracion,
+} from '../../shared/nucleo/coModeracion/calcularCoModeradores.js';
+import { SelectorDeModeracion } from './SelectorDeModeracion.jsx';
+import { SelectorDeIntegridad } from './SelectorDeIntegridad.jsx';
+import { normalizarIntegridad } from '../../shared/nucleo/integridad/nivelesDeIntegridad.js';
 
 export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfiguracion, onCambiarPrograma }) {
   const [posturasDelPrograma] = useState(() => programaBase.posturas);
@@ -16,6 +23,8 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
   const [asignacionPostura, setAsignacionPostura] = useState(
     () => programaBase.asignacionPostura ?? 'aleatoria'
   );
+  const [moderacion, setModeracion] = useState(() => normalizarModeracion(programaBase.moderacion));
+  const [integridad, setIntegridad] = useState(() => normalizarIntegridad(programaBase.integridad));
 
   function alternarPostura(posturaId) {
     setPosturasSeleccionadas((actuales) => {
@@ -38,6 +47,8 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
       permitirPosturasNuevas,
       idioma: idiomaDelDebate,
       asignacionPostura,
+      moderacion,
+      integridad,
     });
 
     if (!programaConfigurado) {
@@ -49,6 +60,7 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
 
   const hayQueElegir = posturasDelPrograma.length > 2;
   const posturasValidas = posturasSeleccionadas.size >= 2;
+  const moderacionValida = moderacion.modo !== MODOS_DE_CO_MODERACION.FIJO || moderacion.numeroFijo >= 1;
 
   return (
     <section className="tarjeta-de-programa">
@@ -181,6 +193,9 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
         </p>
       </div>
 
+      <SelectorDeModeracion moderacion={moderacion} onCambiarModeracion={setModeracion} />
+      <SelectorDeIntegridad integridad={integridad} onCambiarIntegridad={setIntegridad} />
+
       <div className="bloque-de-configuracion">
         <label className="casilla-de-falta">
           <input
@@ -198,10 +213,13 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
       {!posturasValidas && (
         <p className="mensaje-de-error">Debes seleccionar al menos 2 posturas para abrir el debate.</p>
       )}
+      {!moderacionValida && (
+        <p className="mensaje-de-error">Con número fijo de co-moderadores, indica cuántos son (al menos 1).</p>
+      )}
 
       <button
         type="button"
-        disabled={!posturasValidas}
+        disabled={!posturasValidas || !moderacionValida}
         onClick={manejarConfirmacion}
         style={{ marginTop: '1rem', width: '100%', padding: '0.8rem', fontSize: '1.05rem', fontWeight: 'bold' }}
       >

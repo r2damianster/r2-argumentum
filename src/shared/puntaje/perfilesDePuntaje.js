@@ -14,7 +14,6 @@ export const PERFILES_DE_PUNTAJE = {
     descuentoRonda2: 0.85,
     descuentoViaCoModerador: 0.7,
     penalidadPorRechazoDeTurno: 2,
-    factorDeBonosDeCoModeracion: 1,
   },
   estandar: {
     etiqueta: 'Estándar',
@@ -23,7 +22,6 @@ export const PERFILES_DE_PUNTAJE = {
     descuentoRonda2: 0.7,
     descuentoViaCoModerador: 0.5,
     penalidadPorRechazoDeTurno: 20,
-    factorDeBonosDeCoModeracion: 10,
   },
   estricto: {
     etiqueta: 'Estricto',
@@ -32,7 +30,6 @@ export const PERFILES_DE_PUNTAJE = {
     descuentoRonda2: 0.5,
     descuentoViaCoModerador: 0.3,
     penalidadPorRechazoDeTurno: 300,
-    factorDeBonosDeCoModeracion: 100,
   },
 };
 

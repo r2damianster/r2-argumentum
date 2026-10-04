@@ -9,7 +9,6 @@ import { TIPOS_DE_FASE } from '../eventos/nombresDeEventos.js';
 import { ingresoEstaCerrado } from '../ingreso/reglasDeIngreso.js';
 import { calcularPenalidadPorRechazoDeTurno, resolverParametrosDePuntaje } from '../puntaje/formulaDePuntaje.js';
 import {
-  obtenerArgumentosSinValidar,
   obtenerIntervencionesSinCalificar,
   obtenerExposicionesSinCalificar,
   obtenerBidsAbiertos,
@@ -123,7 +122,6 @@ function accionObligatoria(estado, participantId, esCoModerador, ingresoConfirma
 
   if (esCoModerador) {
     const pendientes =
-      obtenerArgumentosSinValidar(estado, { excluirParticipantId: participantId }).length +
       obtenerBidsAbiertos(estado).filter((bid) => bid.participantId !== participantId).length +
       obtenerIntervencionesSinCalificar(estado, { excluirParticipantId: participantId }).length +
       obtenerExposicionesSinCalificar(estado, { coModeradorId: participantId, excluirParticipantId: participantId })

@@ -12,7 +12,7 @@ El docente elige el modo de calificación al configurar la sesión. Los perfiles
 | Estándar | 100 / 80 / 30 | 0.7 | 0.5 | −20 |
 | Estricto | 1000 / 800 / 300 | 0.5 | 0.3 | −300 |
 
-Los tres mantienen la proporción 10 : 8 : 3 entre posiciones (hay una prueba que lo verifica), así el ranking por percentiles dentro de cada postura funciona igual con cualquiera. Los bonos de co-moderación escalan con el perfil (`factorDeBonosDeCoModeracion`): con escala de miles, un +8 fijo sería ruido estadístico y el rol dejaría de ser comparable en valor al de argumentar.
+Los tres mantienen la proporción 10 : 8 : 3 entre posiciones (hay una prueba que lo verifica), así el ranking por percentiles dentro de cada postura funciona igual con cualquiera. El puntaje de los co-moderadores también escala con el perfil: lo máximo que puede ganar un co-moderador es la suma de las posiciones del perfil (lo que gana un debatiente con todas las suyas), así el rol sigue siendo comparable en valor al de argumentar con cualquier escala (ver «Puntaje de co-moderadores»).
 
 ## Puntaje del turno hablado
 
@@ -27,7 +27,7 @@ El argumento se publica (y puntúa, con la fórmula de más abajo) apenas Groq l
 ```
 nivel de una exposición (según quién manda):
   el moderador la evaluó        → su nivel (autoritativo)
-  el moderador descartó         → sin ajuste y sin bonos
+  el moderador descartó         → sin ajuste, y esa exposición no cuenta para el puntaje de los co-moderadores
   el moderador no intervino     → promedio de los niveles de los co-moderadores
   nadie la calificó             → sin ajuste
 
@@ -40,16 +40,20 @@ Es la misma semántica que el turno hablado: «coherente» duplica lo que ya val
 
 Los ajustes se calculan **una sola vez, al cerrar la sesión** (`motor.cerrarSesion`, que los publica antes de `session.closed`), cuando el moderador ya pudo revisar y descartar. Hasta entonces el marcador y el ranking parcial son **provisionales**: no incluyen estos ajustes.
 
-### Consistencia de los co-moderadores
+### Puntaje de los co-moderadores por cierre
 
-Con el mismo cierre se puntúa qué tan consistentes fueron las calificaciones (bonos que escalan con el perfil, ver «Puntaje de co-moderadores»):
+Con el mismo cierre se puntúa el trabajo de los co-moderadores, y se hace **por porcentaje de acierto**, no por coincidencias sueltas de todo o nada. Entran en el cálculo las exposiciones calificadas y los bids votados; las reglas completas están en «Puntaje de co-moderadores», más abajo.
 
-| Situación | Bono |
-|---|---|
-| Su nivel coincide con el del moderador (si el moderador evaluó) | `VOTO_DE_BID_COINCIDENTE` (+5 base) |
-| Su nivel coincide con el de al menos otro co-moderador (revisión cruzada) | `CONSISTENCIA_EN_REVISION_CRUZADA` (+3 base) |
+## Puntaje del foro escrito
 
-Se suman si se dan las dos. Si el moderador descartó las calificaciones, no hay bonos: sin una referencia fiable nadie queda como consistente ni como inconsistente. Un único co-moderador sin moderador no puede coincidir con nadie. «Fuera de tema» y «no está hablando» valen lo mismo (−1), así que coinciden entre sí.
+Sigue la fórmula única: nada de números sueltos, todo sale de los valores de posición del perfil (`src/shared/puntaje/puntajeDeAportes.js`).
+
+- **Post nuevo n.º 1, 2, 3** de cada persona: valor de la posición 1, 2 y 3 del perfil (Estándar: 100, 80, 30).
+- **Réplica:** el valor de la última posición del perfil (Estándar: 30), hasta **5 réplicas** puntuadas. Un aporte pasado de esos topes se publica y se ve, pero vale 0. Máximo de un debatiente en Estándar: 210 + 150 = 360.
+- **Se acredita al publicar** (provisional). El ajuste por la revisión humana se aplica **una sola vez, al cerrar**: *cuenta completo* no cambia nada, *parcial* resta la mitad de lo que valía y *no cuenta* lo resta todo. Rige la decisión del moderador; si no intervino, la mayoría de los co-moderadores; **sin ninguna revisión, el aporte cuenta completo**. Un aporte oculto no cuenta.
+- La sugerencia de la IA **no** cambia el puntaje.
+- **No hay puntos por reacciones.** El «convencimiento cruzado» (un «me convenció» de alguien de la postura contraria) se cuenta y lo ve el moderador, pero no puntúa en la v1.
+- **La integridad no afecta el puntaje por sí sola:** las señales son una advertencia para el moderador, quien puede decidir que un aporte no cuente.
 
 ## El total nunca baja de cero
 
@@ -118,19 +122,21 @@ Valores concretos configurables por Programa — mantener la misma escala relati
 
 ## Puntaje de co-moderadores
 
-Mismos órdenes de magnitud que el puntaje de estudiantes, para que el rol sea comparable en valor, no un premio de consolación. Premia criterio, no volumen de acciones:
+Premia criterio y trabajo, no volumen ni coincidencias sueltas. Es una función única del núcleo, independiente de la actividad (`src/shared/nucleo/revision/calcularPuntajeDeRevisores.js`), así la usan el debate hablado, el foro escrito y las actividades futuras.
 
-| Acción | Puntos | Condición |
-|---|---|---|
-| Caso escalado resuelto, ratificado luego por el moderador | +8 | requiere ratificación — evita autoservicio |
-| Voto en un bid de intervención coincide con la decisión final del moderador | +5 | ver `04-roles-y-turnos.md`, mecánica de bids desmontar/fortalecer |
-| Falta detectada con justificación escrita, no revertida | +6 | la justificación es obligatoria |
-| Reclasificación correcta de un tipo de relación autodeclarado | +5 | — |
-| Feedback usado por el estudiante para reformular con éxito | +4 | mide impacto real, no cantidad de comentarios |
-| Coincide con otro revisor en una revisión cruzada | +3 | hoy solo para las calificaciones de exposiciones orales, comparadas entre co-moderadores al cerrar (no es aleatoria: se cruzan todas las que calificaron la misma exposición) |
-| Falta marcada sin justificación, o revertida por el moderador | −5 | desincentiva farmear puntaje marcando de más |
+1. **Referencia de cada elemento revisado.** La decisión del moderador (peso 1). Si no intervino, el consenso de los co-moderadores —el nivel que rige al cerrar, con al menos dos votos— (peso 0,6). Con un único voto y sin moderador no hay referencia. Si el moderador descartó las revisiones de ese elemento, no cuenta ni como acierto ni como esfuerzo.
+2. **Cercanía de un voto** = `1 − |su nivel − nivel de referencia| / rango de la escala`. Funciona con cualquier escala (en las exposiciones, de −1 a +1; en los bids, aprueba o rechaza).
+3. **Acierto** = promedio ponderado de la cercanía, **corregido por azar**: `max(0, (promedio − 0,5) / 0,5)`. Votar al azar da cercanía ≈ 0,5 y por tanto 0 puntos: no hace falta restar nada, y el total sigue sin bajar de cero. Si ningún elemento revisado tiene referencia, el acierto vale 0,5 (se reconoce el esfuerzo sin poder medir el acierto).
+4. **Esfuerzo** = `min(1, elementos revisados / 7)`.
+5. **Puntos** = `suma de los valores de posición del perfil × acierto × esfuerzo` (210 como máximo en Estándar).
 
-La "revisión cruzada aleatoria" consiste en que el sistema, ocasionalmente y sin avisar, hace que dos co-moderadores revisen el mismo caso — si coinciden, ambos ganan el bono de consistencia. Sirve como auditoría automática sin que el profesor tenga que revisar todo manualmente.
+Ejemplo (Estándar): Marta revisó 8 casos, 6 con referencia, con cercanías 1, 1, 1, 0,5, 1 y 0. Promedio 0,75 → acierto 0,5; esfuerzo 1 → 105 puntos. Otro co-moderador revisa 4 casos y coincide siempre con el consenso: acierto 1, esfuerzo 4/7 → 120 puntos.
+
+**Si el moderador decide no evaluar lo que hicieron los co-moderadores, igual puntúan**: rige el consenso entre ellos.
+
+### Qué se retiró (octubre de 2026)
+
+Los bonos sueltos por reclasificar un tipo, marcar una falta y resolver un caso escalado, el +5 inmediato por votar como el moderador en un bid y el +3 de «revisión cruzada» se pagaban sin pasar por el moderador (bastaba reclasificar todo o marcar faltas con cualquier nota) y eran de todo o nada. Se eliminaron junto con la cola «Confirmar validación» del panel de co-moderador; la corrección del tipo de relación pasa a ser un campo de la revisión de aportes en el foro escrito (ver `13-foro-escrito-y-nucleo-reutilizable.md`). Los eventos `argument.validated` de sesiones anteriores se siguen entendiendo.
 
 ## Ranking visible y estructura de doble podio
 

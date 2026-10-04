@@ -1,7 +1,5 @@
-import { useState } from 'react';
-import { EVENTOS, TIPOS_DE_RELACION, TIPOS_DE_BID } from '../../shared/eventos/nombresDeEventos.js';
+import { EVENTOS, TIPOS_DE_BID } from '../../shared/eventos/nombresDeEventos.js';
 import {
-  obtenerArgumentosSinValidar,
   obtenerBidsAbiertos,
   obtenerExposicionesSinCalificar,
   obtenerIntervencionesSinCalificar,
@@ -11,63 +9,8 @@ import {
   ETIQUETA_DE_CALIDAD_DE_EXPOSICION,
 } from '../../shared/puntaje/etiquetasDeExposicion.js';
 
-const ETIQUETA_DE_TIPO = {
-  [TIPOS_DE_RELACION.NUEVO]: 'Argumento nuevo',
-  [TIPOS_DE_RELACION.CONTRAARGUMENTO]: 'Contraargumento',
-  [TIPOS_DE_RELACION.REFUERZO]: 'Refuerzo',
-  [TIPOS_DE_RELACION.DILEMA]: 'Dilema',
-  [TIPOS_DE_RELACION.PREGUNTA]: 'Pregunta',
-  [TIPOS_DE_RELACION.CONCESION]: 'Concesión',
-};
-
-function FilaDeValidacion({ argumento, participantId, publicar }) {
-  const [tipoFinal, setTipoFinal] = useState(argumento.tipoDeclarado);
-  const [nota, setNota] = useState('');
-  const [faltaMarcada, setFaltaMarcada] = useState(false);
-
-  function confirmar() {
-    publicar(EVENTOS.ARGUMENTO_VALIDADO, {
-      argumentId: argumento.argumentId,
-      coModeradorId: participantId,
-      tipoFinal,
-      puntajeAsignado: null,
-      nota,
-      faltaMarcada,
-    });
-  }
-
-  return (
-    <li>
-      <p>{argumento.texto}</p>
-      {argumento.viaCoModerador && <p className="texto-de-ayuda">⚠️ Escaló tras agotar intentos con Groq</p>}
-      <label>
-        Tipo confirmado
-        <select value={tipoFinal} onChange={(evento) => setTipoFinal(evento.target.value)}>
-          {Object.entries(ETIQUETA_DE_TIPO).map(([valor, etiqueta]) => (
-            <option key={valor} value={valor}>
-              {etiqueta}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Nota (opcional, obligatoria si marcas falta)
-        <input value={nota} onChange={(evento) => setNota(evento.target.value)} />
-      </label>
-      <label className="casilla-de-falta">
-        <input type="checkbox" checked={faltaMarcada} onChange={(evento) => setFaltaMarcada(evento.target.checked)} />
-        Marcar falta
-      </label>
-      <button type="button" className="boton-exito" onClick={confirmar}>
-        Confirmar validación
-      </button>
-    </li>
-  );
-}
-
 export function PanelDeCoModerador({ estado, presencia, participantId, publicar }) {
   // Juez y parte no: lo propio queda fuera de la cola (ver seleccionesDerivadas.js).
-  const argumentosSinValidar = obtenerArgumentosSinValidar(estado, { excluirParticipantId: participantId });
   const bidsAbiertos = obtenerBidsAbiertos(estado).filter((bid) => bid.participantId !== participantId);
   const intervencionesSinCalificar = obtenerIntervencionesSinCalificar(estado, {
     excluirParticipantId: participantId,
@@ -190,26 +133,6 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
         </div>
       )}
 
-      {argumentosSinValidar.length > 0 && (
-        <div>
-          <p className="texto-de-ayuda">
-            Confirma si el tipo es correcto y marca falta solo si corresponde — no evalúes si estás de acuerdo
-            con la postura.
-          </p>
-          <p className="texto-de-ayuda">Argumentos por validar</p>
-          <ul className="lista-de-validaciones-pendientes">
-            {argumentosSinValidar.map((argumento) => (
-              <FilaDeValidacion
-                key={argumento.argumentId}
-                argumento={argumento}
-                participantId={participantId}
-                publicar={publicar}
-              />
-            ))}
-          </ul>
-        </div>
-      )}
-
       {intervencionesSinCalificar.length > 0 && (
         <div>
           <p className="texto-de-ayuda">
@@ -251,8 +174,7 @@ export function PanelDeCoModerador({ estado, presencia, participantId, publicar 
         </div>
       )}
 
-      {argumentosSinValidar.length === 0 &&
-        bidsAbiertos.length === 0 &&
+      {bidsAbiertos.length === 0 &&
         intervencionesSinCalificar.length === 0 &&
         exposicionesSinCalificar.length === 0 && (
         <p className="texto-de-ayuda">Nada pendiente por ahora.</p>

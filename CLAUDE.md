@@ -20,6 +20,15 @@ Plataforma de debate argumental en tiempo real para uso en aula (ULEAM). No es u
 - **Idioma: todo en español latinoamericano neutro.** Este proyecto no tiene i18n dual ES/EN previsto (a diferencia de otros proyectos educativos del usuario como DataViz Lab). No añadir textos en inglés ni una capa `t('clave')`/`translations.js` sin confirmar antes con el usuario.
 - **Nada de voseo rioplatense.** El público es ecuatoriano (ULEAM). Usar formas de "tú", no de "vos": `Escribe` (no `Escribí`), `Elige` (no `Elegí`), `puedes` (no `podés`), `tienes` (no `tenés`), `aquí` (no `acá`), `Pídele` (no `Pedile`), `Acepta`/`Rechaza` (no `Aceptá`/`Rechazá`). Aplica a todo el texto visible por el estudiante o el docente, a los `instruccionesParaEstudiantes` de los Programas de ejemplo, a los comentarios del código y a la documentación.
 
+## Actividades y núcleo reutilizable (octubre de 2026)
+
+- La plataforma ejecuta **actividades** (`src/actividades/`: `debate_hablado` y `foro_escrito`), elegidas por el moderador antes del Programa. Las piezas que sirven a más de una viven como **funciones puras** en `src/shared/nucleo/` (co-moderación, revisión, temporizador, conciencia, reacciones, IA, integridad, informe). Detalle y decisiones en `docs/13-foro-escrito-y-nucleo-reutilizable.md`.
+- **Groq solo sugiere**, también en el foro (completo/incompleto, posibles falacias): no puntúa ni de forma provisional. Decide quien modera.
+- **Puntaje de co-moderadores por porcentaje de acierto sobre el azar y esfuerzo** (no coincidencias de todo o nada), con la misma función para todas las actividades. Si el moderador no evalúa, rige el consenso entre co-moderadores.
+- **Integridad apagada por defecto.** Con ella activa, las señales son una advertencia: las ve solo el moderador (canal privado), se le avisa a quien escribe y no hay sanción automática. No hay detector de «texto de IA».
+- Co-moderación: modo reglamentario (un co-moderador por cada 10, solo desde 6 participantes), número fijo o sin co-moderadores; se designan en la sala de espera.
+- Sin revisión, un aporte del foro **cuenta completo**.
+
 ## Convenciones de código
 
 - Nombres descriptivos completos, nunca abreviaciones crípticas (`scenario` no `s`, `isVisible` no `flag`, `studentArgument` no `arg`).

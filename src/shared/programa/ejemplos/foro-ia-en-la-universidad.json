@@ -1,0 +1,60 @@
+{
+  "programId": "foro-ia-en-la-universidad-2026",
+  "titulo": "Foro: ¿Debe usarse la inteligencia artificial en la universidad?",
+  "categoria": "Educación (foro escrito)",
+  "actividad": "foro_escrito",
+  "version": "1.0.0",
+  "creadoPor": "arturo.rodriguez@uleam.edu.ec",
+  "fechaCreacion": "2026-10-04",
+
+  "temaCentral": "Las herramientas de inteligencia artificial ya forman parte de la vida universitaria. ¿Deben usarse de forma sistemática en las clases y en las evaluaciones?",
+  "preguntaGuia": "¿Qué gana y qué pierde una universidad cuando permite usar IA en el aprendizaje y la evaluación?",
+  "objetivoAprendizaje": "Pensamiento crítico por escrito: sostener una postura con una razón concreta y responder a lo que otras personas plantean, no solo publicar la propia opinión.",
+  "instruccionesParaEstudiantes": "Elige tu postura y escribe en tus propias palabras. Cada aporte necesita una afirmación y una razón (un caso, un dato, un ejemplo). Después responde a otras personas: apoya, contradice, plantea un dilema o reconoce lo que te convenció. Los posts sin respuesta se destacan para que nadie quede hablando solo.",
+
+  "posturas": [
+    { "id": "a_favor", "etiqueta": "A favor de usarla", "color": "#2a9d8f" },
+    { "id": "en_contra", "etiqueta": "En contra de usarla", "color": "#d1495b" },
+    { "id": "matizada", "etiqueta": "Depende / con condiciones", "color": "#8a8a8a", "esMatizada": true }
+  ],
+  "asignacionPostura": "libre",
+  "permiteCambioPostura": false,
+
+  "fases": [
+    { "tipo": "foro_escrito", "duracionMin": 20 },
+    { "tipo": "cierre_y_ranking" }
+  ],
+
+  "limitesDePuntaje": { "maxPostsNuevos": 3, "maxReplicasPuntuadas": 5 },
+  "moderacion": { "modo": "reglamentario" },
+
+  "criterioValidacion": "claim_mas_razon",
+  "ejemplosPorTema": [
+    {
+      "malo": "La IA es mala para estudiar.",
+      "bueno": "Usar IA para resolver las tareas es dañino porque quien no practica el razonamiento por sí mismo pierde esa habilidad, y en el examen sin IA no sabe empezar.",
+      "porque": "El malo es una valoración sin razón; el bueno afirma algo y explica por qué, con una consecuencia concreta."
+    },
+    {
+      "malo": "Todo el mundo la usa, así que está bien.",
+      "bueno": "Prohibir la IA no funciona porque ya está en el celular de todos, y es más útil enseñar a verificar sus respuestas que fingir que no existe.",
+      "porque": "El malo apela a la mayoría sin explicar nada; el bueno razona sobre por qué prohibir no resulta y qué alternativa propone."
+    },
+    {
+      "malo": "Depende.",
+      "bueno": "Depende del objetivo de la tarea, porque si se evalúa redacción propia la IA invalida el resultado, pero si se evalúa análisis de datos puede ser una herramienta legítima.",
+      "porque": "El malo no dice de qué depende; el bueno nombra la condición y da un ejemplo para cada caso."
+    }
+  ],
+  "promptSistemaFase1": "Evalúa si el aporte tiene una afirmación y una razón explícita (un caso, un dato, un ejemplo, 'porque', 'ya que'). No evalúes si la opinión sobre la inteligencia artificial es favorable o crítica. Solo sugiere: la decisión es de las personas que moderan.",
+  "promptSistemaFase2": "Sugiere conexiones entre aportes del foro; las decisiones son de las personas que moderan.",
+
+  "formulaCoModeradores": "ceil(n * 0.10)_min_1",
+  "topeMaximoCoModeradores": null,
+  "exclusionMutua": true,
+
+  "exportaJSON": { "eventLogCompleto": true, "mapaArgumental": true, "rankingPorPostura": true, "perfilPorEstudiante": true },
+  "exportaPDF": true,
+
+  "duracionTotalEstimada": 30
+}

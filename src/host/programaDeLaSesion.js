@@ -7,6 +7,9 @@
 //
 // Devuelve null si quedan menos de 2 posturas: un debate necesita al menos dos.
 
+import { normalizarModeracion } from '../shared/nucleo/coModeracion/calcularCoModeradores.js';
+import { normalizarIntegridad } from '../shared/nucleo/integridad/nivelesDeIntegridad.js';
+
 const MINIMO_DE_POSTURAS = 2;
 
 export function armarProgramaDeLaSesion({
@@ -17,6 +20,8 @@ export function armarProgramaDeLaSesion({
   permitirPosturasNuevas,
   idioma,
   asignacionPostura,
+  moderacion,
+  integridad,
 }) {
   const posturasElegidas = posturasDelPrograma.filter((postura) => idsDePosturasSeleccionadas.has(postura.id));
   if (posturasElegidas.length < MINIMO_DE_POSTURAS) {
@@ -29,6 +34,10 @@ export function armarProgramaDeLaSesion({
     permitirPosturasNuevas: Boolean(permitirPosturasNuevas),
     idioma,
     asignacionPostura: asignacionPostura ?? programaBase.asignacionPostura ?? 'aleatoria',
+    // Cuántos co-moderadores hay y cómo se eligen; sin elegir nada rige el modo reglamentario.
+    moderacion: normalizarModeracion(moderacion ?? programaBase.moderacion),
+    // Apagada por defecto: sin elegir nada no se registra ninguna señal de integridad.
+    integridad: normalizarIntegridad(integridad ?? programaBase.integridad),
     // Programas guardados antes de retirar la apertura simultánea pueden traer esa fase: se
     // descarta, porque ya no existe (el ingreso con argumento se confirma en la sala de espera).
     fases: programaBase.fases?.filter((fase) => fase.tipo !== 'apertura_simultanea'),

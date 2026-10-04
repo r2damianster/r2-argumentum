@@ -9,7 +9,6 @@ import { TIPOS_DE_FASE } from '../eventos/nombresDeEventos.js';
 import { ingresoEstaCerrado, analizarBalanceDePosturas } from '../ingreso/reglasDeIngreso.js';
 import { resolverParametrosDePuntaje } from '../puntaje/perfilesDePuntaje.js';
 import {
-  obtenerArgumentosSinValidar,
   obtenerBidsAbiertos,
   obtenerExposicionesSinCalificar,
   obtenerIntervencionesSinCalificar,
@@ -142,7 +141,6 @@ export function calcularAvisosParaElModerador(estado, presencia, ahora = Date.no
   }
 
   const pendientesDeCoModeracion =
-    obtenerArgumentosSinValidar(estado).length +
     obtenerBidsAbiertos(estado).length +
     obtenerIntervencionesSinCalificar(estado).length +
     obtenerExposicionesSinCalificar(estado).length;
@@ -162,7 +160,7 @@ export function calcularAvisosParaElModerador(estado, presencia, ahora = Date.no
       id: 'sin-comoderadores',
       gravedad: GRAVEDAD.MEDIA,
       texto: 'No hay co-moderadores en esta sesión y hay casos por revisar.',
-      detalle: 'El puntaje base se acredita igual; solo faltan los bonos y las reclasificaciones.',
+      detalle: 'El puntaje base se acredita igual; el moderador puede calificar las exposiciones desde su consola.',
     });
   }
 

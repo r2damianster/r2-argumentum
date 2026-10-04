@@ -9,8 +9,8 @@ Consistente con otro proyecto del usuario, **R2 Quiz** (consola de host reservad
 - La credencial vive **solo en variables de entorno de Vercel** (`HOST_USER`, `HOST_PASSWORD`), nunca en el código ni en la documentación (el repositorio es público). El login llama a `POST /api/host-login`, que compara con `timingSafeEqual` y responde con un token firmado (HMAC-SHA256, caduca a los 7 días, se invalida al cambiar `HOST_PASSWORD`). El navegador guarda ese token en `localStorage` (`src/shared/ably/sesionDelHost.js`); «Cerrar sesión» lo borra. Una clave incorrecta espera 700 ms antes de responder.
 - `/api/ably-token` **solo entrega la identidad `host` con ese token** (`hostToken`); los participantes usan su propio `participante-…` sin login.
 - Imagen de portada de esta consola: `public/avatar.png`.
-- Flujo en 3 Etapas del Moderador:
-  1. **Selección y Configuración Inicial**: El profesor elige un Programa de Debate y configura sus parámetros (posturas activas, modo de asignación de postura, perfil de puntaje, idioma y propuesta de posturas nuevas) **antes** de abrir la sala o generar el QR, evitando descalibres con participantes ingresando en paralelo.
+- Flujo en 3 Etapas del Moderador (precedido por la elección de la **actividad**: «Debate hablado» o «Foro escrito»; con una sola actividad habilitada ese paso se salta):
+  1. **Selección y Configuración Inicial**: El profesor elige un Programa y configura sus parámetros (posturas activas, modo de asignación de postura, perfil de puntaje, idioma, propuesta de posturas nuevas, **co-moderadores** y **nivel de integridad**) **antes** de abrir la sala o generar el QR, evitando descalibres con participantes ingresando en paralelo.
   2. **Sala de Espera con QR y Guía Pedagógica**: Al confirmar la configuración, se genera el código de sala de 4 dígitos y el QR (`/player.html?sala={codigo}`). En esta pantalla se visualizan en tiempo real los participantes conectándose, se resumen los parámetros configurados y se proyecta el **Panel de Guía Pedagógica** (pautas sobre objetivo del debate, redacción de argumentos, puntaje y rol de co-moderador).
   3. **Debate en Vivo**: Al presionar «🚀 Iniciar debate», arranca la primera fase en vivo.
 - **Recarga (F5)**: si la sesión ya estaba iniciada, la consola se reconstruye sola desde la copia local del log (también con el debate cerrado: el informe no se pierde). Solo si no hay copia local y el historial de Ably ya expiró vuelve a la lista de Programas (nunca reabre una sala nueva con el código viejo). Con el debate cerrado, «➕ Iniciar un debate nuevo» vuelve a la lista sin pedir login.
@@ -69,8 +69,9 @@ GET /api/ably-token   (función serverless en Vercel)
 lee ABLY_API_KEY desde entorno seguro de Vercel
      │
      ▼
-devuelve token temporal de Ably, con capacidad limitada a los canales `debate:*`
-     (publish, subscribe, presence, history) y `clientId` validado (^[A-Za-z0-9_-]{1,64}$);
+devuelve token temporal de Ably, con capacidad limitada a `debate:sala:*` (publish, subscribe,
+     presence, history) y `debate:integridad:*` (los participantes solo publish; el host también
+     subscribe e history) y `clientId` validado (^[A-Za-z0-9_-]{1,64}$);
      la identidad `host` exige el token firmado de /api/host-login
      │
      ▼

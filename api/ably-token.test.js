@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import handler from './ably-token.js';
+import handler, { capacidadSegunLaIdentidad } from './ably-token.js';
 import { firmarSesionDelHost } from './_sesionDelHost.js';
 
 function respuestaFalsa() {
@@ -29,8 +29,33 @@ describe('/api/ably-token', () => {
     expect(respuesta.cuerpo.clientId).toBe('participante-123-abc');
     // Ably devuelve las operaciones ordenadas alfabéticamente.
     expect(JSON.parse(respuesta.cuerpo.capability)).toEqual({
-      'debate:*': ['history', 'presence', 'publish', 'subscribe'],
+      'debate:sala:*': ['history', 'presence', 'publish', 'subscribe'],
+      'debate:integridad:*': ['publish'],
     });
+  });
+
+  it('un participante NO puede leer el canal de integridad: solo publicar', async () => {
+    const respuesta = respuestaFalsa();
+    await handler({ query: { clientId: 'participante-123-abc' } }, respuesta);
+    const capacidad = JSON.parse(respuesta.cuerpo.capability);
+    expect(capacidad['debate:integridad:*']).toEqual(['publish']);
+    expect(capacidad['debate:integridad:*']).not.toContain('subscribe');
+    expect(capacidad['debate:integridad:*']).not.toContain('history');
+  });
+
+  it('el host sí puede suscribirse y pedir el historial del canal de integridad', async () => {
+    const { token } = firmarSesionDelHost('clave-del-host');
+    const respuesta = respuestaFalsa();
+    await handler({ query: { clientId: 'host', hostToken: token } }, respuesta);
+    expect(JSON.parse(respuesta.cuerpo.capability)['debate:integridad:*']).toEqual(['history', 'publish', 'subscribe']);
+  });
+
+  it('ningún token alcanza canales fuera de debate:sala y debate:integridad', () => {
+    for (const identidad of ['host', 'participante-1']) {
+      for (const canal of Object.keys(capacidadSegunLaIdentidad(identidad))) {
+        expect(canal).toMatch(/^debate:(sala|integridad):\*$/);
+      }
+    }
   });
 
   it('rechaza un clientId con formato inválido', async () => {

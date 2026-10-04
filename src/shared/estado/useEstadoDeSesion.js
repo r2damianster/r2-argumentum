@@ -3,7 +3,8 @@
 // ver docs/09-modelo-de-eventos.md) y expone una función para publicar eventos nuevos.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { obtenerClienteAbly, obtenerCanalDeDebate } from '../ably/clienteAbly.js';
+import { obtenerClienteAbly, obtenerCanalDeDebate, publicarEnElCanalDeIntegridad } from '../ably/clienteAbly.js';
+import { NOMBRE_DEL_EVENTO_DE_INTEGRIDAD } from '../nucleo/integridad/canalPrivado.js';
 import { EVENTOS } from '../eventos/nombresDeEventos.js';
 import { estadoInicial, reducirEventos } from './reducirEventos.js';
 import { completarPresenciaConParticipantes } from './seleccionesDerivadas.js';
@@ -113,7 +114,10 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
         ...eventosLocales,
         { name: mensaje.name, data: mensaje.data, timestamp: mensaje.timestamp, clientId: mensaje.clientId },
       ];
-      estadoLocal = reducirEventos(estadoLocal, { name: mensaje.name, data: mensaje.data });
+      // Se pasa el `clientId` real del emisor (lo pone Ably a partir del token): el reducer lo usa para
+      // aceptar las decisiones del moderador, las revisiones de co-moderadores y las reacciones solo
+      // cuando las publica quien dice ser (ver elEmisorEs en reducirEventos.js).
+      estadoLocal = reducirEventos(estadoLocal, { name: mensaje.name, data: mensaje.data, clientId: mensaje.clientId });
       setEventos(eventosLocales);
       setEstado(estadoLocal);
       programarGuardadoDeCopiaLocal();
@@ -360,11 +364,23 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
     return canalRef.current.publish(nombreDeEvento, { timestamp: Date.now(), ...payload });
   }
 
+  // Las señales de integridad viajan por un canal aparte que solo el host puede leer. Es «lo mejor
+  // posible»: si falla, el aporte ya se publicó y no se pierde nada del debate.
+  function publicarIntegridad(carga) {
+    return publicarEnElCanalDeIntegridad(sessionId, clientId, NOMBRE_DEL_EVENTO_DE_INTEGRIDAD, {
+      ...carga,
+      participantId: clientId,
+      enviadoEn: Date.now(),
+    }).catch((error) => {
+      console.warn('[r2-argumentum] no se pudo enviar la señal de integridad', error);
+    });
+  }
+
   // Quien ya se desconectó (cerró la pestaña) sigue en el roster con su nombre, sacado del log.
   const presenciaCompleta = useMemo(
     () => completarPresenciaConParticipantes(presencia, estado.participantes),
     [presencia, estado.participantes]
   );
 
-  return { estado, eventos, presencia: presenciaCompleta, publicar, cargando, conexion };
+  return { estado, eventos, presencia: presenciaCompleta, publicar, publicarIntegridad, cargando, conexion };
 }

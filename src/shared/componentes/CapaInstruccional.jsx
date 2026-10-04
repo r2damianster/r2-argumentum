@@ -9,7 +9,15 @@ import { calcularInstruccionesDelParticipante } from '../instrucciones/calcularI
 // `soloLectura` lo usa la vista espejo del moderador: mismo cálculo, otro participantId.
 // `sinFijar`: la capa deja de quedar pegada arriba (sticky) y se desplaza con la página. Se usa con el
 // debate cerrado: el podio final sube a la pantalla y la capa fija le tapaba la primera línea y el botón «Saltar».
-export function CapaInstruccional({ estado, presencia, participantId, soloLectura = false, sinFijar = false }) {
+export function CapaInstruccional({
+  estado,
+  presencia,
+  participantId,
+  soloLectura = false,
+  sinFijar = false,
+  // Cada actividad calcula sus propias instrucciones con la misma forma { ahora, puedes, tienesQue }.
+  calcularInstrucciones = calcularInstruccionesDelParticipante,
+}) {
   const [colapsada, setColapsada] = useState(false);
   const [expandidaAMano, setExpandidaAMano] = useState(false);
 
@@ -57,7 +65,7 @@ export function CapaInstruccional({ estado, presencia, participantId, soloLectur
     };
   }, [soloLectura]);
 
-  const instrucciones = calcularInstruccionesDelParticipante(estado, participantId, presencia);
+  const instrucciones = calcularInstrucciones(estado, participantId, presencia);
   const mostrarCompacta = colapsada && !expandidaAMano && !soloLectura;
 
   if (mostrarCompacta) {

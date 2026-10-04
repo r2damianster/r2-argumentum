@@ -545,21 +545,109 @@ describe('sorteo de co-moderadores al iniciar la sesión', () => {
   });
 
   it('con suficientes confirmados, el oyente nunca queda entre los sorteados', () => {
+    const nombres = ['pedro', 'sofia', 'rosa', 'jorge'];
     const presencia = [
       ...PRESENCIA_CON_OYENTE,
-      { participantId: 'pedro', nombre: 'Pedro', conectado: true },
-      { participantId: 'sofia', nombre: 'Sofía', conectado: true },
+      ...nombres.map((participantId) => ({ participantId, nombre: participantId, conectado: true })),
     ];
     const seleccion = iniciarConPresencia(presencia, [
       evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'ana', stanceId: 'izquierda' }),
       evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'luis', stanceId: 'derecha' }),
-      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'pedro', stanceId: 'izquierda' }),
-      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'sofia', stanceId: 'derecha' }),
+      ...nombres.map((participantId, indice) =>
+        evento(EVENTOS.INGRESO_CONFIRMADO, { participantId, stanceId: indice % 2 === 0 ? 'izquierda' : 'derecha' })
+      ),
     ]);
 
-    expect(seleccion.totalParticipantes).toBe(4);
+    // 6 confirmados: alcanza el mínimo para co-moderar y toca 1 (ceil de 10 %).
+    expect(seleccion.totalParticipantes).toBe(6);
     expect(seleccion.participantIds).toHaveLength(1);
     expect(seleccion.participantIds).not.toContain('marta');
+  });
+
+  it('con 3 debatientes no hay co-moderadores como regla', () => {
+    const seleccion = iniciarConPresencia(PRESENCIA_CON_OYENTE, [
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'ana', stanceId: 'izquierda' }),
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'luis', stanceId: 'derecha' }),
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'marta', stanceId: 'izquierda' }),
+    ]);
+
+    expect(seleccion.totalParticipantes).toBe(3);
+    expect(seleccion.participantIds).toEqual([]);
+  });
+});
+
+describe('moderación configurable y designación en la sala de espera', () => {
+  const NOMBRES = ['ana', 'luis', 'marta', 'pedro', 'sofia', 'rosa', 'jorge', 'lucia'];
+  const PRESENCIA_DE_8 = NOMBRES.map((participantId) => ({ participantId, nombre: participantId, conectado: true }));
+  const INGRESOS_DE_8 = NOMBRES.map((participantId, indice) =>
+    evento(EVENTOS.INGRESO_CONFIRMADO, { participantId, stanceId: indice % 2 === 0 ? 'izquierda' : 'derecha' })
+  );
+
+  function motorConModeracion(moderacion, eventosExtra = []) {
+    const programa = { ...PROGRAMA, moderacion };
+    const estado = [
+      evento(EVENTOS.PROGRAMA_PUBLICADO, { programa }),
+      ...INGRESOS_DE_8,
+      ...eventosExtra,
+    ].reduce((estadoParcial, siguiente) => reducirEventos(estadoParcial, siguiente), estadoInicial());
+    const publicar = vi.fn();
+    const motor = crearMotorDeSesion({ programa });
+    motor.sincronizar({ estado, presencia: PRESENCIA_DE_8, publicar });
+    return { motor, publicar };
+  }
+
+  it('en modo «sin co-moderadores» nadie es sorteado al iniciar', () => {
+    const { motor, publicar } = motorConModeracion({ modo: 'ninguno' });
+    motor.iniciarSesion();
+    expect(eventosPublicados(publicar, EVENTOS.COMODERADORES_SELECCIONADOS)[0].participantIds).toEqual([]);
+  });
+
+  it('en modo fijo se sortea exactamente el número pedido', () => {
+    const { motor, publicar } = motorConModeracion({ modo: 'fijo', numeroFijo: 3 });
+    motor.iniciarSesion();
+    const seleccion = eventosPublicados(publicar, EVENTOS.COMODERADORES_SELECCIONADOS)[0];
+    expect(seleccion.participantIds).toHaveLength(3);
+    expect(new Set(seleccion.participantIds).size).toBe(3);
+  });
+
+  it('el moderador puede sortear antes de iniciar y esa designación se respeta', () => {
+    const { motor, publicar } = motorConModeracion({ modo: 'reglamentario' });
+    motor.designarCoModeradores({ modo: 'sorteo' });
+    const designados = eventosPublicados(publicar, EVENTOS.COMODERADORES_SELECCIONADOS)[0];
+    expect(designados.origen).toBe('sorteo_del_moderador');
+    expect(designados.participantIds).toHaveLength(1);
+
+    // Llega por el canal: el motor nuevo ve la designación y no vuelve a sortear.
+    const programa = { ...PROGRAMA, moderacion: { modo: 'reglamentario' } };
+    const estado = [
+      evento(EVENTOS.PROGRAMA_PUBLICADO, { programa }),
+      ...INGRESOS_DE_8,
+      evento(EVENTOS.COMODERADORES_SELECCIONADOS, designados),
+    ].reduce((estadoParcial, siguiente) => reducirEventos(estadoParcial, siguiente), estadoInicial());
+    const segundoPublicar = vi.fn();
+    const segundoMotor = crearMotorDeSesion({ programa });
+    segundoMotor.sincronizar({ estado, presencia: PRESENCIA_DE_8, publicar: segundoPublicar });
+    segundoMotor.iniciarSesion();
+
+    expect(eventosPublicados(segundoPublicar, EVENTOS.COMODERADORES_SELECCIONADOS)).toHaveLength(0);
+    expect(eventosPublicados(segundoPublicar, EVENTOS.FASE_INICIADA)).toHaveLength(1);
+  });
+
+  it('la designación manual acepta solo a quienes ya ingresaron y respeta el máximo', () => {
+    const { motor, publicar } = motorConModeracion({ modo: 'reglamentario' });
+    const validacion = motor.designarCoModeradores({ modo: 'manual', idsElegidos: ['ana', 'fantasma', 'luis'] });
+
+    expect(validacion.idsValidos).toEqual(['ana', 'luis']);
+    expect(validacion.idsRechazados).toEqual(['fantasma']);
+    const designados = eventosPublicados(publicar, EVENTOS.COMODERADORES_SELECCIONADOS)[0];
+    expect(designados).toMatchObject({ origen: 'manual', participantIds: ['ana', 'luis'] });
+  });
+
+  it('quitar la designación devuelve el sorteo automático al iniciar', () => {
+    const { motor, publicar } = motorConModeracion({ modo: 'reglamentario' });
+    motor.quitarDesignacionDeCoModeradores();
+    const quitada = eventosPublicados(publicar, EVENTOS.COMODERADORES_SELECCIONADOS)[0];
+    expect(quitada).toMatchObject({ origen: 'automatico', participantIds: [] });
   });
 });
 
@@ -651,7 +739,7 @@ describe('argumento publicado al aprobarse y evaluación de su exposición', () 
     const puntajes = eventosPublicados(publicar, EVENTOS.PUNTAJE_ACTUALIZADO);
     expect(nombres[nombres.length - 1]).toBe(EVENTOS.SESION_CERRADA);
     expect(puntajes.find((puntaje) => puntaje.participantId === 'ana')).toMatchObject({ delta: 100, nuevoTotal: 200 });
-    // Coinciden entre sí: bono de revisión cruzada (3 × 10 en Estándar) para cada uno.
+    // Coinciden entre sí (consenso): acierto total × esfuerzo de 1 revisión sobre 7 → 210 / 7 = 30 cada uno.
     expect(puntajes.filter((puntaje) => puntaje.categoria === 'co_moderacion').map((p) => p.delta)).toEqual([30, 30]);
   });
 

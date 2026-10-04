@@ -1,0 +1,55 @@
+{
+  "programId": "foro-utilidad-formacion-investigacion-2026",
+  "titulo": "Foro: ¿Ha sido útil la formación en investigación?",
+  "categoria": "Educación (foro escrito)",
+  "actividad": "foro_escrito",
+  "version": "1.0.0",
+  "creadoPor": "arturo.rodriguez@uleam.edu.ec",
+  "fechaCreacion": "2026-10-04",
+
+  "temaCentral": "Después de varios semestres de asignaturas de investigación, ¿la formación recibida ha sido realmente útil para tu desarrollo académico y profesional?",
+  "preguntaGuia": "¿Ha sido útil la formación en investigación que has recibido?",
+  "objetivoAprendizaje": "Metacognición y pensamiento crítico: evaluar la propia formación con evidencia concreta (una tarea, un proyecto, una situación real) y responder por escrito a las experiencias de otras personas.",
+  "instruccionesParaEstudiantes": "Habla desde tu experiencia real y cita un caso, una materia o una situación concreta. Después responde a compañeros: comparte si viviste algo parecido, plantea otra mirada o reconoce lo que te hizo pensar distinto.",
+
+  "posturas": [
+    { "id": "util", "etiqueta": "Sí, ha sido útil", "color": "#2a9d8f" },
+    { "id": "poco_util", "etiqueta": "No, ha sido poco útil", "color": "#d1495b" },
+    { "id": "matizada", "etiqueta": "Depende / matizada", "color": "#8a8a8a", "esMatizada": true }
+  ],
+  "asignacionPostura": "libre",
+  "permiteCambioPostura": false,
+
+  "fases": [
+    { "tipo": "foro_escrito", "duracionMin": 20 },
+    { "tipo": "cierre_y_ranking" }
+  ],
+
+  "limitesDePuntaje": { "maxPostsNuevos": 3, "maxReplicasPuntuadas": 5 },
+  "moderacion": { "modo": "reglamentario" },
+
+  "criterioValidacion": "claim_mas_razon",
+  "ejemplosPorTema": [
+    {
+      "malo": "Las materias de investigación no sirven para nada.",
+      "bueno": "En metodología aprendí a formular una pregunta de investigación, y eso me sirvió en mis prácticas preprofesionales, porque tuve que proponer cómo recoger datos para un problema real de la institución.",
+      "porque": "El malo es una generalización sin caso ni razón; el bueno da una situación concreta y explica por qué sirvió."
+    },
+    {
+      "malo": "Fue muy útil.",
+      "bueno": "El taller de análisis de datos me permitió ordenar los resultados de la encuesta de mi proyecto, porque ya sabía construir tablas y gráficos con los datos.",
+      "porque": "El malo solo declara una valoración; el bueno nombra la actividad, el resultado y la razón."
+    }
+  ],
+  "promptSistemaFase1": "Evalúa si el aporte tiene una afirmación y una razón o evidencia explícita (un caso, una materia, una situación vivida). No evalúes si la opinión sobre la formación es favorable o crítica. Solo sugiere: la decisión es de las personas que moderan.",
+  "promptSistemaFase2": "Sugiere conexiones entre aportes del foro; las decisiones son de las personas que moderan.",
+
+  "formulaCoModeradores": "ceil(n * 0.10)_min_1",
+  "topeMaximoCoModeradores": null,
+  "exclusionMutua": true,
+
+  "exportaJSON": { "eventLogCompleto": true, "mapaArgumental": true, "rankingPorPostura": true, "perfilPorEstudiante": true },
+  "exportaPDF": true,
+
+  "duracionTotalEstimada": 30
+}

@@ -39,7 +39,10 @@ async def main():
         )
         host = contexto_host.pages[0] if contexto_host.pages else await contexto_host.new_page()
         await host.goto(BASE + "/host.html")
-        await host.wait_for_selector("text=Elige el Programa de Debate a abrir", timeout=30000)
+        # Desde octubre de 2026 el host elige primero la actividad (docs/13).
+        await host.wait_for_selector("text=¿Qué actividad vas a hacer?", timeout=30000)
+        await host.click('button.opcion-de-actividad:has-text("Debate hablado")')
+        await host.wait_for_selector("text=elige el Programa a abrir", timeout=30000)
         await host.click('button:has-text("Izquierda o derecha")')
         await host.click('button:has-text("Confirmar configuración y abrir sala")')
         await host.wait_for_selector(".codigo-de-sala", timeout=20000)

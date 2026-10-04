@@ -1,13 +1,16 @@
 import { TIPOS_DE_FASE } from '../../shared/eventos/nombresDeEventos.js';
+import { ControlDelTiempoDelForo } from './ControlDelTiempoDelForo.jsx';
 
 const ETIQUETA_DE_FASE = {
   [TIPOS_DE_FASE.ESCRITURA_ARGUMENTOS]: 'Escritura de argumentos',
+  [TIPOS_DE_FASE.FORO_ESCRITO]: 'Foro escrito',
   [TIPOS_DE_FASE.CONEXION_SUGERIDA]: 'Conexión sugerida por Groq',
   [TIPOS_DE_FASE.CONEXION_LIBRE]: 'Conexión libre',
   [TIPOS_DE_FASE.CIERRE_Y_RANKING]: 'Cierre y ranking',
 };
 
-export function ControlDeFases({ estado, motor }) {
+export function ControlDeFases({ estado, motor, programa }) {
+  const esForo = programa?.actividad === 'foro_escrito';
   const sesionIniciada = estado.fase.actual !== null || estado.fase.historial.length > 0;
   const faseActual = estado.fase.actual;
 
@@ -20,7 +23,7 @@ export function ControlDeFases({ estado, motor }) {
           onClick={() => motor.iniciarSesion()}
           style={{ fontSize: '1.1rem', fontWeight: 'bold', padding: '0.8rem 1.5rem', width: '100%', marginTop: '0.5rem' }}
         >
-          🚀 Iniciar debate
+          {esForo ? '🚀 Iniciar foro' : '🚀 Iniciar debate'}
         </button>
       </section>
     );
@@ -43,6 +46,9 @@ export function ControlDeFases({ estado, motor }) {
       </h3>
       {faseActual.tipo !== TIPOS_DE_FASE.CIERRE_Y_RANKING && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+            {faseActual.tipo === TIPOS_DE_FASE.FORO_ESCRITO && faseActual.duracionMin && motor?.extenderTiempo && (
+              <ControlDelTiempoDelForo fase={faseActual} motor={motor} />
+            )}
             {faseActual.tipo === TIPOS_DE_FASE.ESCRITURA_ARGUMENTOS && motor && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span className="texto-de-ayuda">
@@ -60,7 +66,7 @@ export function ControlDeFases({ estado, motor }) {
               </div>
             )}
             <button type="button" onClick={motor.cerrarFaseActual}>
-              Cerrar fase actual
+              {esForo ? 'Cerrar la escritura ahora' : 'Cerrar fase actual'}
             </button>
           </div>
         )}

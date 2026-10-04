@@ -483,3 +483,52 @@ footer {
   font-weight: 600;
   cursor: pointer;
 }
+
+/* Tarjetas de selección de actividad (primer paso de la consola del host). */
+.opciones-de-actividad {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.opciones-de-actividad li {
+  flex: 1 1 220px;
+}
+
+.opcion-de-actividad {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  text-align: left;
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 12px;
+  padding: 16px;
+  color: var(--color-texto);
+  cursor: pointer;
+}
+
+.opcion-de-actividad:hover {
+  border-color: var(--color-marca);
+  background: #f0fdfa;
+}
+
+.opcion-de-actividad-icono {
+  font-size: 1.8rem;
+}
+
+.opcion-de-actividad-nombre {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.opcion-de-actividad-descripcion {
+  font-size: 0.85rem;
+  color: var(--color-texto-suave, var(--color-texto));
+}
