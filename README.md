@@ -12,7 +12,7 @@ Cada debate se juega en **español (por defecto) o en inglés**, a elección del
 
 ## Actividades
 
-La plataforma ejecuta **actividades** que el moderador elige antes de elegir el Programa: el **debate hablado** (turnos por ruleta, exposición oral calificada) y el **foro escrito sincrónico** (nadie habla: posts y réplicas durante un tiempo total, con sugerencia de la IA, revisión por co-moderadores, reacciones con sentido, métricas de participación y, si se activa, advertencias de integridad). Comparten un **núcleo de funciones reutilizables** y el modo de moderación (reglamentaria, número fijo o sin co-moderadores). Detalle y decisiones: [`docs/13-foro-escrito-y-nucleo-reutilizable.md`](docs/13-foro-escrito-y-nucleo-reutilizable.md). El foro está construido y probado en local; falta su verificación en producción (ver `docs/06-pendientes.md`).
+La plataforma ejecuta **actividades** que el moderador elige antes de elegir el Programa: el **debate hablado** (turnos por ruleta, exposición oral calificada), el **foro escrito sincrónico** y el **control de lectura** (cada estudiante escribe a solas un texto sobre una lectura, el docente califica con rúbrica a ciegas y devuelve comentarios, con revisión entre pares opcional; la nota solo la ve el docente) (nadie habla: posts y réplicas durante un tiempo total, con sugerencia de la IA, revisión por co-moderadores, reacciones con sentido, métricas de participación y, si se activa, advertencias de integridad). Comparten un **núcleo de funciones reutilizables** y el modo de moderación (reglamentaria, número fijo o sin co-moderadores). Detalle y decisiones: [`docs/13-foro-escrito-y-nucleo-reutilizable.md`](docs/13-foro-escrito-y-nucleo-reutilizable.md). El foro y el control de lectura están construidos y probados en local; falta su verificación en producción (ver `docs/06-pendientes.md`; el control de lectura está en [`docs/14-control-de-lectura.md`](docs/14-control-de-lectura.md)).
 
 ## Idea central
 
@@ -46,6 +46,7 @@ Ver `docs/02-arquitectura.md` — decisión deliberada para reducir puntos de fa
 - [`docs/10-guia-prueba-manual-chrome.md`](docs/10-guia-prueba-manual-chrome.md) — guía de prueba manual multi-ventana contra producción
 - [`docs/11-auditoria-antigravity-2026-09.md`](docs/11-auditoria-antigravity-2026-09.md) — auditoría del 24-sep-2026: diagnóstico, decisiones aplicadas y verificación en navegador
 - [`docs/13-foro-escrito-y-nucleo-reutilizable.md`](docs/13-foro-escrito-y-nucleo-reutilizable.md) — foro escrito, actividades, núcleo reutilizable, integridad e informe final
+- [`docs/14-control-de-lectura.md`](docs/14-control-de-lectura.md) — control de lectura: escritura individual con rúbrica, devolución, revisión entre pares e integridad
 - [`docs/12-guia-para-agentes.md`](docs/12-guia-para-agentes.md) — **guía para agentes y colaboradores** (Antigravity, Claude Code…): reglas, errores ya cometidos y cómo probar; resumen en [`AGENTS.md`](AGENTS.md)
 - [`scripts/prueba-e2e/`](scripts/prueba-e2e/README.md) — prueba automatizada en navegador (Playwright) contra producción
 

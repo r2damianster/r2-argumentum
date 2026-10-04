@@ -4,6 +4,8 @@ import { ControlDelTiempoDelForo } from './ControlDelTiempoDelForo.jsx';
 const ETIQUETA_DE_FASE = {
   [TIPOS_DE_FASE.ESCRITURA_ARGUMENTOS]: 'Escritura de argumentos',
   [TIPOS_DE_FASE.FORO_ESCRITO]: 'Foro escrito',
+  [TIPOS_DE_FASE.CONTROL_DE_LECTURA]: 'Control de lectura: escritura',
+  [TIPOS_DE_FASE.REVISION_DE_PARES]: 'Revisión entre pares',
   [TIPOS_DE_FASE.CONEXION_SUGERIDA]: 'Conexión sugerida por Groq',
   [TIPOS_DE_FASE.CONEXION_LIBRE]: 'Conexión libre',
   [TIPOS_DE_FASE.CIERRE_Y_RANKING]: 'Cierre y ranking',
@@ -11,6 +13,7 @@ const ETIQUETA_DE_FASE = {
 
 export function ControlDeFases({ estado, motor, programa }) {
   const esForo = programa?.actividad === 'foro_escrito';
+  const esLectura = programa?.actividad === 'control_de_lectura';
   const sesionIniciada = estado.fase.actual !== null || estado.fase.historial.length > 0;
   const faseActual = estado.fase.actual;
 
@@ -23,7 +26,7 @@ export function ControlDeFases({ estado, motor, programa }) {
           onClick={() => motor.iniciarSesion()}
           style={{ fontSize: '1.1rem', fontWeight: 'bold', padding: '0.8rem 1.5rem', width: '100%', marginTop: '0.5rem' }}
         >
-          {esForo ? '🚀 Iniciar foro' : '🚀 Iniciar debate'}
+          {esLectura ? '🚀 Iniciar control de lectura' : esForo ? '🚀 Iniciar foro' : '🚀 Iniciar debate'}
         </button>
       </section>
     );
@@ -41,7 +44,9 @@ export function ControlDeFases({ estado, motor, programa }) {
     <section className="tarjeta-de-fase">
       <p className="texto-de-ayuda">Fase activa</p>
       <h3>
-        {ETIQUETA_DE_FASE[faseActual.tipo] || faseActual.tipo}
+        {esLectura && faseActual.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING
+          ? 'Calificación y devolución'
+          : ETIQUETA_DE_FASE[faseActual.tipo] || faseActual.tipo}
         {faseActual.ronda ? ` · Ronda ${faseActual.ronda}` : ''}
       </h3>
       {faseActual.tipo !== TIPOS_DE_FASE.CIERRE_Y_RANKING && (
@@ -66,7 +71,7 @@ export function ControlDeFases({ estado, motor, programa }) {
               </div>
             )}
             <button type="button" onClick={motor.cerrarFaseActual}>
-              {esForo ? 'Cerrar la escritura ahora' : 'Cerrar fase actual'}
+              {esForo || esLectura ? 'Cerrar la escritura ahora' : 'Cerrar fase actual'}
             </button>
           </div>
         )}

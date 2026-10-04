@@ -9,6 +9,7 @@ import educacionUtilidadDeLaInvestigacion from './educacion-utilidad-de-la-inves
 import historiaEcuadorCausasDelPresente from './historia-ecuador-herencia-global-o-decisiones.json';
 import foroIaEnLaUniversidad from './foro-ia-en-la-universidad.json';
 import foroFormacionEnInvestigacion from './foro-formacion-en-investigacion.json';
+import lecturaFormacionEnInvestigacion from './lectura-formacion-en-investigacion.json';
 
 export const PROGRAMAS_DE_EJEMPLO = [
   politicaIzquierdaVsDerecha,
@@ -18,6 +19,7 @@ export const PROGRAMAS_DE_EJEMPLO = [
   historiaEcuadorCausasDelPresente,
   foroIaEnLaUniversidad,
   foroFormacionEnInvestigacion,
+  lecturaFormacionEnInvestigacion,
 ];
 
 export function agruparProgramasPorCategoria(programas) {

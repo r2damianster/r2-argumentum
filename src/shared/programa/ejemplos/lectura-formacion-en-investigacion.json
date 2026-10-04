@@ -1,0 +1,47 @@
+{
+  "programId": "lectura-utilidad-formacion-investigacion-2026",
+  "titulo": "Control de lectura: ¿Para qué sirve investigar?",
+  "categoria": "Educación (control de lectura)",
+  "actividad": "control_de_lectura",
+  "version": "1.0.0",
+  "creadoPor": "arturo.rodriguez@uleam.edu.ec",
+  "fechaCreacion": "2026-10-04",
+
+  "temaCentral": "La utilidad de la formación en investigación para el desarrollo académico y profesional.",
+  "consigna": "A partir de la lectura que hiciste antes de la clase, explica en tus propias palabras para qué sirve la formación en investigación. Sostén tu idea con un dato, una cita o un ejemplo de la lectura, y cierra relacionándola con tu propia carrera.",
+  "objetivoAprendizaje": "Comprobar que el estudiante leyó el texto y puede explicar una idea central con evidencia, usando una estructura de párrafo.",
+  "instruccionesParaEstudiantes": "Escribe con tus propias palabras. No hace falta copiar el texto: lo que importa es que expliques la idea y la sostengas con evidencia. Revisa tu escrito antes de enviarlo: no se puede editar después.",
+
+  "estructura": "peel",
+  "distribucion": "compacta",
+  "numeroDeParrafos": 2,
+
+  "criteriosDeLaConsigna": [
+    { "nombre": "Sostiene la idea con un dato, cita o ejemplo de la lectura", "descripcion": "La evidencia viene del texto leído, no de una opinión suelta.", "peso": 20 },
+    { "nombre": "Relaciona la idea con su propia carrera", "descripcion": "El cierre conecta el tema con la formación profesional de quien escribe.", "peso": 15 }
+  ],
+
+  "clavesDeLaLectura": "- La investigación desarrolla el pensamiento crítico.\n- Permite resolver problemas reales con método.\n- Es una competencia valorada en el ámbito profesional.",
+
+  "fases": [
+    { "tipo": "control_de_lectura", "duracionMin": 20 },
+    { "tipo": "cierre_y_ranking" }
+  ],
+
+  "ventanaDeConfirmacionMin": 10,
+  "revisionDePares": { "activa": false, "revisionesPorPersona": 2, "duracionMin": 10 },
+  "integridad": { "nivel": "advertencias" },
+
+  "ejemplosPorTema": [
+    {
+      "malo": "La investigación sirve mucho para todo.",
+      "bueno": "La investigación sirve para decidir con evidencia: el texto cuenta que un equipo mejoró su proceso al medir primero el problema, y en mi carrera eso me ayudaría a justificar una propuesta ante un cliente.",
+      "porque": "El malo afirma sin evidencia ni conexión; el bueno da un dato de la lectura, lo explica y lo conecta con la carrera."
+    }
+  ],
+
+  "exportaJSON": { "eventLogCompleto": true, "perfilPorEstudiante": true },
+  "exportaPDF": true,
+
+  "duracionTotalEstimada": 30
+}

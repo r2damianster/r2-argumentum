@@ -70,7 +70,7 @@ export function crearMotorDeSesion({ programa }) {
     };
   }
 
-  let contexto = { estado: null, presencia: [], publicar: () => {} };
+  let contexto = { estado: null, presencia: [], publicar: () => {}, estadoPrivado: null };
 
   function estaCerrada() {
     return Boolean(contexto.estado?.sesion?.cerrada);
@@ -169,8 +169,10 @@ export function crearMotorDeSesion({ programa }) {
     }
   }
 
-  function sincronizar({ estado, presencia, publicar }) {
-    contexto = { estado, presencia, publicar };
+  // `estadoPrivado` es lo que solo conoce el host (por ejemplo las calificaciones del control de lectura,
+  // que llegan por canales que los participantes no pueden leer); es opcional.
+  function sincronizar({ estado, presencia, publicar, estadoPrivado = null }) {
+    contexto = { estado, presencia, publicar, estadoPrivado };
     if (!estado || estaCerrada()) {
       return;
     }
@@ -388,6 +390,7 @@ export function crearMotorDeSesion({ programa }) {
 
   function cerrarSesion() {
     aplicarAjustesDeCierre();
+    proceso.antesDeCerrarLaSesion?.();
     contexto.publicar(EVENTOS.SESION_CERRADA, {});
   }
 

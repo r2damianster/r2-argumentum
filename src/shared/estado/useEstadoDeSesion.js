@@ -3,7 +3,12 @@
 // ver docs/09-modelo-de-eventos.md) y expone una función para publicar eventos nuevos.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { obtenerClienteAbly, obtenerCanalDeDebate, publicarEnElCanalDeIntegridad } from '../ably/clienteAbly.js';
+import {
+  obtenerClienteAbly,
+  obtenerCanalDeDebate,
+  publicarEnElCanalDeEntregas,
+  publicarEnElCanalDeIntegridad,
+} from '../ably/clienteAbly.js';
 import { NOMBRE_DEL_EVENTO_DE_INTEGRIDAD } from '../nucleo/integridad/canalPrivado.js';
 import { EVENTOS } from '../eventos/nombresDeEventos.js';
 import { estadoInicial, reducirEventos } from './reducirEventos.js';
@@ -376,11 +381,31 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
     });
   }
 
+  // El texto de una entrega del control de lectura y la confirmación con su motivo viajan por un canal
+  // que solo lee el host (ver docs/14-control-de-lectura.md). A diferencia de la señal de integridad,
+  // aquí un fallo SÍ importa: se devuelve la promesa para que la pantalla avise y deje reintentar.
+  function publicarEntregaPrivada(nombreDelEvento, carga) {
+    return publicarEnElCanalDeEntregas(sessionId, clientId, nombreDelEvento, {
+      ...carga,
+      participantId: clientId,
+      enviadoEn: Date.now(),
+    });
+  }
+
   // Quien ya se desconectó (cerró la pestaña) sigue en el roster con su nombre, sacado del log.
   const presenciaCompleta = useMemo(
     () => completarPresenciaConParticipantes(presencia, estado.participantes),
     [presencia, estado.participantes]
   );
 
-  return { estado, eventos, presencia: presenciaCompleta, publicar, publicarIntegridad, cargando, conexion };
+  return {
+    estado,
+    eventos,
+    presencia: presenciaCompleta,
+    publicar,
+    publicarIntegridad,
+    publicarEntregaPrivada,
+    cargando,
+    conexion,
+  };
 }

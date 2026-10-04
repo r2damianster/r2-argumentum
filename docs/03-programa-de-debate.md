@@ -15,6 +15,8 @@ programId, titulo, version, creadoPor, fechaCreacion
 actividad: "debate_hablado" | "foro_escrito"   // por defecto "debate_hablado"
 ```
 
+El **control de lectura** (`"actividad": "control_de_lectura"`) no tiene posturas y trae campos propios (`consigna`, `estructura`, `rubrica`, `revisionDePares`…): ver `14-control-de-lectura.md`.
+
 La **actividad** decide cómo participa la clase y qué motor la ejecuta (ver `13-foro-escrito-y-nucleo-reutilizable.md`). El moderador la elige antes de elegir el Programa, y un Programa de otra actividad no se puede abrir con la elegida.
 
 ### B. Contenido pedagógico

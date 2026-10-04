@@ -15,6 +15,7 @@ import {
 } from '../eventos/nombresDeEventos.js';
 import { NIVELES_DE_REVISION_DE_APORTE } from '../puntaje/puntajeDeAportes.js';
 import { DECISIONES_DEL_MODERADOR_SOBRE_REVISION } from '../nucleo/revision/calcularPuntajeDeRevisores.js';
+import { aplicarEventoDeEntregas, estadoInicialDeEntregas } from '../nucleo/entregas/estadoPublicoDeEntregas.js';
 
 const NIVELES_DE_REVISION_VALIDOS = Object.values(NIVELES_DE_REVISION_DE_APORTE);
 const IDENTIDAD_DEL_MODERADOR = 'host';
@@ -41,6 +42,9 @@ export function estadoInicial() {
     reacciones: {},
     // Revisión humana de los aportes: { [argumentId]: { niveles: { [coModeradorId]: nivel }, decisionModerador } }.
     revisiones: {},
+    // Entregas individuales del control de lectura: solo estados y conteos, nunca el texto ni las notas
+    // (ver nucleo/entregas y docs/14).
+    lectura: estadoInicialDeEntregas(),
     participantes: {},
     coModeradores: null,
     turnos: {
@@ -112,7 +116,7 @@ function conParticipanteActualizado(estado, participantId, actualizar) {
 export function reducirEventos(estado, evento) {
   // Una copia local guardada antes de que existieran las exposiciones o las reacciones no trae
   // esos campos.
-  const estadoCompleto = { exposiciones: {}, reacciones: {}, revisiones: {}, ...estado };
+  const estadoCompleto = { exposiciones: {}, reacciones: {}, revisiones: {}, lectura: estadoInicialDeEntregas(), ...estado };
   const siguiente = aplicarEvento(estadoCompleto, evento);
   const clave = evento.data?.claveDeIdempotencia;
   if (!clave || siguiente.accionesDelMotor?.[clave]) {
@@ -850,6 +854,7 @@ function aplicarEvento(estado, evento) {
       return { ...estado, sesion: { ...estado.sesion, cerrada: true, cerradaEn: data.timestamp } };
 
     default:
-      return estado;
+      // Los eventos del control de lectura (lectura.*) los resuelve su módulo; el resto no cambia nada.
+      return aplicarEventoDeEntregas(estado, evento) ?? estado;
   }
 }

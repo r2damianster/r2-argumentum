@@ -3,15 +3,15 @@ import { crearMotorDeSesion } from './motorDeSesion.js';
 
 const MILISEGUNDOS_ENTRE_LATIDOS = 5000;
 
-export function useMotorDeSesion({ estado, presencia, publicar, programa }) {
+export function useMotorDeSesion({ estado, presencia, publicar, programa, estadoPrivado = null }) {
   const motorRef = useRef(null);
   if (!motorRef.current) {
     motorRef.current = crearMotorDeSesion({ programa });
   }
 
   // El latido necesita el estado más reciente sin volver a crear el intervalo en cada render.
-  const contextoRef = useRef({ estado, presencia, publicar });
-  contextoRef.current = { estado, presencia, publicar };
+  const contextoRef = useRef({ estado, presencia, publicar, estadoPrivado });
+  contextoRef.current = { estado, presencia, publicar, estadoPrivado };
 
   useEffect(() => {
     motorRef.current.sincronizar(contextoRef.current);

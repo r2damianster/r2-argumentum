@@ -69,7 +69,8 @@ Sin base de datos para el estado en vivo (Ably). La proyección usa `BroadcastCh
 - El motor base (`src/host/motorDeSesion.js`) no debe conocer ninguna actividad por su nombre: llama a los procesos que la actividad aporta. Si necesitas un `if (actividad === ...)` en el motor, falta un gancho en el contrato.
 - Los eventos de moderación, revisión y reacción solo valen si los publicó quien dice ser: el reducer compara el `clientId` real. `useEstadoDeSesion` tiene que pasárselo; sin eso la protección no existe.
 - Las señales de integridad **nunca** van por el canal de la sesión: solo por `debate:integridad:*`, que los participantes no pueden leer. Y nunca se imprimen en el informe general.
-- Groq solo **sugiere**. En el foro no puntúa ni de forma provisional.
+- Groq solo **sugiere**. En el foro no puntúa ni de forma provisional. En el control de lectura sugiere una calificación que solo ve el docente (anónima); el estudiante nunca la ve.
+- **Control de lectura (`docs/14`):** nada que sea texto, comentario, nivel o nota de un estudiante puede ir por el canal de la sala (lo lee cualquier participante). Va por `debate:entrega`, `debate:docente` o `debate:devolucion:{id}`; el estado público (`lectura.*`) solo lleva conteos y estados, y hay pruebas que lo vigilan (`sesionCompletaDeLectura.test.js`). Los campos solo del host (`clavesDeLaLectura`, `textoDeReferencia`) se retiran con `programaPublicable` antes de publicar.
 
 ### Regla 9b — Créditos y podio final
 - Los créditos (nombre, ORCID, herramientas de IA, foto) salen **solo** de `src/shared/creditos.js` y del componente `Creditos`; no copies el ORCID ni el nombre a mano. Se muestran **solo al ingresar y en el podio final**, nunca durante el debate.
@@ -131,7 +132,7 @@ Los scripts manejan **producción** (Ably y Groq solo existen en Vercel) y consu
 | Dónde | Qué vive ahí |
 |---|---|
 | `src/host/motorDeSesion.js` | Autoridad del debate: turnos, puntaje, fases (solo corre en la consola del host) |
-| `src/actividades/` | Contrato y registro de actividades; `debateHablado/` y `foroEscrito/` |
+| `src/actividades/` | Contrato y registro de actividades; `debateHablado/`, `foroEscrito/` y `controlDeLectura/` |
 | `src/shared/nucleo/` | Piezas puras reutilizables: co-moderación, revisión, temporizador, conciencia, reacciones, IA, integridad, informe |
 | `src/shared/estado/reducirEventos.js` | Estado derivado del log de eventos (event sourcing) |
 | `src/shared/eventos/nombresDeEventos.js` | Catálogo de eventos (documentado en `docs/09`) |

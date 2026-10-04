@@ -1,0 +1,416 @@
+/* Control de lectura — ver docs/14-control-de-lectura.md.
+   Mismos principios que el resto: sin scroll horizontal a 320 px y controles de al menos 44 px. */
+
+.guia-de-la-consigna {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem;
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  border-radius: 10px;
+}
+
+.etiqueta-de-la-consigna {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-marca-oscuro);
+}
+
+.texto-de-la-consigna {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.partes-de-la-estructura {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.partes-de-la-estructura li {
+  margin-bottom: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+/* Quien escribe */
+
+.compositor-de-lectura textarea,
+.calificador-de-entrega textarea,
+.respuesta-a-la-devolucion textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  font: inherit;
+}
+
+.texto-entregado,
+.texto-de-la-entrega {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.tarjeta-de-devolucion {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+}
+
+.comentarios-por-criterio {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.comentarios-por-criterio li {
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+}
+
+.comentarios-por-criterio p,
+.comentario-general-de-la-devolucion p {
+  margin: 0.25rem 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.comentario-general-de-la-devolucion {
+  margin-top: 0.5rem;
+}
+
+/* Podio */
+
+.podio-del-control-de-lectura {
+  margin: 0.75rem 0;
+}
+
+.lugares-del-podio {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lugares-del-podio li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 10px;
+  min-height: 44px;
+}
+
+.nombre-en-el-podio {
+  display: inline-block;
+  margin-right: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.nombre-en-el-podio--propio {
+  font-weight: 700;
+  color: var(--color-marca-oscuro);
+}
+
+/* Docente */
+
+.panel-del-control-de-lectura {
+  margin: 1rem 0;
+}
+
+.cola-de-entregas {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.entrega-de-la-cola {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 44px;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 10px;
+  color: var(--color-texto);
+  text-align: left;
+  cursor: pointer;
+}
+
+.entrega-de-la-cola--elegida {
+  border-color: var(--color-marca);
+  background: #f0fdfa;
+}
+
+.entrega-de-la-cola-codigo {
+  font-weight: 700;
+}
+
+.calificador-de-entrega {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 10px;
+}
+
+.encabezado-del-calificador h3 {
+  margin: 0;
+}
+
+.autor-revelado {
+  padding: 0.5rem 0.75rem;
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  border-radius: 8px;
+}
+
+.criterios-del-calificador {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+}
+
+.criterios-del-calificador > li {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.niveles-de-la-rubrica {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.nivel-de-rubrica {
+  min-height: 44px;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  color: var(--color-texto);
+  cursor: pointer;
+}
+
+.nivel-de-rubrica--elegido {
+  background: var(--color-marca);
+  border-color: var(--color-marca-oscuro);
+  color: white;
+  font-weight: 700;
+}
+
+.nota-vigente {
+  margin: 0.5rem 0;
+}
+
+.desacuerdo-por-resolver {
+  margin-top: 0.75rem;
+}
+
+.quienes-faltan {
+  margin: 0 0 0.75rem;
+}
+
+.cierre-del-control-de-lectura {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-borde);
+}
+
+.lista-de-criterios-de-rubrica {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+}
+
+.tarjeta-resumen-configuracion {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  background: #f1f5f9;
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nivel-de-rubrica,
+  .entrega-de-la-cola {
+    transition: none;
+  }
+}
+
+.sugerencia-de-la-ia {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  background: #faf5ff;
+  border: 1px solid #d8b4fe;
+  border-radius: 10px;
+}
+
+.niveles-sugeridos {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+}
+
+.marcas-de-integridad {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.marcas-de-integridad--atencion {
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+
+.marcas-de-integridad--alto {
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
+.marcas-de-integridad--probable_copia {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.fragmentos-coincidentes,
+.senales-de-redaccion {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.decision-de-integridad {
+  margin: 0.5rem 0 0;
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+}
+
+.decision-de-integridad label {
+  display: block;
+  min-height: 44px;
+}
+
+.revision-de-un-par,
+.revision-de-un-texto {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 10px;
+  list-style: none;
+}
+
+.lista-de-revisiones-de-pares {
+  margin: 0;
+  padding: 0;
+}
+
+.revision-de-un-par textarea,
+.revision-de-un-texto textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  font: inherit;
+}
+
+.estado-de-la-revision-entre-pares {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem;
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  border-radius: 10px;
+}
+
+.panel-de-revision-entre-pares,
+.resultado-de-tu-revision {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  border-radius: 10px;
+}
+
+.comentario-de-un-par {
+  margin-top: 0.75rem;
+}
+
+/* Proyección: lo que se ve desde el fondo del aula */
+
+.proyeccion-del-control-de-lectura .marcador-de-avance {
+  list-style: none;
+  margin: 1rem 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.proyeccion-del-control-de-lectura .marcador-de-avance li {
+  flex: 1 1 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 12px;
+  font-size: 1rem;
+}
+
+.proyeccion-del-control-de-lectura .marcador-de-avance strong {
+  font-size: 2.5rem;
+}
+
+.proyeccion-del-control-de-lectura .texto-de-la-consigna {
+  font-size: 1.4rem;
+}
+
+.tabla-de-notas-de-lectura {
+  width: 100%;
+  border-collapse: collapse;
+  overflow-wrap: anywhere;
+}
+
+.tabla-de-notas-de-lectura th,
+.tabla-de-notas-de-lectura td {
+  padding: 6px 8px;
+  border: 1px solid var(--color-borde);
+  text-align: left;
+}
+
+@media print {
+  /* El resumen de notas es lo único que se imprime del control de lectura. */
+  body * {
+    visibility: hidden;
+  }
+
+  .informe-impreso-de-lectura,
+  .informe-impreso-de-lectura * {
+    visibility: visible;
+  }
+
+  .informe-impreso-de-lectura {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  .informe-impreso-de-lectura .acciones-del-informe {
+    display: none !important;
+  }
+}

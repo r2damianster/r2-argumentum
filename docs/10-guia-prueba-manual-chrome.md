@@ -365,3 +365,19 @@ Lo que no se puede probar en local y hay que ver en producción: que el canal pr
 8. **Cierre:** «Extender 5 minutos» suma tiempo; «Cerrar la escritura ahora» bloquea la escritura; «Cerrar y calcular los puntajes» aplica los ajustes y aparece el podio.
 9. **Informe:** «Descargar sesión (.json)» trae `actividad`, `desglosePorParticipante`, `evaluacionDeCoModeradores` y `foro`; «Descargar anexo de integridad (.json)» es un archivo aparte y confidencial; el PDF trae el desglose y la revisión, y **solo** incluye la integridad con la casilla marcada.
 10. **Móvil:** repite el compositor y la lista de hilos a 320 px (sin scroll horizontal, botones ≥ 44 px).
+
+## Control de lectura (prueba manual en producción)
+
+Lo que no se puede probar en local: que los **canales privados** funcionen con Ably real, y la sugerencia de Groq. A mano, con 1 host y 5 pestañas de participante (3 mínimo para la revisión entre pares):
+
+1. **Host:** elige «Control de lectura» → el Programa de ejemplo → en la configuración activa la **revisión entre pares** (2 textos, 3 min), deja la integridad «Con advertencias» y una ventana de confirmación de 3 min → «Confirmar configuración y abrir sala».
+2. **Participantes (5):** entran con nombre y avatar. Debe verse la consigna y el aviso de integridad, y **no** debe pedirse postura ni argumento. Pulsa «Iniciar control de lectura»: aparece la cuenta atrás.
+3. **Escribir:** en cada participante, escribe 2 párrafos (en uno, pega un texto largo con Ctrl+V; en dos, copia el mismo texto). Los contadores de palabras y párrafos suben; al enviar sale «Una vez enviado, no se puede editar». Cierra y reabre la pestaña de uno antes de enviar: el borrador debe estar.
+4. **Privacidad (lo importante):** en el panel de red del navegador de un participante, comprueba que por el canal de la sala **no** viaja ningún texto (solo `lectura.entrega_registrada` con conteos). Intenta suscribirte a `debate:entrega:{sala}` desde la consola con el cliente de Ably de ese participante: debe ser rechazado.
+5. **Host, calificación a ciegas:** aparecen «Entrega XXXX» (códigos que no siguen el orden de llegada), la sugerencia de la IA con su confianza y la marca de integridad (probable copia entre las dos entregas iguales; señal de pegado en la otra). Aprueba una: solo entonces se ve el autor. Prueba «Aprobar tal cual», «Aprobar las N sugerencias» y un descuento con motivo.
+6. **Cierra la escritura** («Cerrar la escritura ahora»): entra la fase de revisión entre pares. Cada participante recibe 2 textos sin autor; envía las revisiones (una mal a propósito). El host aprueba/edita/descarta y ve el conteo «X de Y revisiones enviadas».
+7. **Devolver:** hasta que termine la revisión, los botones «Devolver» están desactivados. Al cerrar esa fase, «Devolver las N aprobadas»: cada estudiante ve **solo comentarios** (los suyos y los de un compañero aprobados), **sin nota**, y la cuenta de la ventana. Uno dice «No estoy de acuerdo» con un motivo; otro no responde: al vencer la ventana debe aparecer «Confirmada (sin responder)».
+8. **Desacuerdo:** el host lee el motivo, «Cambiar y responder»; el estudiante ve los comentarios actualizados. Una segunda reconsideración no debe ser posible.
+9. **Cierre:** «Cerrar y calcular el podio»: los participantes ven el podio **sin notas** y quien revisó ve «Cómo te fue como revisor» (sin niveles ni notas ajenas). El host baja el JSON, el CSV (con la columna de descuento), el anexo de integridad y el resumen en PDF.
+10. **Proyección:** «Proyectar aquí»: consigna, cuenta atrás y contadores, sin nombres ni textos ni notas.
+11. **Móvil:** escribir y revisar a 320 px, sin scroll horizontal y con botones ≥ 44 px.

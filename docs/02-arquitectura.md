@@ -17,7 +17,7 @@ Sistema basado en eventos, no un CRUD de estudiantes/argumentos/calificaciones. 
 
 ## Actividades y núcleo reutilizable
 
-La plataforma ejecuta **actividades** (hoy el debate hablado y el foro escrito) que se arman con piezas independientes del núcleo (`src/shared/nucleo/`): co-moderación, revisión y puntaje de revisores, temporizador, métricas de participación, reacciones, sugerencia de IA, integridad e informe. Cada actividad se define con `definirActividad` y se registra en `src/actividades/registroDeActividades.js`; el motor base solo llama a los procesos que la actividad aporta. Agregar una actividad no toca el núcleo. El detalle, las decisiones y el plan están en `13-foro-escrito-y-nucleo-reutilizable.md`.
+La plataforma ejecuta **actividades** (hoy el debate hablado, el foro escrito y el control de lectura) que se arman con piezas independientes del núcleo (`src/shared/nucleo/`): co-moderación, revisión y puntaje de revisores, temporizador, métricas de participación, reacciones, sugerencia de IA, integridad e informe. Cada actividad se define con `definirActividad` y se registra en `src/actividades/registroDeActividades.js`; el motor base solo llama a los procesos que la actividad aporta. Agregar una actividad no toca el núcleo. El detalle, las decisiones y el plan están en `13-foro-escrito-y-nucleo-reutilizable.md`.
 
 ## Por qué no hay base de datos en v1
 

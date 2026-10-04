@@ -23,14 +23,19 @@ import { IngresoConArgumento } from './componentes/IngresoConArgumento.jsx';
 import { PrepararArgumento } from './componentes/PrepararArgumento.jsx';
 import { IngresoAlForo } from './componentes/foro/IngresoAlForo.jsx';
 import { VistaDelForo } from './componentes/foro/VistaDelForo.jsx';
+import { IngresoAlControlDeLectura } from './componentes/lectura/IngresoAlControlDeLectura.jsx';
+import { VistaDelControlDeLectura } from './componentes/lectura/VistaDelControlDeLectura.jsx';
+import { useMensajesPrivadosDelEstudiante } from './useMensajesPrivadosDelEstudiante.js';
 import { IntervencionVerbal } from './componentes/IntervencionVerbal.jsx';
 import { AvisoPreparateParaHablar } from './componentes/AvisoPreparateParaHablar.jsx';
 import { FormularioDeContraargumentoParaOyentes } from './componentes/FormularioDeContraargumentoParaOyentes.jsx';
 import { resolverIdiomaDelDebate } from '../shared/programa/idiomaDelDebate.js';
 import { ingresoEstaCerrado } from '../shared/ingreso/reglasDeIngreso.js';
 import { calcularInstruccionesDelForo } from '../shared/instrucciones/calcularInstruccionesDelForo.js';
+import { calcularInstruccionesDelControlDeLectura } from '../shared/instrucciones/calcularInstruccionesDelControlDeLectura.js';
 import { resolverActividadDelPrograma } from '../actividades/registroDeActividades.js';
 import { ID_FORO_ESCRITO } from '../actividades/foroEscrito/definicion.js';
+import { ID_CONTROL_DE_LECTURA } from '../actividades/controlDeLectura/definicion.js';
 
 // Mismo set de emojis que R2 Quiz, ver docs/07-acceso-y-paginas.md.
 const EMOJIS_DISPONIBLES = [
@@ -233,10 +238,19 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
   // marca `ingresoConfirmado` en el reducer, no la presencia de Ably. Entrar antes de confirmar
   // es lo que le permite al host ver, en la sala de configuración previa, quién está conectado
   // pero todavía escribiendo (ver ListaDeParticipantes.jsx y PanelDeAvisos.jsx).
-  const { estado, presencia, publicar, publicarIntegridad, cargando, conexion } = useEstadoDeSesion({
+  const { estado, presencia, publicar, publicarIntegridad, publicarEntregaPrivada, cargando, conexion } = useEstadoDeSesion({
     clientId: participantId,
     sessionId: codigoDeSala,
     datosDePresencia: { nombre, emoji },
+  });
+
+  // La devolución del docente y los textos que le toca revisar (control de lectura) llegan por un canal
+  // que solo esta persona puede leer. Va antes de los retornos tempranos: un hook no puede depender de lo
+  // que se renderiza después.
+  const mensajesPrivados = useMensajesPrivadosDelEstudiante({
+    clientId: participantId,
+    sessionId: codigoDeSala,
+    activo: estado.programa?.actividad === ID_CONTROL_DE_LECTURA && Boolean(estado.participantes[participantId]?.ingresoConfirmado),
   });
 
   if (!cargando && !estado.programa) {
@@ -287,9 +301,10 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
   const idiomaDelDebate = resolverIdiomaDelDebate(programa);
   // El foro escrito tiene su propia pantalla; el resto del debate hablado sigue igual.
   const esForo = resolverActividadDelPrograma(programa).id === ID_FORO_ESCRITO;
+  const esControlDeLectura = resolverActividadDelPrograma(programa).id === ID_CONTROL_DE_LECTURA;
 
-  // En el foro se puede entrar en cualquier momento (no hay «oyentes»): solo hace falta elegir postura.
-  if (!ingresoConfirmado && (esForo || !ingresoCerrado)) {
+  // En el foro y en el control de lectura se puede entrar en cualquier momento (no hay «oyentes»).
+  if (!ingresoConfirmado && (esForo || esControlDeLectura || !ingresoCerrado)) {
     return (
       <main lang={idiomaDelDebate}>
         <div className="barra-superior">
@@ -299,7 +314,15 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
           {emoji} {nombre} · {programa.temaCentral}
         </p>
         <AvisoDeConexion conexion={conexion} />
-        {esForo ? (
+        {esControlDeLectura ? (
+          <IngresoAlControlDeLectura
+            programa={programa}
+            participantId={participantId}
+            nombre={nombre}
+            emoji={emoji}
+            publicar={publicar}
+          />
+        ) : esForo ? (
           <IngresoAlForo
             estado={estado}
             programa={programa}
@@ -337,16 +360,18 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
             {miPostura.etiqueta}
           </span>
         )}
-        · {miPuntaje} pts
+        {!esControlDeLectura && <>· {miPuntaje} pts</>}
       </p>
 
       <AvisoDeConexion conexion={conexion} />
-      <DestacadoDelTurno
-        estado={estado}
-        presencia={presencia}
-        programa={programa}
-        omitirParaParticipanteId={participantId}
-      />
+      {!esControlDeLectura && (
+        <DestacadoDelTurno
+          estado={estado}
+          presencia={presencia}
+          programa={programa}
+          omitirParaParticipanteId={participantId}
+        />
+      )}
 
       <div className="layout-de-participante">
         <CapaInstruccional
@@ -354,7 +379,9 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
           presencia={presencia}
           participantId={participantId}
           sinFijar={estado.sesion.cerrada}
-          calcularInstrucciones={esForo ? calcularInstruccionesDelForo : undefined}
+          calcularInstrucciones={
+            esControlDeLectura ? calcularInstruccionesDelControlDeLectura : esForo ? calcularInstruccionesDelForo : undefined
+          }
         />
 
         <div className="columna-de-trabajo">
@@ -363,16 +390,32 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
           />
       {/* El podio solo aparece con el debate REALMENTE cerrado: los ajustes de las exposiciones se
           aplican justo antes de session.closed, así que antes de eso los puntajes no son los finales. */}
-      {estado.sesion.cerrada && (
-        <PodioFinalParaParticipantes estado={estado} programa={programa} presencia={presencia} participantId={participantId} />
-      )}
-      {sesionCerrada && !estado.sesion.cerrada && (
-        <section className="tarjeta-de-turno-ofrecido">
-          <p className="texto-de-ayuda">🥁 El moderador está por cerrar el debate. En cuanto lo haga, aquí aparece el podio.</p>
-        </section>
+      {/* El control de lectura tiene su propio podio (sin notas) dentro de su vista. */}
+      {!esControlDeLectura && (
+        <>
+          {estado.sesion.cerrada && (
+            <PodioFinalParaParticipantes estado={estado} programa={programa} presencia={presencia} participantId={participantId} />
+          )}
+          {sesionCerrada && !estado.sesion.cerrada && (
+            <section className="tarjeta-de-turno-ofrecido">
+              <p className="texto-de-ayuda">🥁 El moderador está por cerrar el debate. En cuanto lo haga, aquí aparece el podio.</p>
+            </section>
+          )}
+        </>
       )}
 
-      {esForo ? (
+      {esControlDeLectura ? (
+        <VistaDelControlDeLectura
+          estado={estado}
+          presencia={presencia}
+          programa={programa}
+          participantId={participantId}
+          mensajesPrivados={mensajesPrivados}
+          publicar={publicar}
+          publicarIntegridad={publicarIntegridad}
+          publicarEntregaPrivada={publicarEntregaPrivada}
+        />
+      ) : esForo ? (
         <VistaDelForo
           estado={estado}
           presencia={presencia}

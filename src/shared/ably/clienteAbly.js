@@ -1,5 +1,10 @@
 import * as Ably from 'ably';
 import { leerSesionDelHost } from './sesionDelHost.js';
+import {
+  nombreDelCanalDeDevolucion,
+  nombreDelCanalDeEntregas,
+  nombreDelCanalDelDocente,
+} from '../nucleo/entregas/canalesPrivados.js';
 
 let clienteAbly = null;
 
@@ -55,4 +60,49 @@ export function obtenerCanalDeIntegridad(sessionId) {
     throw new Error('Debes llamar a obtenerClienteAbly() antes de pedir un canal.');
   }
   return clienteAbly.channels.get(nombreDelCanalDeIntegridad(sessionId));
+}
+
+// --- Canales privados del control de lectura (ver docs/14-control-de-lectura.md) ---
+//
+// Nombres y reglas de cada canal: nucleo/entregas/canalesPrivados.js. Permisos: api/ably-token.js.
+
+// Las entregas, igual que las señales de integridad, solo se PUBLICAN (por REST, con el token de quien
+// escribe); leerlas es exclusivo del host.
+export async function publicarEnElCanalDeEntregas(sessionId, clientId, nombreDelEvento, carga) {
+  await obtenerClienteRestAbly(clientId).channels.get(nombreDelCanalDeEntregas(sessionId)).publish(nombreDelEvento, carga);
+}
+
+export function obtenerCanalDeEntregas(sessionId) {
+  if (!clienteAbly) {
+    throw new Error('Debes llamar a obtenerClienteAbly() antes de pedir un canal.');
+  }
+  return clienteAbly.channels.get(nombreDelCanalDeEntregas(sessionId));
+}
+
+export function obtenerCanalDelDocente(sessionId) {
+  if (!clienteAbly) {
+    throw new Error('Debes llamar a obtenerClienteAbly() antes de pedir un canal.');
+  }
+  return clienteAbly.channels.get(nombreDelCanalDelDocente(sessionId));
+}
+
+// La devolución de una persona: la lee solo ella (su token solo abre su propio canal).
+export function obtenerCanalDeDevolucionDeMiCliente(clientId, sessionId) {
+  if (!clienteAbly) {
+    throw new Error('Debes llamar a obtenerClienteAbly() antes de pedir un canal.');
+  }
+  return clienteAbly.channels.get(nombreDelCanalDeDevolucion(clientId, sessionId));
+}
+
+// El host publica en el canal de cada estudiante por REST: no necesita enganchar 40 canales.
+let clienteRestDelHost = null;
+
+export async function publicarDevolucionDelHost(sessionId, participantId, nombreDelEvento, carga) {
+  if (!clienteRestDelHost) {
+    clienteRestDelHost = new Ably.Rest({
+      authUrl: '/api/ably-token',
+      authParams: { clientId: 'host', hostToken: leerSesionDelHost()?.token ?? '' },
+    });
+  }
+  await clienteRestDelHost.channels.get(nombreDelCanalDeDevolucion(participantId, sessionId)).publish(nombreDelEvento, carga);
 }

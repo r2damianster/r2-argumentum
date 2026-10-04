@@ -78,14 +78,16 @@ export function useControlDeIntegridad({ programa, contexto, texto, publicarInte
     envioPendienteRef.current = null;
   }
 
-  function intentarEnviar({ alEnviar }) {
+  // `sinAdvertencia`: el envío no puede esperar una decisión de la persona (por ejemplo, el borrador que
+  // se envía solo al agotarse el tiempo). Las señales se registran igual; solo se omite el aviso previo.
+  function intentarEnviar({ alEnviar, sinAdvertencia = false }) {
     const argumentId = generarId('aporte');
     if (!activo) {
       alEnviar(argumentId);
       return;
     }
     const resumen = resumirTexto(String(texto ?? '').trim());
-    if (resumen.requiereAdvertencia) {
+    if (resumen.requiereAdvertencia && !sinAdvertencia) {
       envioPendienteRef.current = { alEnviar, argumentId, resumen };
       setAdvertenciaPendiente(resumen);
       return;

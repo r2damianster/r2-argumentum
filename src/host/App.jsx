@@ -6,6 +6,10 @@ import { useEstadoDeSesion } from '../shared/estado/useEstadoDeSesion.js';
 import { EVENTOS, TIPOS_DE_FASE } from '../shared/eventos/nombresDeEventos.js';
 import { useMotorDeSesion } from './useMotorDeSesion.js';
 import { PantallaDeConfiguracionInicial } from './componentes/PantallaDeConfiguracionInicial.jsx';
+import { PantallaDeConfiguracionDeLectura } from './componentes/lectura/PantallaDeConfiguracionDeLectura.jsx';
+import { PanelDelControlDeLecturaParaElDocente } from './componentes/lectura/PanelDelControlDeLecturaParaElDocente.jsx';
+import { ResumenDeConfiguracionDeLectura } from './componentes/lectura/ResumenDeConfiguracionDeLectura.jsx';
+import { useEstadoPrivadoDelHost } from './useEstadoPrivadoDelHost.js';
 import { SelectorDeActividad } from './componentes/SelectorDeActividad.jsx';
 import { PanelDeDesignacionDeCoModeradores } from './componentes/PanelDeDesignacionDeCoModeradores.jsx';
 import { PanelDelForoParaElModerador } from './componentes/PanelDelForoParaElModerador.jsx';
@@ -40,6 +44,11 @@ import {
   resolverNivelDeIntegridad,
 } from '../shared/nucleo/integridad/nivelesDeIntegridad.js';
 import { ID_FORO_ESCRITO } from '../actividades/foroEscrito/definicion.js';
+import {
+  conCamposSoloDelHost,
+  esProgramaDeControlDeLectura,
+  programaPublicable,
+} from '../actividades/controlDeLectura/programaDeLectura.js';
 import {
   buscarActividadPorId,
   listarActividadesHabilitadas,
@@ -352,11 +361,19 @@ function ConsolaDelHost({ onCerrarSesion }) {
             Cerrar sesión
           </button>
         </div>
-        <PantallaDeConfiguracionInicial
-          programaBase={programaBaseSeleccionado}
-          onConfirmarConfiguracion={activarProgramaConfigurado}
-          onCambiarPrograma={cambiarPrograma}
-        />
+        {esProgramaDeControlDeLectura(programaBaseSeleccionado) ? (
+          <PantallaDeConfiguracionDeLectura
+            programaBase={programaBaseSeleccionado}
+            onConfirmarConfiguracion={activarProgramaConfigurado}
+            onCambiarPrograma={cambiarPrograma}
+          />
+        ) : (
+          <PantallaDeConfiguracionInicial
+            programaBase={programaBaseSeleccionado}
+            onConfirmarConfiguracion={activarProgramaConfigurado}
+            onCambiarPrograma={cambiarPrograma}
+          />
+        )}
       </main>
     );
   }
@@ -381,7 +398,14 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
     clientId: 'host',
     sessionId: codigoDeSala,
   });
-  const motor = useMotorDeSesion({ estado, presencia, publicar, programa });
+  // Control de lectura: el estado privado del docente (textos, calificaciones) llega por canales que solo
+  // el host puede abrir. Con otra actividad no se conecta a nada.
+  const esLectura = esProgramaDeControlDeLectura(programa);
+  const { estadoPrivado, publicarComoDocente, enviarAlEstudiante } = useEstadoPrivadoDelHost({
+    sessionId: codigoDeSala,
+    activo: esLectura,
+  });
+  const motor = useMotorDeSesion({ estado, presencia, publicar, programa, estadoPrivado: esLectura ? estadoPrivado : null });
 
   // Volver a configuración abre una sala NUEVA con otro código (así no se mezclan debates, ver
   // docs/06). Quienes ya entraron se quedan en la sala actual sin enterarse: se avisa antes.
@@ -420,7 +444,8 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
     if (estado.programa && estado.sesion.identificador === identificadorDeSesion) {
       return;
     }
-    publicar(EVENTOS.PROGRAMA_PUBLICADO, { programa, identificadorDeSesion, origen: 'arranque' });
+    // Lo que solo conoce el host (claves de la lectura) no viaja al canal de la sala: lo leen todos.
+    publicar(EVENTOS.PROGRAMA_PUBLICADO, { programa: programaPublicable(programa), identificadorDeSesion, origen: 'arranque' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargando]);
 
@@ -429,7 +454,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
   useEffect(() => {
     if (sesionIniciada) {
       guardarSesionActiva({
-        programa: estado.programa ?? programa,
+        programa: conCamposSoloDelHost(estado.programa ?? programa, programa),
         codigoDeSala,
         identificadorDeSesion,
         iniciada: true,
@@ -516,7 +541,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
           pulsar «Proyectar en otra ventana».
         </p>
       )}
-      <DestacadoDelTurno estado={estado} presencia={presencia} programa={programaVisible} />
+      {!esLectura && <DestacadoDelTurno estado={estado} presencia={presencia} programa={programaVisible} />}
 
       <section className="tarjeta-de-programa">
         <p className="texto-de-ayuda">Programa activo</p>
@@ -563,24 +588,35 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
             <BotonCopiarLink url={urlDeIngreso} />
           </div>
 
-          <PanelDeGuiaPedagogica />
+          {esLectura ? (
+            <ResumenDeConfiguracionDeLectura
+              estado={estado}
+              presencia={presencia}
+              programa={programaVisible}
+              onModificarConfiguracion={onModificarConfiguracion && pedirModificarConfiguracion}
+            />
+          ) : (
+            <>
+              <PanelDeGuiaPedagogica />
 
-          <TarjetaResumenDeConfiguracion programa={programaVisible} onModificarConfiguracion={onModificarConfiguracion && pedirModificarConfiguracion} />
+              <TarjetaResumenDeConfiguracion programa={programaVisible} onModificarConfiguracion={onModificarConfiguracion && pedirModificarConfiguracion} />
 
-          <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
-          <PanelDeDesignacionDeCoModeradores
-            estado={estado}
-            presencia={presencia}
-            programa={programaVisible}
-            motor={motor}
-          />
-          <PanelDeAvisos estado={estado} presencia={presencia} motor={motor} />
-          <PanelDePosturasPropuestas
-            estado={estado}
-            programa={programaVisible}
-            identificadorDeSesion={identificadorDeSesion}
-            publicar={publicar}
-          />
+              <ListaDeParticipantes estado={estado} presencia={presencia} programa={programaVisible} />
+              <PanelDeDesignacionDeCoModeradores
+                estado={estado}
+                presencia={presencia}
+                programa={programaVisible}
+                motor={motor}
+              />
+              <PanelDeAvisos estado={estado} presencia={presencia} motor={motor} />
+              <PanelDePosturasPropuestas
+                estado={estado}
+                programa={programaVisible}
+                identificadorDeSesion={identificadorDeSesion}
+                publicar={publicar}
+              />
+            </>
+          )}
           <ControlDeFases
             estado={estado}
             motor={motor}
@@ -590,6 +626,32 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
           />
         </section>
       ) : (
+        // Control de lectura en vivo: su propio panel (cola anónima, calificador, devolución y podio)
+        esLectura ? (
+          <>
+            {!estado.sesion.cerrada && (
+              <ControlDeFases
+                estado={estado}
+                motor={motor}
+                programa={programaVisible}
+                identificadorDeSesion={identificadorDeSesion}
+                publicar={publicar}
+              />
+            )}
+            <PanelDelControlDeLecturaParaElDocente
+              estado={estado}
+              presencia={presencia}
+              programa={programa}
+              motor={motor}
+              estadoPrivado={estadoPrivado}
+              publicar={publicar}
+              publicarComoDocente={publicarComoDocente}
+              enviarAlEstudiante={enviarAlEstudiante}
+              registrosDeIntegridad={registrosDeIntegridad}
+              onElegirOtraActividad={onElegirOtraActividad}
+            />
+          </>
+        ) : (
         // Debate en vivo (Etapa 3)
         <>
           <PanelDeAvisos estado={estado} presencia={presencia} motor={motor} />
@@ -673,6 +735,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
             />
           )}
         </>
+        )
       )}
     </main>
   );

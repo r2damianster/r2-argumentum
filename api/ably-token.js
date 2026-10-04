@@ -5,23 +5,37 @@ import { sesionDelHostEsValida } from './_sesionDelHost.js';
 // La clave de Ably solo puede operar en los canales del debate: aunque alguien obtenga un token,
 // no lo puede usar en otros canales de la cuenta.
 //
-// Hay dos tipos de canal (ver docs/13-foro-escrito-y-nucleo-reutilizable.md):
+// Hay varios tipos de canal (ver docs/13 y docs/14):
 //   debate:sala:{código}        el de la sesión: lo leen y escriben todos
 //   debate:integridad:{código}  las señales de integridad: los participantes solo pueden PUBLICAR;
 //                               leerlas (suscribirse o pedir el historial) es exclusivo del host. Así
 //                               una marca de «texto pegado» no la puede leer un compañero con las
 //                               herramientas del navegador.
+//   debate:entrega:{código}     el texto de las entregas del control de lectura: igual que el de
+//                               integridad, los participantes solo publican; lee el host.
+//   debate:docente:{código}     el estado privado del docente (calificaciones): solo el host.
+//   debate:devolucion:{clientId}:{código}
+//                               la devolución de UNA persona: publica el host y solo esa persona la lee.
 const CAPACIDAD_DE_LOS_PARTICIPANTES = {
   'debate:sala:*': ['publish', 'subscribe', 'presence', 'history'],
   'debate:integridad:*': ['publish'],
+  'debate:entrega:*': ['publish'],
 };
 const CAPACIDAD_DEL_HOST = {
   'debate:sala:*': ['publish', 'subscribe', 'presence', 'history'],
   'debate:integridad:*': ['publish', 'subscribe', 'history'],
+  'debate:entrega:*': ['publish', 'subscribe', 'history'],
+  'debate:docente:*': ['publish', 'subscribe', 'history'],
+  'debate:devolucion:*': ['publish'],
 };
 
 export function capacidadSegunLaIdentidad(clientId) {
-  return clientId === 'host' ? CAPACIDAD_DEL_HOST : CAPACIDAD_DE_LOS_PARTICIPANTES;
+  if (clientId === 'host') {
+    return CAPACIDAD_DEL_HOST;
+  }
+  // El clientId ya se validó (letras, números, guion y guion bajo: sin «:» ni «*»), así que no puede
+  // abrir el comodín a otros canales.
+  return { ...CAPACIDAD_DE_LOS_PARTICIPANTES, [`debate:devolucion:${clientId}:*`]: ['subscribe', 'history'] };
 }
 
 export default async function handler(request, response) {

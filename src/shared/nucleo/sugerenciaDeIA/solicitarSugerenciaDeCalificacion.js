@@ -1,0 +1,42 @@
+// Pide a Groq una sugerencia de calificación para una entrega del control de lectura — ver
+// docs/14-control-de-lectura.md. Solo la usa el host (el endpoint exige el token de su sesión).
+//
+// Devuelve { sugerencia } (puede ser null, con `motivo`, si el texto es muy corto) o { fallo: true }.
+// Nunca lanza: sin sugerencia el docente califica a mano y la cola sigue.
+
+import { leerSesionDelHost } from '../../ably/sesionDelHost.js';
+import { resolverEstructuraDelPrograma, resolverDistribucion, resolverNumeroDeParrafos } from '../escritura/estructurasDeEscritura.js';
+import { resolverIdiomaDelDebate } from '../../programa/idiomaDelDebate.js';
+
+// `programa` debe ser el Programa COMPLETO del host: las claves de la lectura no viajan en el publicado.
+export async function solicitarSugerenciaDeCalificacion({ texto, programa, rubrica, solicitar = fetch }) {
+  const idioma = resolverIdiomaDelDebate(programa);
+  const estructura = resolverEstructuraDelPrograma(programa, idioma);
+  try {
+    const respuesta = await solicitar('/api/groq-sugerir-calificacion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        hostToken: leerSesionDelHost()?.token ?? '',
+        texto,
+        consigna: programa.consigna,
+        estructura: {
+          nombre: estructura.nombre,
+          partes: estructura.partes,
+          distribucion: resolverDistribucion(programa),
+          numeroDeParrafos: resolverNumeroDeParrafos(programa, idioma),
+        },
+        rubrica: rubrica.map((criterio) => ({ id: criterio.id, nombre: criterio.nombre, descripcion: criterio.descripcion })),
+        claves: programa.clavesDeLaLectura ?? '',
+        idioma,
+      }),
+    });
+    if (!respuesta.ok) {
+      return { fallo: true };
+    }
+    const { sugerencia = null, motivo = null } = await respuesta.json();
+    return { sugerencia, motivo };
+  } catch {
+    return { fallo: true };
+  }
+}

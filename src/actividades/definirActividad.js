@@ -15,6 +15,9 @@
 //                              alSincronizarAntesDelPuntaje?, alSincronizarDespuesDelPuntaje?,
 //                              calcularPuntajeProvisional(argumento, estado) → { delta, motivo } | null,
 //                              calcularAjustesAlCierre(estado) → ajustes[],
+//                              antesDeCerrarLaSesion?() — se llama justo antes de publicar session.closed
+//                                (por ejemplo, para publicar un resultado final calculado con datos que
+//                                solo conoce el host),
 //                              acciones?: { … métodos que el motor expone a la consola del host },
 //                              destruir?
 //                            }

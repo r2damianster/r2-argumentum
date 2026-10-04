@@ -6,6 +6,7 @@ import { iniciarCompensacionDeZoom } from '../shared/navegador/compensarZoomDelN
 import '../shared/estilos/base.css';
 import '../shared/estilos/sesion.css';
 import '../shared/estilos/foro.css';
+import '../shared/estilos/lectura.css';
 
 // Con el zoom del navegador muy reducido la página se amplía sola (ver compensarZoomDelNavegador.js).
 iniciarCompensacionDeZoom();

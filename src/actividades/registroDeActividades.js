@@ -5,8 +5,9 @@
 
 import { debateHablado, ID_DEBATE_HABLADO } from './debateHablado/definicion.js';
 import { foroEscrito } from './foroEscrito/definicion.js';
+import { controlDeLectura } from './controlDeLectura/definicion.js';
 
-export const ACTIVIDADES_REGISTRADAS = [debateHablado, foroEscrito];
+export const ACTIVIDADES_REGISTRADAS = [debateHablado, foroEscrito, controlDeLectura];
 
 // Un Programa sin campo `actividad` (todos los anteriores a octubre de 2026) es un debate hablado.
 export const ID_DE_ACTIVIDAD_POR_DEFECTO = ID_DEBATE_HABLADO;

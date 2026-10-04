@@ -87,6 +87,19 @@ export const EVENTOS = {
   REVISION_REGISTRADA: 'revision.registrada',
   REVISION_DECIDIDA_POR_MODERADOR: 'revision.decidida_moderador',
 
+  // Control de lectura (ver docs/14-control-de-lectura.md). Por el canal de la sala viajan SOLO
+  // estados y contadores: el texto, los comentarios y las notas van por canales privados.
+  // La entrega de una persona: cuántas palabras y párrafos tiene, sin el texto.
+  LECTURA_ENTREGA_REGISTRADA: 'lectura.entrega_registrada',
+  // El docente devolvió la calificación (los comentarios van por el canal privado del estudiante).
+  LECTURA_DEVUELTA: 'lectura.devuelta',
+  // El estudiante respondió «de acuerdo» o «no estoy de acuerdo»; la confirma sola el host al vencer la ventana.
+  LECTURA_CONFIRMADA: 'lectura.confirmada',
+  // Una revisión entre pares enviada (cuál de las que le tocaban, sin contenido).
+  LECTURA_REVISION_ENVIADA: 'lectura.revision_enviada',
+  // Quiénes ocupan los primeros lugares del podio. Sin notas.
+  LECTURA_PODIO_PUBLICADO: 'lectura.podio_publicado',
+
   SESION_CERRADA: 'session.closed',
 };
 
@@ -115,6 +128,9 @@ export const TIPOS_DE_FASE = {
   ESCRITURA_ARGUMENTOS: 'escritura_argumentos',
   // Fase única del foro escrito: posts y réplicas libres durante un tiempo total.
   FORO_ESCRITO: 'foro_escrito',
+  // Fases del control de lectura: escribir (con tiempo total) y revisar entre pares (con tiempo propio).
+  CONTROL_DE_LECTURA: 'control_de_lectura',
+  REVISION_DE_PARES: 'revision_de_pares',
   CONEXION_SUGERIDA: 'conexion_sugerida',
   CONEXION_LIBRE: 'conexion_libre',
   CIERRE_Y_RANKING: 'cierre_y_ranking',
@@ -137,4 +153,12 @@ export const TIPOS_DE_REACCION = {
   ME_CONVENCIO: 'me_convencio',
   ME_HIZO_DUDAR: 'me_hizo_dudar',
   APORTA_EVIDENCIA: 'aporta_evidencia',
+};
+
+// Qué respondió el estudiante a la devolución de su entrega.
+export const DECISIONES_DE_CONFIRMACION = {
+  DE_ACUERDO: 'de_acuerdo',
+  EN_DESACUERDO: 'en_desacuerdo',
+  // La puso el host al vencer la ventana sin que la persona respondiera.
+  AUTOMATICA: 'automatica',
 };

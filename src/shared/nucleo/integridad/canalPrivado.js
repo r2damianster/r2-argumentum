@@ -14,6 +14,7 @@ export const CONTEXTOS_DE_REDACCION = {
   INGRESO: 'ingreso',
   PREPARACION: 'preparacion',
   CONTRAARGUMENTO_DE_OYENTE: 'contraargumento_de_oyente',
+  ENTREGA_DE_LECTURA: 'entrega_de_lectura',
 };
 
 const MAXIMO_DE_SENALES_POR_MENSAJE = 10;

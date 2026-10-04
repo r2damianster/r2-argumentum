@@ -14,7 +14,7 @@ Guía completa, con el catálogo de errores ya cometidos y cómo probar: **[`doc
 6. **Cero secretos en el repo** (código, docs, scripts, capturas). Variables de entorno de Vercel; créalas **antes** de commitear.
 7. **Nada de funciones inalcanzables:** recórrelas en un navegador con un Programa de ejemplo real.
 8. **Español neutro, sin voseo, sin i18n, sin reconocimiento de voz.**
-9. **No reabras decisiones de arquitectura** (sin BD, `BroadcastChannel` para proyección, Groq no es juez, puntaje con fórmula única). Lo reutilizable va como función pura en `src/shared/nucleo/` y lo propio de cada actividad en `src/actividades/` (ver `docs/13-foro-escrito-y-nucleo-reutilizable.md`).
+9. **No reabras decisiones de arquitectura** (sin BD, `BroadcastChannel` para proyección, Groq no es juez, puntaje con fórmula única). Lo reutilizable va como función pura en `src/shared/nucleo/` y lo propio de cada actividad en `src/actividades/` (ver `docs/13-foro-escrito-y-nucleo-reutilizable.md` y `docs/14-control-de-lectura.md`).
 10. **No commitees ni empujes por iniciativa propia.**
 
 **Créditos y podio final:** los datos de autoría salen solo de `src/shared/creditos.js` y se muestran únicamente al ingresar y en el podio final (nunca durante el debate); el podio del participante solo aparece con el debate cerrado y se puede saltar.

@@ -10,6 +10,8 @@ import { ORDENES_DE_HILOS, construirHilos, ordenarHilos } from '../../shared/nuc
 import { useCuentaAtras } from '../../shared/nucleo/temporizador/useCuentaAtras.js';
 import { resolverActividadDelPrograma } from '../../actividades/registroDeActividades.js';
 import { ID_FORO_ESCRITO } from '../../actividades/foroEscrito/definicion.js';
+import { ID_CONTROL_DE_LECTURA } from '../../actividades/controlDeLectura/definicion.js';
+import { ProyeccionDelControlDeLectura } from './lectura/ProyeccionDelControlDeLectura.jsx';
 import { ListaDeParticipantes } from './ListaDeParticipantes.jsx';
 
 // Cuántos hilos caben legibles desde el fondo del aula.
@@ -56,6 +58,7 @@ function ProyeccionDelForo({ estado, programa, presencia }) {
 // arranca compacto y crece con el debate (ver calcularAltoDelGrafo).
 export function VistaDeProyeccion({ estado, programa, presencia, conexion, botonDeSalida = null }) {
   const esForo = resolverActividadDelPrograma(programa).id === ID_FORO_ESCRITO;
+  const esControlDeLectura = resolverActividadDelPrograma(programa).id === ID_CONTROL_DE_LECTURA;
 
   return (
     <main className="consola-de-sesion modo-proyeccion">
@@ -64,7 +67,9 @@ export function VistaDeProyeccion({ estado, programa, presencia, conexion, boton
         {botonDeSalida}
       </div>
       <AvisoDeConexion conexion={conexion} />
-      {esForo ? (
+      {esControlDeLectura ? (
+        <ProyeccionDelControlDeLectura estado={estado} programa={programa} presencia={presencia} />
+      ) : esForo ? (
         <ProyeccionDelForo estado={estado} programa={programa} presencia={presencia} />
       ) : (
         <>

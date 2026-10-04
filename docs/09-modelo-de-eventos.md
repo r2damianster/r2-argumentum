@@ -278,6 +278,33 @@ revision.decidida_moderador { argumentId, decision: "evaluada" | "descartada" | 
 - **Quién puede publicar qué.** El reducer acepta `revision.registrada`, `revision.decidida_moderador`, `aporte.ocultado`, `aporte.restaurado` y `reaccion.registrada` solo si el `clientId` real del emisor (el que pone Ably) coincide con quien dice ser: `revisorId`, `participantId`, `host` o un co-moderador. Sin `clientId` (pruebas o copias locales antiguas) se acepta.
 - Los ajustes de puntaje de las revisiones se publican al cerrar como `score.updated`, con la clave de idempotencia `evaluaciones-finales`.
 
+## Control de lectura
+
+Por el canal de la sala viajan **solo estados y contadores**; texto, comentarios, niveles y notas van por canales privados (ver `14-control-de-lectura.md`).
+
+```
+phase.started        { phaseType: "control_de_lectura" | "revision_de_pares", duracionMin }
+lectura.entrega_registrada { participantId, palabras, parrafos, enviadoPorTiempo? }   // una por persona; sin texto
+lectura.revision_enviada   { participantId, indice }                                  // solo en la fase de revisión; sin contenido
+lectura.devuelta           { participantId, hasta, revisada? }                        // solo el host; `revisada` tras un desacuerdo
+lectura.confirmada         { participantId, decision: "de_acuerdo" | "en_desacuerdo" | "automatica" }
+lectura.podio_publicado    { lugares: [{ lugar, participantIds }] }                   // solo el host; sin notas ni puntos
+```
+
+- El reducer acepta cada uno solo si lo publicó quien dice ser (`clientId`): la entrega y la revisión, la propia persona; la devolución y el podio, el host; la confirmación, la persona (`de_acuerdo` / `en_desacuerdo`) o el host (`automatica`, al vencer la ventana).
+- Una entrega solo entra con la escritura abierta, o hasta 2 minutos después del cierre si viene marcada `enviadoPorTiempo`. La primera de cada persona es la que vale.
+- El motor del host confirma solo las devoluciones cuya ventana venció y publica el podio justo antes de `session.closed`.
+
+### Canales privados del control de lectura
+
+| Canal | Eventos |
+|---|---|
+| `debate:entrega:{sala}` (participantes publican; lee el host) | `entrega.texto`, `entrega.confirmacion`, `entrega.revision_par` |
+| `debate:docente:{sala}` (solo host) | `docente.calificacion`, `docente.devolucion`, `docente.reconsideracion`, `docente.sugerencia_ia`, `docente.asignacion_pares`, `docente.moderacion_revision`, `docente.integridad` |
+| `debate:devolucion:{clientId}:{sala}` (publica el host; lee solo ese cliente) | `devolucion.recibida`, `revision.asignada`, `revision.resultado` |
+
+El host descarta cualquier mensaje cuyo `clientId` no coincida con `participantId` (canal de entregas) o que no sea suyo (canal del docente).
+
 ### Canal privado de integridad
 
 `debate:integridad:{sala}`, evento `integridad.senal`: `{ participantId, argumentId, contexto, senales: [{ tipo, gravedad, detalle }], gravedadMaxima, estadisticas, advertenciaMostrada, enviadoEn }`. **No pasa por el reducer ni por el canal de la sesión.** Los participantes publican por REST; solo el host lo lee, y descarta cualquier mensaje cuyo `clientId` no coincida con `participantId`.
