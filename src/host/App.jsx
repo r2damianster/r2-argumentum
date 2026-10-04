@@ -242,6 +242,12 @@ function ConsolaDelHost({ onCerrarSesion }) {
     setErrorDeCarga('');
   }
 
+  // Al terminar una actividad: vuelve al primer paso para elegir OTRA actividad (o la misma).
+  function elegirOtraActividad() {
+    cambiarPrograma();
+    setIdDeActividadElegida(null);
+  }
+
   function cambiarPrograma() {
     setProgramaBaseSeleccionado(null);
     setProgramaActivo(null);
@@ -362,13 +368,14 @@ function ConsolaDelHost({ onCerrarSesion }) {
       codigoDeSala={codigoDeSala}
       identificadorDeSesion={identificadorDeSesion}
       onCambiarPrograma={cambiarPrograma}
+      onElegirOtraActividad={elegirOtraActividad}
       onModificarConfiguracion={modificarConfiguracion}
       onCerrarSesion={onCerrarSesion}
     />
   );
 }
 
-function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCambiarPrograma, onModificarConfiguracion, onCerrarSesion }) {
+function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCambiarPrograma, onElegirOtraActividad, onModificarConfiguracion, onCerrarSesion }) {
   const urlDeIngreso = `${window.location.origin}/?sala=${codigoDeSala}`;
   const { estado, eventos, presencia, publicar, cargando, conexion } = useEstadoDeSesion({
     clientId: 'host',
@@ -658,7 +665,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
               programa={programaVisible}
               presencia={presencia}
               motor={motor}
-              onNuevoDebate={onCambiarPrograma}
+              onNuevoDebate={onElegirOtraActividad}
               integridadActiva={integridadActiva}
               registrosDeIntegridad={registrosDeIntegridad}
               incluirAnexoDeIntegridad={incluirAnexoDeIntegridad}

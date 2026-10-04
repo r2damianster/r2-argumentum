@@ -45,7 +45,7 @@ export function PantallaDeRanking({
 
   function manejarNuevoDebate() {
     const confirmado = window.confirm(
-      'Vas a salir de este informe y volver a la lista de Programas. Si todavía no descargaste el JSON o el PDF, hazlo antes: al salir no hay forma de recuperarlo desde aquí. ¿Continuar?'
+      'Vas a salir de este informe y volver a elegir la actividad. Si todavía no descargaste el JSON o el PDF, hazlo antes: al salir no hay forma de recuperarlo desde aquí. ¿Continuar?'
     );
     if (confirmado) {
       onNuevoDebate();
@@ -172,7 +172,7 @@ export function PantallaDeRanking({
         )}
         {sesionCerrada && (
           <button type="button" className="boton-primario" onClick={manejarNuevoDebate}>
-            ➕ Iniciar un debate nuevo
+            ➕ Elegir otra actividad
           </button>
         )}
       </div>
