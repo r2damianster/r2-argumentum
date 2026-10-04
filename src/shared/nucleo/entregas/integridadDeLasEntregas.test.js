@@ -131,3 +131,38 @@ describe('decisiones sobre una marca', () => {
     expect(cola[0].decisionDeIntegridad.observacion).toBe('Hablar con la persona');
   });
 });
+
+describe('descuento automático por texto pegado', () => {
+  const registros = [
+    texto('ana', 'Texto de Ana'),
+    { nombre: EVENTOS_PRIVADOS.CALIFICACION_GUARDADA, participantId: 'ana', niveles: { a: 'excelente', b: 'excelente' }, aprobada: true, enviadoEn: 2 },
+  ];
+
+  function colaConAutomatico(extra = []) {
+    const estadoPrivado = { ...reducirRegistrosPrivados([...registros, ...extra]), descuentosAutomaticos: { ana: 4 } };
+    return construirColaDelDocente({
+      estadoPrivado,
+      estado: { lectura: { entregas: { ana: { participantId: 'ana', palabras: 5, parrafos: 1, entregadaEn: 1, devueltaEn: null, confirmacion: null } } } },
+      rubrica: RUBRICA,
+    })[0];
+  }
+
+  it('baja la nota final por sí solo, sin que el docente haga nada', () => {
+    expect(colaConAutomatico()).toMatchObject({ notaDeLaRubrica: 10, descuentoAutomatico: 4, descuentoDeIntegridad: 4, nota: 6 });
+  });
+
+  it('el docente lo revierte descartando la marca o dejando una observación', () => {
+    expect(colaConAutomatico([{ nombre: EVENTOS_PRIVADOS.DECISION_DE_INTEGRIDAD, participantId: 'ana', accion: 'descartada' }])).toMatchObject({
+      descuentoAutomatico: 4,
+      descuentoDeIntegridad: 0,
+      nota: 10,
+    });
+    expect(colaConAutomatico([{ nombre: EVENTOS_PRIVADOS.DECISION_DE_INTEGRIDAD, participantId: 'ana', accion: 'observada', observacion: 'Hablé con la persona' }]).nota).toBe(10);
+  });
+
+  it('o lo reemplaza por su propio descuento', () => {
+    expect(
+      colaConAutomatico([{ nombre: EVENTOS_PRIVADOS.DECISION_DE_INTEGRIDAD, participantId: 'ana', accion: 'descuento', descuento: 1.5, observacion: 'Copia parcial' }]).nota
+    ).toBe(8.5);
+  });
+});

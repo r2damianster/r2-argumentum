@@ -8,6 +8,7 @@
 //   id                       identificador estable; es el valor del campo `actividad` del Programa
 //   etiqueta, descripcion    lo que ve el moderador al elegir la actividad
 //   icono                    emoji de la tarjeta de selección
+//   descripcionDelPrograma   qué es un Programa en esta actividad (texto de la pantalla de elegir Programa)
 //   modulosQueUsa            piezas del núcleo que la actividad compone (documentación viva)
 //   tiposDeFase              tipos de fase que entiende (el Programa solo puede traer estos)
 //   tiposDeFaseConTiempoTotal  fases que tienen una duración total (la cuenta atrás la lleva el motor)
@@ -38,6 +39,7 @@ export function definirActividad(definicion) {
 
   return Object.freeze({
     icono: '',
+    descripcionDelPrograma: '',
     modulosQueUsa: [],
     tiposDeFase: [],
     tiposDeFaseConTiempoTotal: [],

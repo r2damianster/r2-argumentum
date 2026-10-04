@@ -15,6 +15,9 @@ function leerTextoArrastrado(evento) {
 
 // `bloquearPegado`: con el nivel restrictivo no se deja pegar ni arrastrar, y el intento queda registrado.
 export function crearManejadoresDeEntrada({ recolector, bloquearPegado = false }) {
+  // Cuánto medía el texto antes de este `input`: sirve para saber cuántos caracteres se borraron.
+  let longitudAnterior = 0;
+
   return {
     alPegar(evento) {
       if (bloquearPegado) {
@@ -39,7 +42,14 @@ export function crearManejadoresDeEntrada({ recolector, bloquearPegado = false }
     alEscribir(evento) {
       const eventoNativo = evento.nativeEvent ?? evento;
       const tipo = clasificarEntrada(eventoNativo.inputType, eventoNativo.data);
+      const longitudActual = String(evento.target?.value ?? '').length;
+      const caracteresQuitados = Math.max(0, longitudAnterior - longitudActual);
+      longitudAnterior = longitudActual;
       if (tipo === TIPOS_DE_ENTRADA.PEGADO || tipo === TIPOS_DE_ENTRADA.ARRASTRE) {
+        return;
+      }
+      if (tipo === TIPOS_DE_ENTRADA.BORRADO) {
+        recolector.registrarEntrada({ tipo, caracteres: caracteresQuitados });
         return;
       }
       // Un `insertText` trae lo que se insertó; la composición (autocorrector, teclados predictivos)

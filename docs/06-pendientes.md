@@ -4,9 +4,9 @@ Decisiones abiertas o trabajo técnico que todavía no se ha hecho, y registro d
 
 ## Abierto
 
-- **Control de lectura: falta su verificación en producción** (4-oct-2026; ver `14-control-de-lectura.md`). Hitos C1–C6 construidos y probados en local (813 pruebas, build correcto), pero no se pudo comprobar con Ably y Groq reales (no hay `ABLY_API_KEY` en local). Pendiente, en este orden:
+- **Control de lectura: falta su verificación en producción** (4-oct-2026; ver `14-control-de-lectura.md`). Hitos C1–C6 construidos y probados en local (842 pruebas, build correcto), pero no se pudo comprobar con Ably y Groq reales (no hay `ABLY_API_KEY` en local). Pendiente, en este orden:
   1. **Antes de commitear:** el commit despliega solo y **cambia otra vez las capacidades de los tokens de Ably** (`api/ably-token.js` suma `debate:entrega:*`, `debate:docente:*` y `debate:devolucion:{clientId}:*`). Revisa que el login del host y el ingreso de participantes sigan funcionando. No hay variables de entorno nuevas.
-  2. **Canales privados con Ably real** (lo más incierto): que el host reciba las entregas que los participantes publican por REST; que un participante **no** pueda suscribirse a `debate:entrega` ni leer la devolución de otro; que `devolucion` recupere el historial al reconectar. Procedimiento en `10-guia-prueba-manual-chrome.md`.
+  2. ~~**Canales privados con Ably real**~~ — verificado en local el 4-oct-2026 con un servidor `/api` local, la clave de Ably y un navegador con 1 host y 3 participantes (ver `14`). Repetir la prueba tras el despliegue: la **identidad inviolable** invalida las identidades recordadas de antes, así que despliega entre clases.
   3. **Groq:** calidad de la sugerencia de calificación y cuota con una sala de 40 personas (unas 40 llamadas de ~2.000 tokens).
   4. **Celular físico:** escribir 2 párrafos, borrador, cuenta atrás y la revisión entre pares a 320 px.
   5. **Revisar el diseño con el docente:** puntos de revisión (1 por texto asignado, se suman a la nota para el podio) y umbrales de similitud (20/40/60 %) son propuestas mías.

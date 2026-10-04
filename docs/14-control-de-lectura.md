@@ -1,6 +1,6 @@
 # Control de lectura (actividad `control_de_lectura`)
 
-> **Estado (4-oct-2026):** diseño aprobado por el docente y **hitos C1–C6 construidos y probados en local** (813 pruebas, build correcto). **Falta la verificación en producción**: no se pudo comprobar con Ably y Groq reales (ver «Pendiente» al final y `docs/06-pendientes.md`). Este documento es la fuente de verdad de la decisión.
+> **Estado (4-oct-2026):** diseño aprobado por el docente y **hitos C1–C6 construidos y probados** (842 pruebas, build correcto). **Verificado con Ably real en local** (servidor `/api` local + navegador): los canales privados, la identidad inviolable y el flujo completo con 3 participantes (entrega, calificación a ciegas, penalización por pegado y su reversión, revisión entre pares, devolución, desacuerdo, podio). **Falta**: Groq real, celular físico y la verificación en producción (ver «Pendiente» y `docs/06-pendientes.md`). Este documento es la fuente de verdad de la decisión.
 
 ## Qué es
 
@@ -80,7 +80,7 @@ La app **no restringe** lo que se escribe: solo cuenta palabras y párrafos y mu
 - 4 niveles por criterio: Excelente (3), Bueno (2), Aceptable (1), Insuficiente (0).
 - Criterios de serie: pertinencia a la consigna (25), estructura (25), desarrollo del tópico (25), claridad y cohesión (15), corrección lingüística (10).
 - **Nota sobre 10 con decimales** = `10 × Σ(peso × nivel/3) / Σ pesos`, redondeada a 2 decimales. Un criterio sin evaluar cuenta 0; para aprobar hay que marcar todos.
-- Con un descuento por integridad decidido por el docente, **nota final = nota de la rúbrica − descuento** (nunca bajo 0).
+- Con un descuento por integridad (automático por pegado o decidido por el docente), **nota final = nota de la rúbrica − descuento** (nunca bajo 0).
 - **Podio:** solo los 5 primeros lugares. Empate exacto comparte lugar. **No se muestra la nota** (ni en la sala ni al estudiante). Puntuación del podio = nota final + puntos de revisión entre pares.
 
 ## Revisión de pares (módulo del núcleo: `nucleo/revisionEntrePares`)
@@ -109,7 +109,18 @@ Tres fuentes deterministas, ninguna detecta «texto de IA»:
 
 **Semáforo** por porcentaje de parecido (umbrales editables en la configuración): sin indicio < 20 %, atención 20–40 %, alto 40–60 %, probable copia ≥ 60 %. Una señal alta de redacción pesa como «alto»; una media, como «atención»; una baja (cambiar de pestaña en el celular es normal) no alerta sola. Con otra entrega solo se muestra su **código anónimo**, nunca quién es.
 
-El docente decide: **descartar la marca**, **dejar una observación** (no cambia la nota) o **aplicar un descuento** manual (0 a 10 puntos) con motivo obligatorio. **No hay sanción automática ni nulidad.** Al ingresar se avisa que se registran señales. Las marcas viajan por `debate:integridad:{sala}` (nunca por el canal de la sala) y se descargan en un **anexo aparte** (`…-integridad.json`); no van en el informe general.
+### Penalización automática por texto pegado (reversible)
+
+Regla del docente, activa por defecto con la integridad encendida (`penalizacionPorPegado: { activa, descuentoMaximo: 5 }`):
+1. **Aviso al instante.** Apenas se pega (o arrastra) un bloque de 20 caracteres o más, el estudiante ve «Detectamos texto pegado» y un **color de verde a rojo**. **Nunca ve un número ni el descuento.** Al ingresar ya se le dijo que no debe copiar y pegar.
+2. **Quien ve el aviso y borra recupera casi toda su oportunidad, pero no llega a cero.** La parte «pegada» = lo pegado que sigue en el texto + el **20 %** de lo pegado y luego borrado, sobre todo lo que se escribió, pegó y quitó. Pegar todo y borrarlo todo deja un residuo de 1 punto con el máximo por defecto (5), en un color todavía verde pero más bajito; reescribir a mano lo diluye sin eliminarlo. La curva del color es suave al principio para que ese residuo se distinga bien de un pegado fuerte.
+3. **Descuento automático** = parte pegada × descuento máximo (5 puntos por defecto, hasta 10; configurable). Se aplica solo a la nota final.
+4. **El docente lo revierte**: «Descartar la marca» o «Dejar una observación» lo dejan en 0; «Aplicar un descuento» lo reemplaza por su cifra. En la entrega ve «Descuento automático por texto pegado: −X».
+5. Con el nivel «restrictiva» pegar está bloqueado, así que no llega a haber descuento.
+
+El cálculo lo hace el cliente del estudiante y llega por el canal privado de integridad: un estudiante técnico podría falsearlo. Es una advertencia, no una prueba.
+
+El docente decide: **descartar la marca**, **dejar una observación** (no cambia la nota) o **aplicar un descuento** manual (0 a 10 puntos) con motivo obligatorio. **No hay anulación ni nulidad.** Al ingresar se avisa que se registran señales. Las marcas viajan por `debate:integridad:{sala}` (nunca por el canal de la sala) y se descargan en un **anexo aparte** (`…-integridad.json`); no van en el informe general.
 
 ## Privacidad: canales
 
@@ -124,8 +135,9 @@ Todo lo que viaja por `debate:sala:*` lo puede leer cualquier participante con l
 
 El host reconstruye su estado privado desde el historial de `entrega` y `docente` y de una copia local del navegador (12 h), como ya hace con la integridad. El estado público nunca contiene textos, comentarios, niveles ni notas (hay pruebas que lo verifican). Las capacidades de cada token están en `api/ably-token.js`.
 
+**Identidad inviolable (resuelto).** El `clientId` ya no se puede suplantar copiándolo de la presencia: se **deriva de un secreto** que solo conoce su dueño (`clientId = «p-» + SHA-256(secreto)[0..32]`). El secreto lo genera el navegador al ingresar, se guarda con la identidad recordada y viaja solo en una cabecera al pedir el token; `/api/ably-token` recalcula y compara (sin base de datos). Pruebas con Ably real: otro participante que pide el token con el id de Ana recibe 401. Efecto: identidades guardadas **antes** de este cambio dejan de servir y hay que ingresar de nuevo (conviene desplegarlo entre clases).
+
 **Límites conocidos de esta capa:**
-- Cualquiera puede pedir un token con el `clientId` de otra persona (solo `host` está protegido). Un estudiante técnico podría leer la devolución de otro (comentarios, nunca notas) o entregar a su nombre. Es el mismo límite que ya tenía el resto de la plataforma; se mitiga porque el `participantId` no se muestra y no es adivinable, no porque esté impedido.
 - Los mensajes de Ably tienen un tope de 64 KB: la entrega acepta hasta 20.000 caracteres y cada revisor recibe sus textos en un solo mensaje (con 2 a 3 textos de tamaño normal no hay problema).
 - La retención del historial de Ably es corta: si la clase se prolonga mucho, el estudiante que vuelve tarde puede no ver su devolución (la copia local del host sí sobrevive a un refresco).
 
@@ -149,10 +161,14 @@ Sin nombres ni textos ni notas: consigna y estructura, cuenta atrás y contadore
 - Pantallas: `src/player/componentes/lectura/` y `src/host/componentes/lectura/`; hooks `useEstadoPrivadoDelHost`, `useSugerenciasDeCalificacion`, `useAsignacionDePares` y `useMensajesPrivadosDelEstudiante`.
 - Eventos públicos nuevos: `lectura.entrega_registrada`, `lectura.revision_enviada`, `lectura.devuelta`, `lectura.confirmada`, `lectura.podio_publicado` (ver `09`). El reducer acepta cada uno solo si lo publicó quien dice ser.
 
-## Pendiente (hito C6, verificación en producción)
+## Verificado con Ably real (4-oct-2026, en local)
 
-- **Canales privados con Ably real:** que el host reciba lo que los participantes publican por REST, que un participante **no** pueda suscribirse a `entrega` ni leer el canal de otra persona, y que el historial de `devolucion` se recupere al reconectar. Es lo más incierto, igual que el canal de integridad del foro.
-- **Groq real:** calidad de la sugerencia y cuota con una sala grande.
+Servidor `/api` local con la clave de Ably y un navegador real con 1 host y 3 participantes: el host recibe lo que publican los participantes por REST con el `clientId` puesto por Ably; un participante **no** puede leer `debate:entrega`, `debate:docente` ni la devolución de otro, ni publicar en el canal del docente; el historial de `devolucion` se recupera; la suplantación de identidad se rechaza; y el flujo completo (entrega, calificación a ciegas, penalización por pegado y su reversión, parecido entre entregas, reparto de pares, revisión, aprobación, devolución sin nota, desacuerdo y reconsideración, podio sin notas, resultado del revisor) funciona.
+
+## Pendiente
+
+- **Groq real:** no hay `GROQ_API_KEY` en local, así que la sugerencia de calificación solo se probó con pruebas unitarias; falta ver su calidad y la cuota con una sala grande.
+- **En producción:** repetir la prueba tras el despliegue (login del host, ingreso, canales privados).
 - **Celular físico:** escribir 2 párrafos (teclado, borrador, cuenta atrás) y revisar a 320 px.
 - No hay script E2E (`scripts/prueba-e2e/`) para esta actividad: se podría escribir cuando haya una sala de prueba; mientras tanto, usa el procedimiento de `docs/10-guia-prueba-manual-chrome.md`.
 - **Fuera de alcance de esta versión:** lectura grupal (otra actividad futura), «Revisión entre pares» de textos traídos de fuera (se compone con el módulo ya construido), segunda versión del texto.

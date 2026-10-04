@@ -47,6 +47,13 @@ const MINIMO_DE_SEGUNDOS_PARA_MEDIR_VELOCIDAD = 5;
 const MINIMO_DE_SALIDAS_DE_PESTANA_PARA_MARCAR = 3;
 const SEGUNDOS_FUERA_DE_PESTANA_PARA_MARCAR = 30;
 
+// Penalización por pegado (control de lectura, docs/14): pegar un bloque pequeño (una palabra, una cita corta)
+// no cuenta. Y borrar lo pegado NO borra del todo el antecedente, pero la persona recupera casi toda su
+// oportunidad: se conserva solo este porcentaje de lo que se pegó y se quitó (con el descuento máximo por
+// defecto de 5 puntos, pegar todo y borrarlo todo deja un descuento de 1 punto, en un color casi verde).
+export const MINIMO_DE_CARACTERES_PEGADOS_PARA_PENALIZAR = 20;
+export const PORCENTAJE_RETENIDO_DE_LO_PEGADO_Y_BORRADO = 0.2;
+
 export const TIPOS_DE_ENTRADA = {
   ESCRITURA: 'escritura',
   PEGADO: 'pegado',
@@ -95,6 +102,9 @@ export function crearRecolectorDeSenales({ ahora = () => Date.now() } = {}) {
       arrastradoVeces: 0,
       tecleadoCaracteres: 0,
       mayorBloque: 0,
+      // Lo pegado o arrastrado que sigue en el texto (estimado) y lo que se pegó y luego se borró.
+      pegadoVigente: 0,
+      pegadoBorrado: 0,
       intentosBloqueados: 0,
       salidasDePestana: 0,
       milisegundosFueraDePestana: 0,
@@ -114,9 +124,16 @@ export function crearRecolectorDeSenales({ ahora = () => Date.now() } = {}) {
     if (tipo === TIPOS_DE_ENTRADA.PEGADO) {
       estado.pegadoCaracteres += caracteres;
       estado.pegadoVeces += 1;
+      estado.pegadoVigente += caracteres;
     } else if (tipo === TIPOS_DE_ENTRADA.ARRASTRE) {
       estado.arrastradoCaracteres += caracteres;
       estado.arrastradoVeces += 1;
+      estado.pegadoVigente += caracteres;
+    } else if (tipo === TIPOS_DE_ENTRADA.BORRADO) {
+      // Se supone que lo que se borra es primero lo pegado: la hipótesis más estricta con quien pega y quita.
+      const quitado = Math.min(Math.max(0, caracteres), estado.pegadoVigente);
+      estado.pegadoVigente -= quitado;
+      estado.pegadoBorrado += quitado;
     } else if (tipo === TIPOS_DE_ENTRADA.BLOQUE) {
       estado.mayorBloque = Math.max(estado.mayorBloque, caracteres);
     } else if (tipo === TIPOS_DE_ENTRADA.ESCRITURA) {
@@ -141,6 +158,18 @@ export function crearRecolectorDeSenales({ ahora = () => Date.now() } = {}) {
       estado.milisegundosFueraDePestana += ahora() - estado.pestanaOcultaDesde;
       estado.pestanaOcultaDesde = null;
     }
+  }
+
+  // Qué parte del texto se considera pegada, entre 0 y 1: lo pegado que sigue ahí, más un porcentaje de lo
+  // pegado y borrado, sobre todo lo que se escribió, pegó y quitó. Se calcula al vuelo para avisar mientras se
+  // escribe; con menos de MINIMO_DE_CARACTERES_PEGADOS_PARA_PENALIZAR pegados no hay penalización.
+  function proporcionPenalizada() {
+    if (estado.pegadoCaracteres + estado.arrastradoCaracteres < MINIMO_DE_CARACTERES_PEGADOS_PARA_PENALIZAR) {
+      return 0;
+    }
+    const efectivo = estado.pegadoVigente + PORCENTAJE_RETENIDO_DE_LO_PEGADO_Y_BORRADO * estado.pegadoBorrado;
+    const total = estado.tecleadoCaracteres + estado.pegadoVigente + estado.pegadoBorrado;
+    return total > 0 ? Math.min(1, efectivo / total) : 0;
   }
 
   // Resume lo registrado frente al texto que se va a enviar. `senalesExternas` permite sumar señales
@@ -238,11 +267,13 @@ export function crearRecolectorDeSenales({ ahora = () => Date.now() } = {}) {
         tecleadoCaracteres: estado.tecleadoCaracteres,
         intentosBloqueados: estado.intentosBloqueados,
         salidasDePestana: estado.salidasDePestana,
+        proporcionPenalizada: Math.round(proporcionPenalizada() * 10000) / 10000,
       },
     };
   }
 
   return {
+    proporcionPenalizada,
     registrarEntrada,
     registrarIntentoBloqueado,
     registrarPestanaOculta,

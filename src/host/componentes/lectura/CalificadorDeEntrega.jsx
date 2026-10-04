@@ -85,6 +85,7 @@ export function CalificadorDeEntrega({
           key={`integridad-${item.participantId}`}
           integridad={integridad}
           decision={item.decisionDeIntegridad}
+          descuentoAutomatico={item.descuentoAutomatico}
           guardando={guardando}
           alDecidir={alDecidirIntegridad}
         />

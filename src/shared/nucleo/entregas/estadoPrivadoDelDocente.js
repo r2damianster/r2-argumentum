@@ -269,7 +269,12 @@ export function construirColaDelDocente({ estadoPrivado, estado, rubrica }) {
     const aprobada = Boolean(calificacion?.aprobada) && rubricaEstaCompleta(rubrica, calificacion.niveles);
     const confirmacionPrivada = estadoPrivado.confirmaciones[participantId] ?? null;
     const notaDeLaRubrica = calificacion ? calcularNotaDeRubrica(rubrica, calificacion.niveles) : null;
-    const descuentoDeIntegridad = estadoPrivado.decisionesDeIntegridad?.[participantId]?.descuento ?? 0;
+    // Descuento por integridad: el automático por texto pegado (lo calcula el host con lo que publicó el
+    // estudiante) o, si el docente decidió algo, lo que él decidió: «descuento» pone su cifra; descartar la
+    // marca o dejar una observación REVIERTEN el automático.
+    const decisionDeIntegridad = estadoPrivado.decisionesDeIntegridad?.[participantId] ?? null;
+    const descuentoAutomatico = estadoPrivado.descuentosAutomaticos?.[participantId] ?? 0;
+    const descuentoDeIntegridad = decisionDeIntegridad ? decisionDeIntegridad.descuento : descuentoAutomatico;
     const sugerenciaGuardada = estadoPrivado.sugerencias[participantId] ?? null;
     const sugerencia = sugerenciaGuardada?.sugerencia
       ? {
@@ -299,7 +304,8 @@ export function construirColaDelDocente({ estadoPrivado, estado, rubrica }) {
       // aplicar (manual, con motivo; nunca automático).
       notaDeLaRubrica: notaDeLaRubrica,
       descuentoDeIntegridad: descuentoDeIntegridad,
-      decisionDeIntegridad: estadoPrivado.decisionesDeIntegridad?.[participantId] ?? null,
+      descuentoAutomatico,
+      decisionDeIntegridad,
       nota: notaDeLaRubrica === null ? null : Math.round(Math.max(0, notaDeLaRubrica - descuentoDeIntegridad) * 100) / 100,
       devuelta: Boolean(entregaPublica.devueltaEn),
       confirmaHasta: entregaPublica.confirmaHasta,

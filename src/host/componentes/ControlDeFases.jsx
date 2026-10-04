@@ -71,7 +71,11 @@ export function ControlDeFases({ estado, motor, programa }) {
               </div>
             )}
             <button type="button" onClick={motor.cerrarFaseActual}>
-              {esForo || esLectura ? 'Cerrar la escritura ahora' : 'Cerrar fase actual'}
+              {faseActual.tipo === TIPOS_DE_FASE.REVISION_DE_PARES
+                ? 'Cerrar la revisión entre pares ahora'
+                : esForo || esLectura
+                  ? 'Cerrar la escritura ahora'
+                  : 'Cerrar fase actual'}
             </button>
           </div>
         )}

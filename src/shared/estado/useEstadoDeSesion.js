@@ -56,7 +56,7 @@ const MILISEGUNDOS_ENTRE_GUARDADOS = 1000;
 
 // datosDePresencia: null para el host (no es un participante, solo observa presence),
 // o { nombre, emoji } para player/co-moderador (entra a presence con ese payload).
-export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null }) {
+export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null, secreto = null }) {
   // Se arranca de la copia local si la hay: un F5 o una pestaña cerrada por accidente ya no
   // dependen de que el historial de Ably siga vivo (ver instantaneaLocal.js).
   const [instantaneaDeArranque] = useState(() => leerInstantanea(sessionId));
@@ -105,7 +105,7 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
       guardadoPendiente = setTimeout(guardarCopiaLocal, MILISEGUNDOS_ENTRE_GUARDADOS);
     }
 
-    const cliente = obtenerClienteAbly(clientId);
+    const cliente = obtenerClienteAbly(clientId, secreto);
     const canal = obtenerCanalDeDebate('sala', sessionId);
     canalRef.current = canal;
 

@@ -92,3 +92,18 @@ describe('agruparSenalesPorParticipante', () => {
     expect(agruparSenalesPorParticipante([])).toEqual([]);
   });
 });
+
+describe('proporción penalizada del mensaje de integridad', () => {
+  const base = { id: 'm1', clientId: 'ana', timestamp: 1, data: { participantId: 'ana', contexto: 'entrega_de_lectura', senales: [{ tipo: 'pegado', gravedad: 'alta', detalle: 'x' }] } };
+
+  it('la toma de las estadísticas y la acota entre 0 y 1', () => {
+    expect(procesarMensajeDeIntegridad({ ...base, data: { ...base.data, estadisticas: { proporcionPenalizada: 0.42 } } }).proporcionPenalizada).toBe(0.42);
+    expect(procesarMensajeDeIntegridad({ ...base, data: { ...base.data, estadisticas: { proporcionPenalizada: 7 } } }).proporcionPenalizada).toBe(1);
+    expect(procesarMensajeDeIntegridad({ ...base, data: { ...base.data, estadisticas: { proporcionPenalizada: -3 } } }).proporcionPenalizada).toBe(0);
+  });
+
+  it('sin el dato o con basura vale 0', () => {
+    expect(procesarMensajeDeIntegridad(base).proporcionPenalizada).toBe(0);
+    expect(procesarMensajeDeIntegridad({ ...base, data: { ...base.data, estadisticas: { proporcionPenalizada: 'mucho' } } }).proporcionPenalizada).toBe(0);
+  });
+});

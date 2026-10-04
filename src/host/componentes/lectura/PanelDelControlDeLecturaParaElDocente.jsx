@@ -91,7 +91,8 @@ export function PanelDelControlDeLecturaParaElDocente({
     [integridadActiva, cola, registrosDeIntegridad, programaVigente, programa.textoDeReferencia]
   );
   const marcasPorRevisar = cola.filter(
-    (item) => hayAlgoQueRevisar(integridadPorEntrega[item.participantId]) && !item.decisionDeIntegridad
+    (item) =>
+      (hayAlgoQueRevisar(integridadPorEntrega[item.participantId]) || item.descuentoAutomatico > 0) && !item.decisionDeIntegridad
   ).length;
   const avance = contarAvanceDeLasEntregas(estado);
   const fase = estado.fase.actual;
@@ -422,7 +423,11 @@ export function PanelDelControlDeLecturaParaElDocente({
                       <span className="entrega-de-la-cola-codigo">
                         {item.etiqueta}
                         {item.sugerencia ? ' ✨' : estadosDeLaSugerencia[item.participantId] === 'en_curso' ? ' …' : ''}
-                        {hayAlgoQueRevisar(integridadPorEntrega[item.participantId]) ? (item.decisionDeIntegridad ? ' 🛡️✓' : ' 🛡️') : ''}
+                        {hayAlgoQueRevisar(integridadPorEntrega[item.participantId]) || item.descuentoAutomatico > 0
+                          ? item.decisionDeIntegridad
+                            ? ' 🛡️✓'
+                            : ' 🛡️'
+                          : ''}
                       </span>
                       <span className="texto-de-ayuda">
                         {item.palabras} palabras · {textoDelEstadoDeLaEntrega(item)}

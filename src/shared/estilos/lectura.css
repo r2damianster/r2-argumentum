@@ -414,3 +414,25 @@
     display: none !important;
   }
 }
+
+.indicador-de-pegado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid;
+  border-radius: 10px;
+  background: white;
+}
+
+.indicador-de-pegado p {
+  margin: 0;
+}
+
+.indicador-de-pegado-color {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 44px;
+  border-radius: 6px;
+}

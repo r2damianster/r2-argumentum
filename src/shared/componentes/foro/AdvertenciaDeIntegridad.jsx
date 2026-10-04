@@ -33,8 +33,8 @@ export function AdvertenciaDeIntegridad({ resumen, onEnviarIgual, onReescribir }
 }
 
 // Aviso permanente (y corto) de que hay integridad activa: registrar señales sin avisar sería injusto.
-export function AvisoDeIntegridad({ nivel }) {
-  const texto = avisoDeIntegridadAlIngresar(nivel);
+export function AvisoDeIntegridad({ nivel, conDescuento = false }) {
+  const texto = avisoDeIntegridadAlIngresar(nivel, { conDescuento });
   if (!texto) {
     return null;
   }

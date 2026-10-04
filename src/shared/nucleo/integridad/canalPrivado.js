@@ -60,6 +60,8 @@ export function procesarMensajeDeIntegridad(mensaje) {
     gravedadMaxima: GRAVEDADES_VALIDAS.includes(carga.gravedadMaxima) ? carga.gravedadMaxima : senales[0].gravedad,
     estadisticas: carga.estadisticas && typeof carga.estadisticas === 'object' ? carga.estadisticas : {},
     advertenciaMostrada: Boolean(carga.advertenciaMostrada),
+    // Qué parte del texto se pegó (0 a 1): el host la usa para el descuento automático del control de lectura.
+    proporcionPenalizada: Math.min(1, Math.max(0, Number(carga.estadisticas?.proporcionPenalizada ?? carga.proporcionPenalizada) || 0)),
     enviadoEn: Number(mensaje.timestamp ?? carga.enviadoEn ?? 0),
   };
 }

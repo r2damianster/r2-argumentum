@@ -29,6 +29,9 @@ export function useControlDeIntegridad({ programa, contexto, texto, publicarInte
     [recolector, bloquearPegado]
   );
   const [advertenciaPendiente, setAdvertenciaPendiente] = useState(null);
+  // Qué parte del texto se considera pegada (0 a 1), al instante: la pantalla la usa para avisar mientras se
+  // escribe. Borrar lo pegado no la lleva a cero (ver penalizacionPorPegado.js).
+  const [proporcionPegada, setProporcionPegada] = useState(0);
   const envioPendienteRef = useRef(null);
 
   useEffect(() => {
@@ -42,15 +45,15 @@ export function useControlDeIntegridad({ programa, contexto, texto, publicarInte
     return () => document.removeEventListener('visibilitychange', alCambiarLaVisibilidad);
   }, [activo, manejadores]);
 
-  // Si se borra todo el texto, se empieza de cero: pegar algo y borrarlo para reescribir a mano no
-  // debería seguir contando contra quien lo hizo.
+  // Si se borra todo el texto, un aviso de envío pendiente ya no aplica. Lo que se pegó ANTES de borrar sí se
+  // sigue contando (con un porcentaje): pegar, borrar y reescribir a mano no deja a la persona como si nunca
+  // hubiera pegado.
   useEffect(() => {
     if (activo && String(texto ?? '') === '') {
-      recolector.reiniciar();
       setAdvertenciaPendiente(null);
       envioPendienteRef.current = null;
     }
-  }, [activo, texto, recolector]);
+  }, [activo, texto]);
 
   const resumirTexto = useCallback(
     (textoFinal) =>
@@ -74,6 +77,7 @@ export function useControlDeIntegridad({ programa, contexto, texto, publicarInte
       });
     }
     recolector.reiniciar();
+    setProporcionPegada(0);
     setAdvertenciaPendiente(null);
     envioPendienteRef.current = null;
   }
@@ -111,8 +115,22 @@ export function useControlDeIntegridad({ programa, contexto, texto, publicarInte
     activo,
     nivel,
     bloquearPegado,
+    proporcionPegada,
     propsDelCampo: activo
-      ? { onPaste: manejadores.alPegar, onDrop: manejadores.alSoltar, onInput: manejadores.alEscribir }
+      ? {
+          onPaste: (evento) => {
+            manejadores.alPegar(evento);
+            setProporcionPegada(recolector.proporcionPenalizada());
+          },
+          onDrop: (evento) => {
+            manejadores.alSoltar(evento);
+            setProporcionPegada(recolector.proporcionPenalizada());
+          },
+          onInput: (evento) => {
+            manejadores.alEscribir(evento);
+            setProporcionPegada(recolector.proporcionPenalizada());
+          },
+        }
       : {},
     advertenciaPendiente,
     intentarEnviar,

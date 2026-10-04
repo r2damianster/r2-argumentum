@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { cargarPrograma } from '../shared/programa/cargarPrograma.js';
 import { PROGRAMAS_DE_EJEMPLO, agruparProgramasPorCategoria } from '../shared/programa/ejemplos/index.js';
@@ -16,6 +16,7 @@ import { PanelDelForoParaElModerador } from './componentes/PanelDelForoParaElMod
 import { PanelDeRevisionDelModerador } from './componentes/PanelDeRevisionDelModerador.jsx';
 import { PanelDeIntegridadDelModerador } from './componentes/PanelDeIntegridadDelModerador.jsx';
 import { useSenalesDeIntegridadDelHost } from './useSenalesDeIntegridadDelHost.js';
+import { calcularDescuentosAutomaticosPorPegado } from '../shared/nucleo/integridad/penalizacionPorPegado.js';
 import { PanelDeGuiaPedagogica } from './componentes/PanelDeGuiaPedagogica.jsx';
 import { ControlDeFases } from './componentes/ControlDeFases.jsx';
 import { PanelDeEvaluacionDeExposiciones } from './componentes/PanelDeEvaluacionDeExposiciones.jsx';
@@ -316,8 +317,9 @@ function ConsolaDelHost({ onCerrarSesion }) {
             </button>
           )}
           <p className="texto-de-ayuda">
-            Un Programa define el tema, las posturas, las reglas de puntaje y los ejemplos para Groq de esta
-            sesión. Ver <code>docs/03-programa-de-debate.md</code>.
+            {actividadElegida.descripcionDelPrograma ||
+              'Un Programa define el tema, las posturas, las reglas de puntaje y los ejemplos para Groq de esta sesión.'}{' '}
+            Ver <code>docs/03-programa-de-debate.md</code>.
           </p>
           <label className="boton-cargar-archivo">
             Cargar archivo propio (.json)
@@ -405,7 +407,28 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
     sessionId: codigoDeSala,
     activo: esLectura,
   });
-  const motor = useMotorDeSesion({ estado, presencia, publicar, programa, estadoPrivado: esLectura ? estadoPrivado : null });
+  // Señales de integridad: solo el host lee el canal privado. Con la integridad apagada no se conecta.
+  const integridadActiva = integridadEstaActiva(estado.programa ?? programa);
+  const { registros: registrosDeIntegridad } = useSenalesDeIntegridadDelHost({
+    sessionId: codigoDeSala,
+    activo: integridadActiva,
+  });
+  // El descuento automático por texto pegado (lo calcula el host con lo que publicó cada estudiante) viaja
+  // junto al estado privado: la cola, el podio y el informe usan el mismo número, y el docente lo puede revertir.
+  const estadoPrivadoConDescuentos = useMemo(
+    () => ({
+      ...estadoPrivado,
+      descuentosAutomaticos: calcularDescuentosAutomaticosPorPegado({ registros: registrosDeIntegridad, programa: estado.programa ?? programa }),
+    }),
+    [estadoPrivado, registrosDeIntegridad, estado.programa, programa]
+  );
+  const motor = useMotorDeSesion({
+    estado,
+    presencia,
+    publicar,
+    programa,
+    estadoPrivado: esLectura ? estadoPrivadoConDescuentos : null,
+  });
 
   // Volver a configuración abre una sala NUEVA con otro código (así no se mezclan debates, ver
   // docs/06). Quienes ya entraron se quedan en la sala actual sin enterarse: se avisa antes.
@@ -470,12 +493,6 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
 
   useEmisorDeProyeccion({ codigoDeSala, estado, presencia, programa: programaVisible, conexion });
 
-  // Señales de integridad: solo el host lee el canal privado. Con la integridad apagada no se conecta.
-  const integridadActiva = integridadEstaActiva(programaVisible);
-  const { registros: registrosDeIntegridad } = useSenalesDeIntegridadDelHost({
-    sessionId: codigoDeSala,
-    activo: integridadActiva,
-  });
 
   function alternarRankingParcial() {
     const seVaAMostrar = !rankingParcialVisible;
@@ -575,7 +592,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
             )}
           </div>
           <p className="texto-de-ayuda">
-            Comparte el código o el QR con la clase para que se vayan conectando. Cuando todos estén dentro, presiona «Iniciar debate».
+            Comparte el código o el QR con la clase para que se vayan conectando. Cuando todos estén dentro, presiona «{esLectura ? 'Iniciar control de lectura' : 'Iniciar debate'}».
           </p>
           <div className="tarjeta-de-sala">
             <p className="texto-de-ayuda">Código de sala</p>
@@ -643,7 +660,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
               presencia={presencia}
               programa={programa}
               motor={motor}
-              estadoPrivado={estadoPrivado}
+              estadoPrivado={estadoPrivadoConDescuentos}
               publicar={publicar}
               publicarComoDocente={publicarComoDocente}
               enviarAlEstudiante={enviarAlEstudiante}

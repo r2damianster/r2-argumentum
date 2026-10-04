@@ -22,12 +22,12 @@ const ETIQUETA_DE_LA_ACCION = {
 // Las advertencias de integridad de una entrega, para el docente (docs/14-control-de-lectura.md). Son
 // advertencias con sus datos a la vista, no pruebas: decide él qué hacer, y el descuento es manual, con
 // motivo. Nunca hay sanción automática ni nulidad.
-export function MarcasDeIntegridadDeUnaEntrega({ integridad, decision, guardando, alDecidir }) {
+export function MarcasDeIntegridadDeUnaEntrega({ integridad, decision, descuentoAutomatico = 0, guardando, alDecidir }) {
   const [accion, setAccion] = useState(decision?.accion ?? ACCIONES_SOBRE_UNA_MARCA.DESCARTADA);
   const [observacion, setObservacion] = useState(decision?.observacion ?? '');
   const [descuento, setDescuento] = useState(decision?.descuento ?? 0);
 
-  if (!hayAlgoQueRevisar(integridad) && !decision) {
+  if (!hayAlgoQueRevisar(integridad) && !decision && descuentoAutomatico <= 0) {
     return null;
   }
 
@@ -40,6 +40,14 @@ export function MarcasDeIntegridadDeUnaEntrega({ integridad, decision, guardando
         <strong>🛡️ Integridad: {ETIQUETA_DE_LA_BANDA[integridad.banda]}</strong>{' '}
         <span className="texto-de-ayuda">· es una advertencia, no una prueba. Decides tú.</span>
       </p>
+
+      {descuentoAutomatico > 0 && (
+        <p className="descuento-automatico">
+          💥 Descuento automático por texto pegado: <strong>−{descuentoAutomatico}</strong> puntos
+          {decision ? (decision.accion === ACCIONES_SOBRE_UNA_MARCA.DESCUENTO ? ' (lo reemplazaste por tu propio descuento)' : ' (lo revertiste)') : ''}.
+          El estudiante solo ve un color, nunca este número. «Descartar la marca» o «Dejar una observación» lo revierten.
+        </p>
+      )}
 
       {similitud && similitud.porcentaje > 0 && (
         <div>

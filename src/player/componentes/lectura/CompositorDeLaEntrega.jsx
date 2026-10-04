@@ -7,6 +7,8 @@ import { resolverIdiomaDelDebate } from '../../../shared/programa/idiomaDelDebat
 import { useControlDeIntegridad } from '../../../shared/nucleo/integridad/useControlDeIntegridad.js';
 import { CONTEXTOS_DE_REDACCION } from '../../../shared/nucleo/integridad/canalPrivado.js';
 import { AdvertenciaDeIntegridad, AvisoDeIntegridad } from '../../../shared/componentes/foro/AdvertenciaDeIntegridad.jsx';
+import { IndicadorDePegado } from '../../../shared/componentes/lectura/IndicadorDePegado.jsx';
+import { penalizacionPorPegadoEstaActiva } from '../../../shared/nucleo/integridad/penalizacionPorPegado.js';
 
 // El borrador vive en el navegador de cada persona y por sesión: quien cierra la pestaña por error
 // recupera lo escrito. No viaja a ninguna parte hasta que se envía.
@@ -148,7 +150,7 @@ export function CompositorDeLaEntrega({
 
   return (
     <section className="compositor-de-lectura">
-      <AvisoDeIntegridad nivel={integridad.nivel} />
+      <AvisoDeIntegridad nivel={integridad.nivel} conDescuento={penalizacionPorPegadoEstaActiva(programa)} />
       <label>
         Tu texto
         <textarea
@@ -171,6 +173,7 @@ export function CompositorDeLaEntrega({
           }}
         />
       </label>
+      <IndicadorDePegado proporcion={integridad.proporcionPegada} activo={penalizacionPorPegadoEstaActiva(programa)} />
       <p className="contador-de-palabras">
         {palabras} palabra(s) · {parrafos} de {parrafosPedidos} párrafo(s) pedidos
       </p>

@@ -1,5 +1,6 @@
 import * as Ably from 'ably';
 import { leerSesionDelHost } from './sesionDelHost.js';
+import { NOMBRE_DE_LA_CABECERA_DEL_SECRETO } from './identidadDelParticipante.js';
 import {
   nombreDelCanalDeDevolucion,
   nombreDelCanalDeEntregas,
@@ -10,17 +11,33 @@ let clienteAbly = null;
 
 // Autenticación por token vía /api/ably-token — el navegador nunca ve la API key real.
 // Ver docs/07-acceso-y-paginas.md.
-export function obtenerClienteAbly(clientId) {
+// Los participantes prueban que su identidad es suya con un secreto (ver identidadDelParticipante.js); el
+// host, con su sesión firmada. Ambos viajan solo al pedir el token, nunca por un canal.
+const secretosPorClientId = new Map();
+
+export function registrarSecretoDelParticipante(clientId, secreto) {
+  if (clientId && secreto) {
+    secretosPorClientId.set(clientId, secreto);
+  }
+}
+
+function opcionesDeAutenticacion(clientId) {
+  if (clientId === 'host') {
+    return { authUrl: '/api/ably-token', authParams: { clientId, hostToken: leerSesionDelHost()?.token ?? '' } };
+  }
+  return {
+    authUrl: '/api/ably-token',
+    authParams: { clientId },
+    authHeaders: { [NOMBRE_DE_LA_CABECERA_DEL_SECRETO]: secretosPorClientId.get(clientId) ?? '' },
+  };
+}
+
+export function obtenerClienteAbly(clientId, secreto = null) {
   if (clienteAbly) {
     return clienteAbly;
   }
-
-  clienteAbly = new Ably.Realtime({
-    authUrl: '/api/ably-token',
-    // La identidad "host" exige la sesión firmada del moderador; los participantes no la usan.
-    authParams: clientId === 'host' ? { clientId, hostToken: leerSesionDelHost()?.token ?? '' } : { clientId },
-  });
-
+  registrarSecretoDelParticipante(clientId, secreto);
+  clienteAbly = new Ably.Realtime(opcionesDeAutenticacion(clientId));
   return clienteAbly;
 }
 
@@ -41,7 +58,7 @@ const clientesRest = new Map();
 
 function obtenerClienteRestAbly(clientId) {
   if (!clientesRest.has(clientId)) {
-    clientesRest.set(clientId, new Ably.Rest({ authUrl: '/api/ably-token', authParams: { clientId } }));
+    clientesRest.set(clientId, new Ably.Rest(opcionesDeAutenticacion(clientId)));
   }
   return clientesRest.get(clientId);
 }
@@ -99,10 +116,7 @@ let clienteRestDelHost = null;
 
 export async function publicarDevolucionDelHost(sessionId, participantId, nombreDelEvento, carga) {
   if (!clienteRestDelHost) {
-    clienteRestDelHost = new Ably.Rest({
-      authUrl: '/api/ably-token',
-      authParams: { clientId: 'host', hostToken: leerSesionDelHost()?.token ?? '' },
-    });
+    clienteRestDelHost = new Ably.Rest(opcionesDeAutenticacion('host'));
   }
   await clienteRestDelHost.channels.get(nombreDelCanalDeDevolucion(participantId, sessionId)).publish(nombreDelEvento, carga);
 }

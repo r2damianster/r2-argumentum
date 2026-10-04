@@ -26,6 +26,7 @@ import { VistaDelForo } from './componentes/foro/VistaDelForo.jsx';
 import { IngresoAlControlDeLectura } from './componentes/lectura/IngresoAlControlDeLectura.jsx';
 import { VistaDelControlDeLectura } from './componentes/lectura/VistaDelControlDeLectura.jsx';
 import { useMensajesPrivadosDelEstudiante } from './useMensajesPrivadosDelEstudiante.js';
+import { crearIdentidadSegura } from '../shared/ably/identidadDelParticipante.js';
 import { IntervencionVerbal } from './componentes/IntervencionVerbal.jsx';
 import { AvisoPreparateParaHablar } from './componentes/AvisoPreparateParaHablar.jsx';
 import { FormularioDeContraargumentoParaOyentes } from './componentes/FormularioDeContraargumentoParaOyentes.jsx';
@@ -49,14 +50,12 @@ const EMOJIS_DISPONIBLES = [
 
 const CLAVE_DE_PARTICIPANTE_ACTIVO = 'r2-argumentum-participante-activo';
 
-function generarParticipantId() {
-  return `participante-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
 
 function leerParticipanteGuardado(codigoDeSala) {
   try {
     const guardado = JSON.parse(sessionStorage.getItem(CLAVE_DE_PARTICIPANTE_ACTIVO) || 'null');
-    return guardado && guardado.codigoDeSala === codigoDeSala ? guardado : null;
+    // Una identidad sin secreto es de antes de la identidad inviolable: ya no sirve, hay que ingresar de nuevo.
+    return guardado && guardado.secreto && guardado.codigoDeSala === codigoDeSala ? guardado : null;
   } catch {
     return null;
   }
@@ -77,7 +76,7 @@ function leerTodasLasIdentidades() {
   try {
     const guardadas = JSON.parse(localStorage.getItem(CLAVE_DE_IDENTIDADES_RECORDADAS) || '[]');
     return Array.isArray(guardadas)
-      ? guardadas.filter((identidad) => Date.now() - (identidad.guardadaEn ?? 0) < VIDA_MAXIMA_DE_LA_IDENTIDAD_MS)
+      ? guardadas.filter((identidad) => identidad.secreto && Date.now() - (identidad.guardadaEn ?? 0) < VIDA_MAXIMA_DE_LA_IDENTIDAD_MS)
       : [];
   } catch {
     return [];
@@ -150,9 +149,11 @@ export default function App() {
     setParticipanteActivo(datos);
   }
 
-  function manejarIngreso(evento) {
+  async function manejarIngreso(evento) {
     evento.preventDefault();
-    const datos = { codigoDeSala, participantId: generarParticipantId(), nombre, emoji: emojiElegido };
+    // El id sale de un secreto que solo vive en este navegador: nadie más puede ingresar como esta persona.
+    const { participantId, secreto } = await crearIdentidadSegura();
+    const datos = { codigoDeSala, participantId, secreto, nombre, emoji: emojiElegido };
     guardarParticipanteActivo(datos);
     setParticipanteActivo(datos);
   }
@@ -233,7 +234,7 @@ export default function App() {
   );
 }
 
-function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSalir }) {
+function SesionDeParticipante({ codigoDeSala, participantId, secreto, nombre, emoji, onSalir }) {
   // Entra a presencia apenas se conecta — el requisito de ingreso con argumento (docs/09) lo
   // marca `ingresoConfirmado` en el reducer, no la presencia de Ably. Entrar antes de confirmar
   // es lo que le permite al host ver, en la sala de configuración previa, quién está conectado
@@ -242,6 +243,7 @@ function SesionDeParticipante({ codigoDeSala, participantId, nombre, emoji, onSa
     clientId: participantId,
     sessionId: codigoDeSala,
     datosDePresencia: { nombre, emoji },
+    secreto,
   });
 
   // La devolución del docente y los textos que le toca revisar (control de lectura) llegan por un canal

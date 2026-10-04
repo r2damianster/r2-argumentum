@@ -15,6 +15,7 @@ import { PanelDelControlDeLecturaParaElDocente } from '../../host/componentes/le
 import { PantallaDeConfiguracionDeLectura } from '../../host/componentes/lectura/PantallaDeConfiguracionDeLectura.jsx';
 import { ResumenDeConfiguracionDeLectura } from '../../host/componentes/lectura/ResumenDeConfiguracionDeLectura.jsx';
 import { CalificadorDeEntrega } from '../../host/componentes/lectura/CalificadorDeEntrega.jsx';
+import { IndicadorDePegado } from '../../shared/componentes/lectura/IndicadorDePegado.jsx';
 import { RevisionesDeParesDeUnaEntrega } from '../../host/componentes/lectura/RevisionesDeParesDeUnaEntrega.jsx';
 import { VistaDeProyeccion } from '../../host/componentes/VistaDeProyeccion.jsx';
 import { construirColaDelDocente } from '../../shared/nucleo/entregas/estadoPrivadoDelDocente.js';
@@ -95,7 +96,8 @@ describe('pantallas del control de lectura: el estudiante', () => {
   it('el ingreso muestra la consigna, el aviso de integridad y no pide postura', () => {
     const html = renderizar(h(IngresoAlControlDeLectura, { programa: PROGRAMA, participantId: 'ana', nombre: 'Ana', emoji: '🦊', publicar }));
     expect(html).toContain('Explica para qué sirve la investigación.');
-    expect(html).toContain('señales de integridad');
+    expect(html).toContain('no debes copiar y pegar');
+    expect(html).toContain('descuenta puntos');
     expect(html).not.toContain('postura');
     expect(html).toContain('Entrar');
   });
@@ -461,5 +463,42 @@ describe('pantallas del control de lectura: calificador, integridad y proyecció
     expect(html).not.toContain('Ana');
     expect(html).not.toContain(COPIA);
     expect(html).not.toMatch(/nota/i);
+  });
+});
+
+describe('pantallas del control de lectura: pegado y descuento automático', () => {
+  it('el indicador no aparece sin pegado y, con pegado, avisa con color y sin ningún número', () => {
+    expect(renderizar(h(IndicadorDePegado, { proporcion: 0 }))).toBe('');
+    const html = renderizar(h(IndicadorDePegado, { proporcion: 0.45 }));
+    expect(html).toContain('Detectamos texto pegado');
+    expect(html).toContain('descuenta puntos');
+    expect(html).toContain('hsl(');
+    // Solo el color (en el estilo) lleva porcentajes; lo que se lee no trae ninguno.
+    expect(html.replace(/style="[^"]*"/g, '')).not.toMatch(/\d+ ?%/);
+    expect(html).not.toMatch(/−|-\d/);
+  });
+
+  it('el indicador no aparece si la penalización está desactivada', () => {
+    expect(renderizar(h(IndicadorDePegado, { proporcion: 0.9, activo: false }))).toBe('');
+  });
+
+  it('el docente ve el descuento automático y cómo revertirlo; el estudiante nunca', () => {
+    const RUBRICA = resolverRubricaDelPrograma(PROGRAMA);
+    const item = {
+      participantId: 'ana', etiqueta: 'Entrega ABCD', texto: 'Texto', textoPendiente: false, palabras: 5, parrafos: 1, enviadaPorTiempo: false,
+      calificacion: null, estadoDeCalificacion: 'sin_calificar', nota: null, notaDeLaRubrica: null, devuelta: false, confirmacion: null,
+      descuentoAutomatico: 3.5, descuentoDeIntegridad: 3.5, decisionDeIntegridad: null, reconsideracion: null, sugerencia: null, sugerenciaOmitida: null,
+    };
+    const html = renderizar(
+      h(CalificadorDeEntrega, {
+        item, rubrica: RUBRICA, nombreDelAutor: 'Ana', guardando: false,
+        integridad: { banda: 'alto', similitud: null, senales: [{ tipo: 'pegado', gravedad: 'alta', detalle: 'Pegó 400 caracteres' }] },
+        alGuardar: () => {}, alDevolver: () => {}, alResolverDesacuerdo: () => {}, alDecidirIntegridad: () => {},
+      })
+    );
+    expect(html).toContain('Descuento automático por texto pegado');
+    expect(html).toContain('−3.5');
+    expect(html).toContain('Descartar la marca');
+    expect(html).toContain('nunca este número');
   });
 });

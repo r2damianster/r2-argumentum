@@ -7,6 +7,7 @@ import { TIPOS_DE_FASE } from '../../shared/eventos/nombresDeEventos.js';
 import { NIVELES_DE_INTEGRIDAD, normalizarIntegridad } from '../../shared/nucleo/integridad/nivelesDeIntegridad.js';
 import { resolverRubricaDelPrograma } from '../../shared/nucleo/rubrica/rubrica.js';
 import { resolverUmbralesDeSimilitud } from '../../shared/nucleo/integridad/similitudDeTextos.js';
+import { normalizarPenalizacionPorPegado } from '../../shared/nucleo/integridad/penalizacionPorPegado.js';
 import {
   DISTRIBUCIONES_DE_ESTRUCTURA,
   resolverEstructuraDelPrograma,
@@ -131,6 +132,7 @@ export function armarProgramaDeLaSesionDeLectura({
   distribucion,
   integridad,
   umbralesDeSimilitud,
+  penalizacionPorPegado,
   revisionDePares,
   ventanaDeConfirmacionMin,
 }) {
@@ -144,6 +146,8 @@ export function armarProgramaDeLaSesionDeLectura({
     estructura: estructura ?? programaBase.estructura ?? 'libre',
     distribucion: distribucion ?? programaBase.distribucion ?? DISTRIBUCIONES_DE_ESTRUCTURA.COMPACTA,
     integridad: normalizarIntegridad(integridad ?? baseNormalizada.integridad),
+    // Descuento automático por texto pegado (reversible por el docente): activa y hasta cuántos puntos.
+    penalizacionPorPegado: normalizarPenalizacionPorPegado(penalizacionPorPegado ?? programaBase.penalizacionPorPegado),
     // A partir de qué porcentaje de parecido se marca cada banda (atención, alto, probable copia).
     umbralesDeSimilitud: resolverUmbralesDeSimilitud({ umbralesDeSimilitud: umbralesDeSimilitud ?? programaBase.umbralesDeSimilitud }),
     ventanaDeConfirmacionMin: ventanaElegida >= 1 ? ventanaElegida : baseNormalizada.ventanaDeConfirmacionMin,

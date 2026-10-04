@@ -42,7 +42,10 @@ export const ETIQUETA_DEL_NIVEL_DE_INTEGRIDAD = {
 };
 
 // Lo que se le dice a la clase al ingresar: registrar señales sin avisar sería injusto.
-export function avisoDeIntegridadAlIngresar(nivel) {
+export function avisoDeIntegridadAlIngresar(nivel, { conDescuento = false } = {}) {
+  if (nivel === NIVELES_DE_INTEGRIDAD.ADVERTENCIAS && conDescuento) {
+    return 'En esta actividad no debes copiar y pegar: pegar texto de otro sitio se detecta al instante, se te avisa mientras escribes y descuenta puntos de tu nota. El descuento es automático y tu docente puede revisarlo. Escribe con tus propias palabras.';
+  }
   if (nivel === NIVELES_DE_INTEGRIDAD.ADVERTENCIAS) {
     return 'En esta actividad se registran señales de integridad mientras escribes (por ejemplo, si pegas texto de otro sitio). Solo las ve el moderador y son una advertencia, no una sanción automática.';
   }

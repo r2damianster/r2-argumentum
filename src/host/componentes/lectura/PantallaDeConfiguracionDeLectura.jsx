@@ -10,6 +10,7 @@ import {
 } from '../../../shared/nucleo/escritura/estructurasDeEscritura.js';
 import { integridadEstaActiva, normalizarIntegridad } from '../../../shared/nucleo/integridad/nivelesDeIntegridad.js';
 import { resolverUmbralesDeSimilitud } from '../../../shared/nucleo/integridad/similitudDeTextos.js';
+import { normalizarPenalizacionPorPegado } from '../../../shared/nucleo/integridad/penalizacionPorPegado.js';
 import { resolverRubricaDelPrograma } from '../../../shared/nucleo/rubrica/rubrica.js';
 import { MINIMO_DE_PARTICIPANTES_PARA_REVISAR_ENTRE_PARES } from '../../../shared/nucleo/revisionEntrePares/asignarRevisionesEntrePares.js';
 import {
@@ -42,6 +43,7 @@ export function PantallaDeConfiguracionDeLectura({ programaBase, onConfirmarConf
   const [distribucion, setDistribucion] = useState(() => resolverDistribucion(programaBase));
   const [ventanaDeConfirmacionMin, setVentanaDeConfirmacionMin] = useState(() => resolverVentanaDeConfirmacionMin(programaBase));
   const [integridad, setIntegridad] = useState(() => normalizarIntegridad(programaNormalizado.integridad));
+  const [penalizacion, setPenalizacion] = useState(() => normalizarPenalizacionPorPegado(programaBase.penalizacionPorPegado));
   const [umbrales, setUmbrales] = useState(() => resolverUmbralesDeSimilitud(programaBase));
   const [revisionDePares, setRevisionDePares] = useState(() => normalizarRevisionDePares(programaBase.revisionDePares));
 
@@ -70,6 +72,7 @@ export function PantallaDeConfiguracionDeLectura({ programaBase, onConfirmarConf
         estructura: estructuraPedida,
         distribucion,
         integridad,
+        penalizacionPorPegado: { activa: penalizacion.activa, descuentoMaximo: Number(penalizacion.descuentoMaximo) },
         umbralesDeSimilitud: {
           atencion: Number(umbrales.atencion),
           alto: Number(umbrales.alto),
@@ -221,6 +224,36 @@ export function PantallaDeConfiguracionDeLectura({ programaBase, onConfirmarConf
       </div>
 
       <SelectorDeIntegridad integridad={integridad} onCambiarIntegridad={setIntegridad} />
+
+      {integridadEstaActiva({ integridad }) && (
+        <div className="bloque-de-configuracion">
+          <label className="casilla-de-falta">
+            <input
+              type="checkbox"
+              checked={penalizacion.activa}
+              onChange={(evento) => setPenalizacion((actual) => ({ ...actual, activa: evento.target.checked }))}
+            />
+            Descontar automáticamente por texto pegado
+          </label>
+          <p className="texto-de-ayuda">
+            Al pegar, el estudiante recibe un aviso al instante y ve un color de verde a rojo (nunca un número). El descuento sale de
+            la parte del texto que se pegó; borrar lo pegado no lo elimina del todo. Tú lo puedes revertir por entrega.
+          </p>
+          {penalizacion.activa && (
+            <label>
+              Descuento máximo si todo el texto es pegado (puntos sobre 10)
+              <input
+                type="number"
+                min="0.5"
+                max="10"
+                step="0.5"
+                value={penalizacion.descuentoMaximo}
+                onChange={(evento) => setPenalizacion((actual) => ({ ...actual, descuentoMaximo: evento.target.value }))}
+              />
+            </label>
+          )}
+        </div>
+      )}
 
       {integridadEstaActiva({ integridad }) && (
         <div className="bloque-de-configuracion">

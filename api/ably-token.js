@@ -1,6 +1,7 @@
 import Ably from 'ably';
 import { esClientIdValido } from './_clienteIdValido.js';
 import { sesionDelHostEsValida } from './_sesionDelHost.js';
+import { NOMBRE_DE_LA_CABECERA_DEL_SECRETO, secretoCorrespondeAlClientId } from './_identidadDelParticipante.js';
 
 // La clave de Ably solo puede operar en los canales del debate: aunque alguien obtenga un token,
 // no lo puede usar en otros canales de la cuenta.
@@ -55,6 +56,17 @@ export default async function handler(request, response) {
   if (clientIdSolicitado === 'host' && !sesionDelHostEsValida(request.query.hostToken, process.env.HOST_PASSWORD)) {
     response.status(401).json({ error: 'Inicia sesión como moderador para usar la identidad de host' });
     return;
+  }
+
+  // Un participante solo obtiene un token para SU clientId: debe probar que conoce el secreto del que se
+  // deriva (ver _identidadDelParticipante.js). Sin esto, cualquiera podía hacerse pasar por otra persona
+  // con solo copiar su id de la presencia. El host ya se protege con su sesión firmada.
+  if (clientIdSolicitado !== undefined && clientIdSolicitado !== 'host') {
+    const secreto = request.headers?.[NOMBRE_DE_LA_CABECERA_DEL_SECRETO];
+    if (!secretoCorrespondeAlClientId(secreto, clientIdSolicitado)) {
+      response.status(401).json({ error: 'Esta identidad no es tuya: vuelve a ingresar a la sala' });
+      return;
+    }
   }
 
   const clientId = clientIdSolicitado || `anon-${Math.random().toString(36).slice(2)}`;

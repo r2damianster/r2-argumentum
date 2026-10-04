@@ -158,7 +158,9 @@ export function construirAnexoDeIntegridadDeLectura({ estado, cola, integridadPo
     programa: { programId: programaVigente.programId, titulo: programaVigente.titulo },
     umbralesDeSimilitud: resolverUmbralesDeSimilitud(programa),
     personas: cola
-      .filter((item) => hayAlgoQueRevisar(integridadPorEntrega[item.participantId]) || item.decisionDeIntegridad)
+      .filter(
+        (item) => hayAlgoQueRevisar(integridadPorEntrega[item.participantId]) || item.decisionDeIntegridad || item.descuentoAutomatico > 0
+      )
       .map((item) => ({
         participantId: item.participantId,
         nombre: nombreSinEmoji(presencia, item.participantId),
@@ -167,6 +169,7 @@ export function construirAnexoDeIntegridadDeLectura({ estado, cola, integridadPo
         similitud: integridadPorEntrega[item.participantId]?.similitud ?? null,
         senales: integridadPorEntrega[item.participantId]?.senales ?? [],
         decisionDelDocente: item.decisionDeIntegridad,
+        descuentoAutomaticoPorPegado: item.descuentoAutomatico,
         descuentoAplicado: item.descuentoDeIntegridad,
       })),
   };

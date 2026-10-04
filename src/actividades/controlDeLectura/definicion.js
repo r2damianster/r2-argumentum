@@ -11,6 +11,8 @@ export const controlDeLectura = definirActividad({
   descripcion:
     'Cada estudiante escribe, a solas y en su celular, un texto sobre la lectura que hizo antes. El docente califica con una rúbrica y devuelve comentarios; opcionalmente se revisan entre pares.',
   icono: '📖',
+  descripcionDelPrograma:
+    'Un Programa de control de lectura define la consigna, la estructura de escritura, la rúbrica y, si quieres, las claves de la lectura para que Groq sugiera la calificación.',
   modulosQueUsa: ['temporizador', 'rubrica', 'escritura', 'entregas', 'podio'],
   tiposDeFase: [TIPOS_DE_FASE.CONTROL_DE_LECTURA, TIPOS_DE_FASE.REVISION_DE_PARES, TIPOS_DE_FASE.CIERRE_Y_RANKING],
   tiposDeFaseConTiempoTotal: [TIPOS_DE_FASE.CONTROL_DE_LECTURA, TIPOS_DE_FASE.REVISION_DE_PARES],
