@@ -49,11 +49,40 @@ Antes del checkpoint 1 corren dos **filtros deterministas locales** que no son G
 
 3. **Sugerencia de evaluación (foro escrito).** Es el mismo checkpoint 1, ampliado (`api/groq-sugerir-evaluacion.js`): además de la forma, **sugiere** si el aporte está completo, incompleto o sin razón y señala posibles falacias (solo con confianza ≥ 0,6 y citando un fragmento que esté en el texto). La ve quien escribe, para mejorar, y quienes moderan, para decidir; los compañeros no. Cada aporte se consulta como máximo 2 veces.
 
+4. **Sugerencia de calificación (control de lectura).** `api/groq-sugerir-calificacion.js`: nivel sugerido por criterio de la rúbrica, comentarios y partes de la estructura detectadas. Solo la ve el docente, anónima; solo el host puede pedirla (exige el token de su sesión). Ver `14-control-de-lectura.md`.
+
+### Groq nunca condiciona el trabajo
+
+Groq ayuda, pero **ningún uso suyo puede impedir que la actividad siga**. Si falla (límite de cuota 429, error 5xx, sin clave, sin red, respuesta ilegible), el flujo continúa y se avisa:
+
+| Uso | Qué pasa si Groq no responde |
+|---|---|
+| Validación de forma y postura (ingreso, preparar argumento, contraargumento de oyentes) | El argumento **pasa** y se muestra «Tu argumento no fue pre-revisado por límites de la IA. Puedes continuar; el moderador lo verá igual.». Con la postura ya elegida (libre, aleatoria) se conserva; con asignación «por argumento» no se adivina: la persona **elige la postura** que corresponde con botones. Código: `src/shared/argumentos/validarArgumentoConGroq.js` y `decidirValidacion.js` (`sinRevisarPorIA`, decisión `elegir_postura_a_mano`). |
+| Sugerencia de evaluación (foro) | El aporte se publica igual y a quien escribe se le avisa que no fue pre-revisado. |
+| Sugerencia de calificación (control de lectura) | El docente califica a mano; la entrega muestra «No se pudo obtener la sugerencia» y «Reintentar». |
+| Sugerencia de conexiones por fase | No hay sugerencias esa ronda; el cierre de fase sigue. |
+
+Lo que **sí** se mantiene aunque Groq falle son los filtros deterministas locales (texto demasiado corto, conector sin razón, argumento repetido): no usan IA. La función serverless reintenta antes de rendirse (3 intentos); recién entonces el cliente aplica el aviso. Un uso nuevo de Groq debe seguir esta regla (ver `CLAUDE.md` y `12-guia-para-agentes.md`, regla 9c).
+
 Groq nunca asigna puntaje directamente ni decide de forma final sin que un humano (el propio estudiante o el co-moderador) confirme. En el foro la IA ni siquiera puntúa de forma provisional: quien decide si un aporte cuenta son los co-moderadores y el moderador.
 
 ## Canales de Ably y quién puede leerlos
 
-Los tokens (`api/ably-token.js`) solo operan en dos tipos de canal: `debate:sala:{código}` (el de la sesión: lo leen y escriben todos) y `debate:integridad:{código}` (las señales de integridad: los participantes solo pueden **publicar**; únicamente el host puede suscribirse y pedir el historial). Así una marca de «texto pegado» no la puede leer un compañero con las herramientas del navegador. Como el participante no puede enganchar ese canal, publica por REST.
+Los tokens (`api/ably-token.js`) solo operan en los canales del debate:
+
+| Canal | Participantes | Host |
+|---|---|---|
+| `debate:sala:{código}` (la sesión) | publicar, leer, presencia, historial | igual |
+| `debate:integridad:{código}` (señales de integridad) | solo **publicar** | publicar, leer, historial |
+| `debate:entrega:{código}` (textos del control de lectura) | solo **publicar** | publicar, leer, historial |
+| `debate:docente:{código}` (calificaciones y sugerencias) | nada | publicar, leer, historial |
+| `debate:devolucion:{clientId}:{código}` (devolución de UNA persona) | solo esa persona lee | publica |
+
+Así una marca de «texto pegado», el texto de una entrega o una nota no los puede leer un compañero con las herramientas del navegador. Como el participante no puede enganchar los canales de solo publicación, publica por REST. Todo lo que viaja por el canal de la sala lo puede leer cualquiera: ahí solo van estados y contadores.
+
+### Identidad del participante: no se puede suplantar
+
+El `clientId` de un participante **no es el identificador que se copia de la presencia**: se deriva de un secreto que solo conoce su dueño, `clientId = «p-» + SHA-256(secreto)[0..32]` (`src/shared/ably/identidadDelParticipante.js`). El navegador genera el secreto al ingresar, lo guarda con la identidad recordada y lo manda en la cabecera `x-secreto-del-participante` al pedir el token; `/api/ably-token` recalcula el hash y compara, sin base de datos (`api/_identidadDelParticipante.js`). Si no coincide, responde 401 («Esta identidad no es tuya: vuelve a ingresar a la sala»). La identidad `host` sigue protegida por su sesión firmada. Efecto práctico: las identidades guardadas **antes** de este cambio dejan de servir y la persona tiene que ingresar de nuevo; conviene desplegarlo entre clases.
 
 ## Zoom del navegador
 
@@ -65,7 +94,8 @@ La consola del host es la **única** que corre el motor de turnos. «Proyectar e
 
 ## Control de costos (cuotas gratuitas de Ably y Groq)
 
-- Groq solo se llama en: (a) revisiones de un argumento — máximo 2 intentos automáticos por argumento, al tercer fallo escala a un co-moderador humano —, y (b) el disparo manual de sugerencia de conexiones, una vez por ronda. Los reintentos internos de la función serverless ante un fallo transitorio no cuentan como intentos del estudiante.
+- Groq solo se llama en: (a) revisiones de un argumento — máximo 2 intentos automáticos por argumento, al tercer fallo escala a un co-moderador humano —, (b) el disparo manual de sugerencia de conexiones, una vez por ronda, (c) cada aporte del foro (hasta 2 consultas) y (d) cada entrega del control de lectura (una llamada de ~2.000 tokens, en cola de 2 a la vez, apenas llega). Los reintentos internos de la función serverless ante un fallo transitorio no cuentan como intentos del estudiante.
+- **La cuota gratuita de Groq (peticiones y tokens por minuto) puede agotarse con una sala grande** (40 entregas ≈ 80.000 tokens; un foro con ~25 personas ≈ 200 llamadas en 20 minutos). Por diseño eso **no bloquea a nadie** (ver «Groq nunca condiciona el trabajo»): el texto pasa con aviso o el docente califica a mano. Lo que sí se pierde es la pre-revisión. La cuota con 40 personas **no se ha medido** (ver `06-pendientes.md`).
 - Groq **nunca** se llama en eventos de conexión libre (`link.created`) — esa conexión la valida el co-moderador manualmente, sin costo de API.
 - El límite de "1 conexión saliente por argumento propio" acota el volumen de mensajes de Ably de forma natural: el total de conexiones posibles nunca puede superar el total de argumentos existentes en la sesión.
 - El sistema de rondas con cupos decrecientes (ver `05-reglas-de-puntaje.md`) también acota el número máximo de intentos de validación Groq por estudiante por sesión — el costo es predecible desde el diseño del Programa, no depende de comportamiento errático de los usuarios.

@@ -1,6 +1,6 @@
 # Control de lectura (actividad `control_de_lectura`)
 
-> **Estado (4-oct-2026):** diseño aprobado por el docente y **hitos C1–C6 construidos y probados** (842 pruebas, build correcto). **Verificado con Ably real en local** (servidor `/api` local + navegador): los canales privados, la identidad inviolable y el flujo completo con 3 participantes (entrega, calificación a ciegas, penalización por pegado y su reversión, revisión entre pares, devolución, desacuerdo, podio). **Falta**: Groq real, celular físico y la verificación en producción (ver «Pendiente» y `docs/06-pendientes.md`). Este documento es la fuente de verdad de la decisión.
+> **Estado (4-oct-2026):** diseño aprobado por el docente y **hitos C1–C6 construidos y probados** (861 pruebas, build correcto). **Verificado en local con Ably y Groq reales** (servidor `/api` local + Chrome): los canales privados, la identidad inviolable, la sugerencia de Groq (en cola, anónima, sin que el estudiante la vea) y el flujo completo (entrega, calificación a ciegas, penalización por pegado y su reversión, revisión entre pares, devolución, desacuerdo, podio). **Falta**: la cuota de Groq con una sala de 40, el celular físico y la verificación en producción (ver «Pendiente» y `docs/06-pendientes.md`). Este documento es la fuente de verdad de la decisión.
 
 ## Qué es
 
@@ -75,6 +75,15 @@ No hay `posturas`: el Programa las trae vacías (`cargarPrograma` no las exige p
 
 La app **no restringe** lo que se escribe: solo cuenta palabras y párrafos y muestra la guía de la estructura. Que el texto la siga lo sugiere Groq y lo decide el docente. (Los nombres en inglés son los de la estructura cuando el ejercicio se hace en inglés; el resto de la interfaz sigue en español.)
 
+### Muestra pedagógica de la estructura
+
+Para que el docente la explique y la clase sepa qué se espera, la estructura elegida se **muestra con su definición y un ejemplo resuelto** (`src/shared/componentes/lectura/MuestraPedagogicaDeLaEstructura.jsx`, datos en `estructurasDeEscritura.js`: `queEs` y `ejemplo` de PEEL, SPRE, PREP y CER):
+- **Docente, al configurar** (`PantallaDeConfiguracionDeLectura`): «¿Qué es PEEL?» y, debajo, el ejemplo; cambia al elegir otra estructura.
+- **Docente, en la sala de espera** (`ResumenDeConfiguracionDeLectura`): la misma muestra con el título «para explicar a la clase», pensada para proyectarla antes de empezar.
+- **Estudiante, antes de entrar** (`IngresoAlControlDeLectura`): ve qué es la estructura, sus partes y el ejemplo.
+
+El ejemplo usa **otro tema** (no la consigna) para que sirva de forma sin dar la respuesta, y se adapta a la distribución: `compacta` (todo en un párrafo, una parte por oración) o `desarrollada` (una parte por párrafo). Con una estructura propia del Programa se muestran sus partes sin ejemplo; con `libre` solo hay una orientación («una idea clara, algo que la sostenga y un cierre»).
+
 ## Rúbrica y nota
 
 - 4 niveles por criterio: Excelente (3), Bueno (2), Aceptable (1), Insuficiente (0).
@@ -99,6 +108,7 @@ La app **no restringe** lo que se escribe: solo cuenta palabras y párrafos y mu
 - El estudiante **nunca** ve la sugerencia. El docente la ve anónima y decide: «Usar como punto de partida», «Aprobar tal cual» (si es completa) o, en lote, «Aprobar las N sugerencias claras» (con confirmación; la IA no aprueba nada sola).
 - **Qué entra al lote:** sugerencia completa, confianza ≥ 80 %, **nota sugerida ≥ 6** y **sin marcas de integridad**. Lo comprobó la prueba con Groq real: la «confianza» que informa el modelo mide qué tan seguro está, no qué tan bueno es el texto, y es inestable (el mismo texto flojo dio 20 %, 30 %, 80 % y 90 % en distintas corridas). Por eso una nota baja o una posible copia las mira el docente una por una, aunque Groq diga estar seguro.
 - Las llamadas salen **a medida que llegan las entregas**, en cola con 2 a la vez; un fallo se reintenta una vez tras 15 s y queda para «Reintentar». Con 40+ estudiantes son unas 40 llamadas de ~2.000 tokens (~80.000 en total), sin ráfaga al cerrar. La sugerencia queda en el canal privado del docente: un refresco no repite llamadas.
+- **Si Groq falla o no hay cuota, no se bloquea nada:** la entrega queda «sin sugerencia» con el aviso «No se pudo obtener la sugerencia. Puedes calificar a mano» y un «Reintentar». El docente califica a mano y el podio y el informe salen igual (regla 9c de `12-guia-para-agentes.md`).
 - Esto **no cambia** «Groq no es juez autoritativo»: es una sugerencia que el docente aprueba o corrige. Se actualizó la línea correspondiente de `CLAUDE.md`.
 
 ## Integridad (activada por defecto, solo advertencia)
@@ -168,8 +178,8 @@ Servidor `/api` local con la clave de Ably y un navegador real con 1 host y 3 pa
 
 ## Pendiente
 
-- **Groq real, verificado en local (4-oct-2026):** el modelo distingue un texto bueno (todo «excelente», 4 de 4 partes de PEEL detectadas), uno flojo (todo «insuficiente») y uno fuera de tema; los comentarios por criterio son útiles y se dirigen a la persona; responde en ~1 s por entrega. Falta ver la **cuota con una sala de 40** y repetirlo en producción.
+- **Groq real, verificado en local (4-oct-2026):** el modelo distingue un texto bueno (todo «excelente», 4 de 4 partes de PEEL detectadas), uno flojo (todo «insuficiente») y uno fuera de tema; los comentarios por criterio son útiles y se dirigen a la persona; responde en ~1 s por entrega. La «confianza» resultó inestable, por eso el lote exige además nota sugerida ≥ 6 y sin marcas. Falta ver la **cuota con una sala de 40** (con el plan gratuito algunas entregas podrían recibir 429: no bloquea, quedan para calificar a mano o «Reintentar») y repetirlo en producción.
 - **En producción:** repetir la prueba tras el despliegue (login del host, ingreso, canales privados).
 - **Celular físico:** escribir 2 párrafos (teclado, borrador, cuenta atrás) y revisar a 320 px.
-- No hay script E2E (`scripts/prueba-e2e/`) para esta actividad: se podría escribir cuando haya una sala de prueba; mientras tanto, usa el procedimiento de `docs/10-guia-prueba-manual-chrome.md`.
+- **Prueba automática:** `node scripts/prueba-e2e/lectura-vivo-local.mjs` recorre en Chrome, **en local**, la configuración, la sala de espera, 3 entregas, las sugerencias de Groq en cola y el lote (necesita `.env.local` con las claves, el servidor `/api` local y `vite`; ver el encabezado de `foro-vivo-local.mjs`). No hay todavía un script contra producción: usa el procedimiento de `docs/10-guia-prueba-manual-chrome.md`.
 - **Fuera de alcance de esta versión:** lectura grupal (otra actividad futura), «Revisión entre pares» de textos traídos de fuera (se compone con el módulo ya construido), segunda versión del texto.

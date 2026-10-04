@@ -70,9 +70,13 @@ lee ABLY_API_KEY desde entorno seguro de Vercel
      │
      ▼
 devuelve token temporal de Ably, con capacidad limitada a `debate:sala:*` (publish, subscribe,
-     presence, history) y `debate:integridad:*` (los participantes solo publish; el host también
-     subscribe e history) y `clientId` validado (^[A-Za-z0-9_-]{1,64}$);
-     la identidad `host` exige el token firmado de /api/host-login
+     presence, history), `debate:integridad:*` y `debate:entrega:*` (los participantes solo publish;
+     el host también subscribe e history), `debate:docente:*` (solo host) y
+     `debate:devolucion:{su clientId}:*` (cada participante solo lee la suya) y `clientId` validado
+     (^[A-Za-z0-9_-]{1,64}$);
+     la identidad `host` exige el token firmado de /api/host-login;
+     la de un participante exige el secreto del que se deriva su id (cabecera
+     `x-secreto-del-participante`, `clientId = «p-» + SHA-256(secreto)[0..32]`): sin él, 401
      │
      ▼
 Cliente se conecta a Ably con ese token

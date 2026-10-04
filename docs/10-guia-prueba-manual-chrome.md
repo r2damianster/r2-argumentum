@@ -381,3 +381,13 @@ Lo que no se puede probar en local: que los **canales privados** funcionen con A
 9. **Cierre:** «Cerrar y calcular el podio»: los participantes ven el podio **sin notas** y quien revisó ve «Cómo te fue como revisor» (sin niveles ni notas ajenas). El host baja el JSON, el CSV (con la columna de descuento), el anexo de integridad y el resumen en PDF.
 10. **Proyección:** «Proyectar aquí»: consigna, cuenta atrás y contadores, sin nombres ni textos ni notas.
 11. **Móvil:** escribir y revisar a 320 px, sin scroll horizontal y con botones ≥ 44 px.
+
+## Pruebas en vivo en local (Ably y Groq reales, sin producción)
+
+Para ver el foro y el control de lectura de punta a punta **antes de desplegar**, sin tocar producción:
+
+1. `.env.local` (ignorado por git) con `ABLY_API_KEY`, `GROQ_API_KEY`, `HOST_USER` y `HOST_PASSWORD` (valores solo locales).
+2. Un servidor `/api` local en el puerto 3001 que ejecute las funciones de `api/` y `vite` en el 5173 con proxy de `/api` (ver el encabezado de `scripts/prueba-e2e/foro-vivo-local.mjs`).
+3. `node scripts/prueba-e2e/foro-vivo-local.mjs` (1 host + 6 participantes) y `node scripts/prueba-e2e/lectura-vivo-local.mjs` (1 host + 3). Usan `playwright-core` con el Chrome instalado, sin ventana.
+
+Cada script imprime `OK` / `FALLO` por comprobación y termina con `TODO OK`. **Probar «Groq caído»:** apunta `GROQ_API_KEY` a un valor inválido (o agota la cuota) y repite el ingreso: el argumento debe pasar con «no fue pre-revisado por límites de la IA», y con asignación «por argumento» deben aparecer los botones para elegir la postura.

@@ -4,7 +4,7 @@ Argumentum es una plataforma de debate en tiempo real para el aula (ULEAM). Se u
 
 Guía completa, con el catálogo de errores ya cometidos y cómo probar: **[`docs/12-guia-para-agentes.md`](docs/12-guia-para-agentes.md)**. Decisiones de arquitectura (no se reabren): **[`CLAUDE.md`](CLAUDE.md)**.
 
-## Las 10 reglas en una línea
+## Las reglas en una línea
 
 1. **Acciones del turno siempre visibles:** «Aceptar / Rechazar», «Ya lo expuse», «Terminé de hablar» van en `barra-de-accion-fija` con `boton-accion-principal` / `boton-accion-rechazo`. Nunca sin clase ni con `boton-cambiar-programa`.
 2. **Móvil de 320 px:** sin scroll horizontal, controles ≥ 44 px, botoneras con `flex-wrap`.
@@ -16,6 +16,7 @@ Guía completa, con el catálogo de errores ya cometidos y cómo probar: **[`doc
 8. **Español neutro, sin voseo, sin i18n, sin reconocimiento de voz.**
 9. **No reabras decisiones de arquitectura** (sin BD, `BroadcastChannel` para proyección, Groq no es juez, puntaje con fórmula única). Lo reutilizable va como función pura en `src/shared/nucleo/` y lo propio de cada actividad en `src/actividades/` (ver `docs/13-foro-escrito-y-nucleo-reutilizable.md` y `docs/14-control-de-lectura.md`).
 10. **No commitees ni empujes por iniciativa propia.**
+11. **Groq nunca condiciona el trabajo:** si falla (cuota, 5xx, sin red), el texto pasa con el aviso «no fue pre-revisado por límites de la IA». Usa `validarArgumentoConGroq` (`src/shared/argumentos/`), que no lanza; nunca rechaces a una persona porque Groq no respondió (`docs/12`, regla 9c).
 
 **Créditos y podio final:** los datos de autoría salen solo de `src/shared/creditos.js` y se muestran únicamente al ingresar y en el podio final (nunca durante el debate); el podio del participante solo aparece con el debate cerrado y se puede saltar.
 
@@ -31,4 +32,6 @@ npm run verificar           # pruebas + build (lo que exige el hook pre-push y G
 npm run instalar-hooks      # activa el hook pre-push (una vez por clon)
 python scripts/prueba-e2e/moviles.py     # 8 modelos de móvil emulados
 python scripts/prueba-e2e/e2e_flujo.py   # flujo central contra producción
+node scripts/prueba-e2e/foro-vivo-local.mjs      # foro, EN LOCAL con Ably y Groq reales (ver su encabezado)
+node scripts/prueba-e2e/lectura-vivo-local.mjs   # control de lectura, EN LOCAL con Ably y Groq reales
 ```

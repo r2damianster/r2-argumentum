@@ -64,6 +64,14 @@ La «apertura simultánea» (temporizador con semáforo y selector de tiempo) se
 ### Regla 9 — Las decisiones de arquitectura no se reabren
 Sin base de datos para el estado en vivo (Ably). La proyección usa `BroadcastChannel`, no otro cliente de Ably. Groq **nunca** es juez: solo valida la forma al escribir y sugiere conexiones en lote cuando el moderador lo pide. Un solo esquema de puntaje. Detalle y motivos en `CLAUDE.md`.
 
+### Regla 9c — Groq nunca condiciona el trabajo (4-oct-2026)
+Si Groq falla (cuota 429, 5xx, sin clave, sin red, JSON ilegible), **la actividad sigue**: el texto pasa y se avisa «no fue pre-revisado por límites de la IA»; nunca «el validador no respondió, inténtalo de nuevo». Por eso:
+- Un cliente que llame a Groq para validar usa `validarArgumentoConGroq` (`src/shared/argumentos/`), que **nunca lanza** y devuelve una respuesta «aprobada sin revisión» (`sinRevisarPorIA`). No escribas un `fetch` suelto a `/api/groq-*` con un `catch` que rechace al estudiante.
+- Si Groq era quien clasificaba algo que la persona no eligió (la postura con asignación «por argumento»), **no se adivina**: se le pide que elija (`DECISIONES.ELEGIR_POSTURA_A_MANO`).
+- Una sugerencia de Groq (foro, calificación) es opcional: sin ella se publica o se califica a mano.
+- La «confianza» que informa el modelo **no es una medida de calidad** y es inestable (un mismo texto flojo dio 20 %, 30 %, 80 % y 90 %): nunca la uses sola para aprobar algo. El lote del docente exige además nota sugerida ≥ 6 y ninguna marca de integridad.
+- Cualquier uso nuevo de Groq se prueba también **con Groq caído** (`validarArgumentoConGroq.test.js` es el modelo).
+
 ### Regla 9a — Actividades y núcleo (octubre de 2026)
 - Lo que sirve para más de una actividad vive en `src/shared/nucleo/` como **función pura**, sin importar nada de una actividad concreta. Lo propio de una actividad vive en `src/actividades/<actividad>/` y se declara con `definirActividad`.
 - El motor base (`src/host/motorDeSesion.js`) no debe conocer ninguna actividad por su nombre: llama a los procesos que la actividad aporta. Si necesitas un `if (actividad === ...)` en el motor, falta un gancho en el contrato.
@@ -100,6 +108,10 @@ El hook global `auto-commit` de Claude Code ignora este repositorio (existe `.no
 | 25-sep | Podio final: al llevarlo a la pantalla, la **capa instruccional fija** tapaba su primera línea y el botón «Saltar la animación» no recibía el toque | `scrollIntoView` sin contar con elementos `sticky`/`fixed`; la comprobación «está en pantalla» (`y ≥ 0`) no detectaba el solapamiento | `moviles.py` (Playwright: «intercepts pointer events») | Con el debate cerrado la capa va sin fijar; las pruebas verifican con `elementFromPoint` que el botón recibe el toque |
 | 4-oct | La protección contra eventos falsificados **no funcionaba**: `useEstadoDeSesion` llamaba al reducer sin el `clientId` real del emisor | Se escribió la comprobación en el reducer sin verificar que el hook le entregara el dato | Revisión del hook al preparar el canal privado | El hook pasa el `clientId`; las pruebas del reducer cubren «publicado a nombre de otra persona» |
 | 4-oct | Los scripts de `prueba-e2e/` dejaron de encontrar la pantalla de Programas | Se agregó el paso «¿Qué actividad vas a hacer?» antes de la lista | Revisión de los scripts al terminar el hito del selector | Los scripts eligen «Debate hablado» primero |
+| 4-oct | Cualquiera podía obtener el token de **otra persona** con solo copiar su `clientId` de la presencia (y leer su devolución) | El id era público y el token se daba a quien lo pidiera | Revisión de la privacidad de los canales del control de lectura | El `clientId` se deriva de un secreto; `/api/ably-token` lo comprueba (401); pruebas con Ably real |
+| 4-oct | Con cuota agotada o error de Groq, el estudiante **no podía ingresar ni publicar** («El validador no respondió») en 3 formularios | El fallo de Groq se trataba como rechazo del argumento | Pregunta del docente sobre la cuota con 40 personas | Regla 9c; `validarArgumentoConGroq`; con asignación «por argumento» la persona elige su postura |
+| 4-oct | El lote «aprobar las sugerencias de confianza alta» habría aprobado notas muy bajas | Se usó la «confianza» del modelo como señal de calidad; en la prueba con Groq real era inestable (20–90 % para el mismo texto) | Prueba en vivo con Groq real | El lote exige además nota sugerida ≥ 6 y sin marcas de integridad; pruebas nuevas |
+| 4-oct | El descuento por pegado no contaba lo **arrastrado** como pegado | Se medía solo el evento `paste` | Revisión de la regla del mínimo de caracteres pegados | `arrastradoCaracteres` entra en el mínimo; pruebas |
 | 24-sep | Falso «zoom 30 %» en un navegador automatizado (tapaba botones) | `viewport` fijo en una ventana con otro tamaño | Capturas del e2e | El script usa `no_viewport` |
 
 ## 4. Cómo probar
@@ -115,6 +127,8 @@ El hook global `auto-commit` de Claude Code ignora este repositorio (existe `.no
 | Volver a configuración | `volver_config.py` | |
 | Móviles | `python scripts/prueba-e2e/moviles.py` | 8 modelos, táctil, teclado, horizontal |
 | Foro escrito | `python scripts/prueba-e2e/foro.py` | actividad, moderación, integridad, IA, revisión, cierre e informe (sin ejecutar aún en producción) |
+| Foro escrito **en local**, Ably y Groq reales | `node scripts/prueba-e2e/foro-vivo-local.mjs` | 1 host + 6 participantes en Chrome: co-moderador, posts con la sugerencia de Groq, réplica, reacción, pegado con aviso, canal privado de integridad, informe |
+| Control de lectura **en local**, Ably y Groq reales | `node scripts/prueba-e2e/lectura-vivo-local.mjs` | 1 host + 3 participantes: muestra pedagógica, entrega, sugerencias de Groq en cola (anónimas, el estudiante no las ve), lote que solo ofrece lo claro |
 
 Los scripts manejan **producción** (Ably y Groq solo existen en Vercel) y consumen unas pocas llamadas reales. El login del host lo escribe el docente (o `login_host.py` con la clave que él entregue); ver `scripts/prueba-e2e/README.md`.
 
@@ -140,7 +154,9 @@ Los scripts manejan **producción** (Ably y Groq solo existen en Vercel) y consu
 | `src/player/` | Pantallas del participante (celular) |
 | `src/host/` | Consola del moderador |
 | `src/shared/estilos/base.css`, `sesion.css` | Estilos; los botones de acción del turno están en `base.css` |
-| `api/` | Funciones de Vercel: token de Ably, login del host, Groq |
+| `api/` | Funciones de Vercel: token de Ably (con la comprobación de identidad), login del host, Groq (validar argumento, sugerir conexiones, sugerir evaluación del foro, sugerir calificación de la lectura) |
+| `src/shared/argumentos/validarArgumentoConGroq.js` | Cliente de la validación de Groq que **nunca bloquea** (regla 9c) |
+| `src/shared/ably/identidadDelParticipante.js` | Genera y guarda el secreto del que se deriva el `clientId` del participante |
 | `scripts/prueba-e2e/` | Pruebas en navegador contra producción |
 | `src/guardias/guardias.test.js` | Guardias de este documento |
 
