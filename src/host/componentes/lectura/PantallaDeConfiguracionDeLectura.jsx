@@ -21,6 +21,8 @@ import {
   resolverVentanaDeConfirmacionMin,
 } from '../../../actividades/controlDeLectura/programaDeLectura.js';
 import { SelectorDeIntegridad } from '../SelectorDeIntegridad.jsx';
+import { SelectorDeModoDeAhorro } from '../SelectorDeModoDeAhorro.jsx';
+import { normalizarModoDeAhorro } from '../../../shared/nucleo/capacidad/modosDeAhorro.js';
 import { MuestraPedagogicaDeLaEstructura } from '../../../shared/componentes/lectura/MuestraPedagogicaDeLaEstructura.jsx';
 
 const ID_DE_LA_ESTRUCTURA_PROPIA = 'propia';
@@ -44,6 +46,7 @@ export function PantallaDeConfiguracionDeLectura({ programaBase, onConfirmarConf
   const [distribucion, setDistribucion] = useState(() => resolverDistribucion(programaBase));
   const [ventanaDeConfirmacionMin, setVentanaDeConfirmacionMin] = useState(() => resolverVentanaDeConfirmacionMin(programaBase));
   const [integridad, setIntegridad] = useState(() => normalizarIntegridad(programaNormalizado.integridad));
+  const [modoDeAhorro, setModoDeAhorro] = useState(() => normalizarModoDeAhorro(programaNormalizado.modoDeAhorro));
   const [penalizacion, setPenalizacion] = useState(() => normalizarPenalizacionPorPegado(programaBase.penalizacionPorPegado));
   const [umbrales, setUmbrales] = useState(() => resolverUmbralesDeSimilitud(programaBase));
   const [revisionDePares, setRevisionDePares] = useState(() => normalizarRevisionDePares(programaBase.revisionDePares));
@@ -73,6 +76,7 @@ export function PantallaDeConfiguracionDeLectura({ programaBase, onConfirmarConf
         estructura: estructuraPedida,
         distribucion,
         integridad,
+        modoDeAhorro,
         penalizacionPorPegado: { activa: penalizacion.activa, descuentoMaximo: Number(penalizacion.descuentoMaximo) },
         umbralesDeSimilitud: {
           atencion: Number(umbrales.atencion),
@@ -226,6 +230,8 @@ export function PantallaDeConfiguracionDeLectura({ programaBase, onConfirmarConf
       </div>
 
       <SelectorDeIntegridad integridad={integridad} onCambiarIntegridad={setIntegridad} />
+
+      <SelectorDeModoDeAhorro modoDeAhorro={modoDeAhorro} onCambiarModoDeAhorro={setModoDeAhorro} />
 
       {integridadEstaActiva({ integridad }) && (
         <div className="bloque-de-configuracion">

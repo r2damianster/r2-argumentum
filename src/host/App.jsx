@@ -609,7 +609,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
             <BotonCopiarLink url={urlDeIngreso} />
           </div>
 
-          <AvisoDeSalaGrande presencia={presencia} />
+          <AvisoDeSalaGrande presencia={presencia} programa={programaVisible} />
 
           {esLectura ? (
             <ResumenDeConfiguracionDeLectura

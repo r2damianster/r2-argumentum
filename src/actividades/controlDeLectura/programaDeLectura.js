@@ -5,6 +5,7 @@
 
 import { TIPOS_DE_FASE } from '../../shared/eventos/nombresDeEventos.js';
 import { NIVELES_DE_INTEGRIDAD, normalizarIntegridad } from '../../shared/nucleo/integridad/nivelesDeIntegridad.js';
+import { normalizarModoDeAhorro } from '../../shared/nucleo/capacidad/modosDeAhorro.js';
 import { resolverRubricaDelPrograma } from '../../shared/nucleo/rubrica/rubrica.js';
 import { resolverUmbralesDeSimilitud } from '../../shared/nucleo/integridad/similitudDeTextos.js';
 import { normalizarPenalizacionPorPegado } from '../../shared/nucleo/integridad/penalizacionPorPegado.js';
@@ -117,6 +118,7 @@ export function normalizarProgramaDeLectura(programa) {
     posturas: [],
     moderacion: { modo: 'ninguno' },
     integridad: normalizarIntegridad(programa.integridad ?? { nivel: NIVELES_DE_INTEGRIDAD.ADVERTENCIAS }),
+    modoDeAhorro: normalizarModoDeAhorro(programa.modoDeAhorro),
     ventanaDeConfirmacionMin: resolverVentanaDeConfirmacionMin(programa),
     revisionDePares: normalizarRevisionDePares(programa.revisionDePares),
   };
@@ -135,6 +137,7 @@ export function armarProgramaDeLaSesionDeLectura({
   penalizacionPorPegado,
   revisionDePares,
   ventanaDeConfirmacionMin,
+  modoDeAhorro,
 }) {
   const revisionNormalizada = normalizarRevisionDePares(revisionDePares ?? programaBase.revisionDePares);
   const baseNormalizada = normalizarProgramaDeLectura(programaBase);
@@ -146,6 +149,7 @@ export function armarProgramaDeLaSesionDeLectura({
     estructura: estructura ?? programaBase.estructura ?? 'libre',
     distribucion: distribucion ?? programaBase.distribucion ?? DISTRIBUCIONES_DE_ESTRUCTURA.COMPACTA,
     integridad: normalizarIntegridad(integridad ?? baseNormalizada.integridad),
+    modoDeAhorro: normalizarModoDeAhorro(modoDeAhorro ?? baseNormalizada.modoDeAhorro),
     // Descuento automático por texto pegado (reversible por el docente): activa y hasta cuántos puntos.
     penalizacionPorPegado: normalizarPenalizacionPorPegado(penalizacionPorPegado ?? programaBase.penalizacionPorPegado),
     // A partir de qué porcentaje de parecido se marca cada banda (atención, alto, probable copia).

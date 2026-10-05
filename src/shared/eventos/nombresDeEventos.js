@@ -105,6 +105,9 @@ export const EVENTOS = {
   LECTURA_PODIO_PUBLICADO: 'lectura.podio_publicado',
 
   SESION_CERRADA: 'session.closed',
+  // El host fija al iniciar el modo de ahorro cuando el Programa lo dejó en «automático» (según cuántas personas hay):
+  // así host y estudiantes aplican el mismo y no cambia a mitad de la sesión. Ver nucleo/capacidad/modosDeAhorro.js.
+  MODO_DE_AHORRO_FIJADO: 'sesion.modo_de_ahorro_fijado',
 };
 
 // Cómo se califica la exposición oral de un argumento ya publicado. "sin_exposicion" es la

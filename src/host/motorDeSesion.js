@@ -15,6 +15,7 @@ import {
   validarDesignacionManual,
 } from '../shared/nucleo/coModeracion/calcularCoModeradores.js';
 import { resolverActividadDelPrograma } from '../actividades/registroDeActividades.js';
+import { MODOS_DE_AHORRO, recomendarModoDeAhorro } from '../shared/nucleo/capacidad/modosDeAhorro.js';
 
 function generarId(prefijo) {
   return `${prefijo}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -280,6 +281,15 @@ export function crearMotorDeSesion({ programa }) {
     // postura ya elegida sin avisar — el argumento de ingreso quedaba con un stanceId y el
     // participante con otro distinto, y el ranking/informe los mostraban en columnas
     // contradictorias. Bug real reportado en prueba en vivo.
+
+    // Modo de ahorro «automático»: se fija ahora según cuántas personas hay, antes de la primera fase, para que host y
+    // estudiantes apliquen el mismo durante toda la sesión (ver nucleo/capacidad/modosDeAhorro.js).
+    if (programaVigente.modoDeAhorro === MODOS_DE_AHORRO.AUTOMATICO && !estado?.sesion?.modoDeAhorro) {
+      publicar(EVENTOS.MODO_DE_AHORRO_FIJADO, {
+        modo: recomendarModoDeAhorro(participantesElegibles.length),
+        totalParticipantes: participantesElegibles.length,
+      });
+    }
 
     const primeraFase = programa.fases[0];
     publicar(EVENTOS.FASE_INICIADA, datosDeInicioDeFase(primeraFase));

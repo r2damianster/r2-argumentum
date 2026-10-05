@@ -38,6 +38,7 @@ import { construirIntegridadPorEntrega, hayAlgoQueRevisar } from '../../../share
 import { integridadEstaActiva } from '../../../shared/nucleo/integridad/nivelesDeIntegridad.js';
 import { construirAnexoDeIntegridadDeLectura } from '../../../actividades/controlDeLectura/informeDeLectura.js';
 import { useSugerenciasDeCalificacion } from '../../useSugerenciasDeCalificacion.js';
+import { perfilDeAhorro } from '../../../shared/nucleo/capacidad/modosDeAhorro.js';
 import { useAsignacionDePares } from '../../useAsignacionDePares.js';
 
 const ETIQUETA_DEL_ESTADO = {
@@ -107,6 +108,7 @@ export function PanelDelControlDeLecturaParaElDocente({
     programa: { ...programaVigente, clavesDeLaLectura: programa.clavesDeLaLectura },
     rubrica,
     publicarComoDocente,
+    razonamiento: perfilDeAhorro({ programa: programaVigente, estado }).razonamientoDeGroq === 'bajo' ? 'bajo' : 'normal',
   });
 
   // Revisión entre pares: el reparto se hace solo al empezar esa fase (docs/14-control-de-lectura.md).

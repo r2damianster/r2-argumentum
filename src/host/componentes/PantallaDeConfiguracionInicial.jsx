@@ -8,6 +8,10 @@ import {
 } from '../../shared/nucleo/coModeracion/calcularCoModeradores.js';
 import { SelectorDeModeracion } from './SelectorDeModeracion.jsx';
 import { SelectorDeIntegridad } from './SelectorDeIntegridad.jsx';
+import { SelectorDeModoDeAhorro } from './SelectorDeModoDeAhorro.jsx';
+import { normalizarModoDeAhorro } from '../../shared/nucleo/capacidad/modosDeAhorro.js';
+import { ID_FORO_ESCRITO } from '../../actividades/foroEscrito/definicion.js';
+import { resolverActividadDelPrograma } from '../../actividades/registroDeActividades.js';
 import { normalizarIntegridad } from '../../shared/nucleo/integridad/nivelesDeIntegridad.js';
 
 export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfiguracion, onCambiarPrograma }) {
@@ -25,6 +29,9 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
   );
   const [moderacion, setModeracion] = useState(() => normalizarModeracion(programaBase.moderacion));
   const [integridad, setIntegridad] = useState(() => normalizarIntegridad(programaBase.integridad));
+  // El modo de ahorro solo importa donde muchas personas escriben a la vez (foro); el debate hablado no lo usa.
+  const esForo = resolverActividadDelPrograma(programaBase).id === ID_FORO_ESCRITO;
+  const [modoDeAhorro, setModoDeAhorro] = useState(() => normalizarModoDeAhorro(programaBase.modoDeAhorro));
 
   function alternarPostura(posturaId) {
     setPosturasSeleccionadas((actuales) => {
@@ -49,6 +56,7 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
       asignacionPostura,
       moderacion,
       integridad,
+      modoDeAhorro: esForo ? modoDeAhorro : undefined,
     });
 
     if (!programaConfigurado) {
@@ -195,6 +203,7 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
 
       <SelectorDeModeracion moderacion={moderacion} onCambiarModeracion={setModeracion} />
       <SelectorDeIntegridad integridad={integridad} onCambiarIntegridad={setIntegridad} />
+      {esForo && <SelectorDeModoDeAhorro modoDeAhorro={modoDeAhorro} onCambiarModoDeAhorro={setModoDeAhorro} />}
 
       <div className="bloque-de-configuracion">
         <label className="casilla-de-falta">

@@ -40,6 +40,20 @@ escribiendo → entregada → [revisión de pares] → docente califica (a ciega
 | Se entra tarde | Puede entregar mientras la escritura siga abierta. Quien llega después de armarse el reparto de pares solo lo califica el docente. |
 | Menos de 3 entregas con revisión de pares | No hay reparto; el panel lo avisa y el docente cierra la fase. |
 
+## Salas grandes: modo de ahorro
+
+El selector «Modo de ahorro» está en la configuración previa. **Automático** (por defecto): al iniciar, el host cuenta cuántas personas hay y fija el modo (50 o más → sala grande; menos → sala pequeña); queda registrado en el evento `sesion.modo_de_ahorro_fijado` y no cambia durante la sesión. Se puede forzar uno a mano. En la sala de espera el docente ve qué modo regiría con los conectados de ahora y, si eligió uno que no corresponde al tamaño de la sala, un aviso para cambiarlo.
+
+| | Sala pequeña | Sala grande (moderado) |
+|---|---|---|
+| Aviso de cada entrega a la sala | Lo publica cada estudiante al instante | Lo anuncia el host en lote cada ≤ 5 s (`lectura.entregas_registradas`) |
+| Groq (sugerencia de calificación) | Esfuerzo de razonamiento normal | `reasoning_effort: low` (~50 % menos tokens, medido) |
+| Envío de borradores al vencer el tiempo | Escalonado según la sala (casi nulo si es chica) | Igual |
+| Reintento de publicaciones rechazadas por tasa | Sí | Sí |
+| Cola de Groq se pausa ante un 429 | Sí | Sí |
+
+Todo lo demás es igual. Los modos «Ahorro» y «Masivo» no existen todavía (ver `06-pendientes.md`).
+
 ## Anonimato del docente
 
 El docente ve «Entrega K7F2», un **código derivado de un hash** de quien la escribió (no el orden de llegada: «Entrega 03» delataría a quien entregó tercero). El código no cambia mientras llegan otras entregas. Las pendientes van primero. **La identidad se revela solo al aprobar** la calificación. A Groq tampoco se le envían nombres. En «Quiénes todavía no entregan» solo aparecen quienes faltan, para no romper el anonimato de quien ya entregó.
@@ -58,6 +72,7 @@ El docente ve «Entrega K7F2», un **código derivado de un hash** de quien la e
 | `textoDeReferencia` | Opcional. **Solo host**: sirve para detectar copia literal de la lectura. No se envía a Groq. |
 | `revisionDePares` | `{ activa, revisionesPorPersona: 2, duracionMin: 10 }` |
 | `ventanaDeConfirmacionMin` | 10 por defecto |
+| `modoDeAhorro` | `automatico` (por defecto), `pequena` o `moderada`: cómo se cuidan los mensajes de Ably y los tokens de Groq según el tamaño de la sala (ver «Salas grandes» abajo y `nucleo/capacidad/modosDeAhorro.js`) |
 | `umbralesDeSimilitud` | `{ atencion: 20, alto: 40, probableCopia: 60 }` |
 | `integridad` | `{ nivel }`; **con advertencias por defecto** en esta actividad |
 

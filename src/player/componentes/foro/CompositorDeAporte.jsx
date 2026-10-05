@@ -5,6 +5,7 @@ import { MINIMO_DE_PALABRAS_DE_UN_APORTE, contarPalabras } from '../../../shared
 import { nombreDeParticipante } from '../../../shared/estado/seleccionesDerivadas.js';
 import { solicitarSugerenciaDeEvaluacion } from '../../../shared/nucleo/sugerenciaDeIA/solicitarSugerencia.js';
 import { AVISO_SIN_REVISION_DE_IA } from '../../../shared/argumentos/validarArgumentoConGroq.js';
+import { perfilDeAhorro } from '../../../shared/nucleo/capacidad/modosDeAhorro.js';
 import { SugerenciaDeIA } from '../../../shared/componentes/foro/SugerenciaDeIA.jsx';
 import { AdvertenciaDeIntegridad, AvisoDeIntegridad } from '../../../shared/componentes/foro/AdvertenciaDeIntegridad.jsx';
 import { useControlDeIntegridad } from '../../../shared/nucleo/integridad/useControlDeIntegridad.js';
@@ -206,7 +207,10 @@ export function CompositorDeAporte({
       return;
     }
     // Sin IA, o con las consultas agotadas, se publica directo.
-    const esReplicaCorta = Boolean(objetivo) && contarPalabras(texto) < PALABRAS_MINIMAS_DE_UNA_REPLICA_PARA_CONSULTAR_A_LA_IA;
+    // Solo en el modo de sala grande: en sala pequeña la cuota alcanza y toda réplica puede recibir sugerencia.
+    const omiteLasReplicasCortas = !perfilDeAhorro({ programa: estado.programa ?? programa, estado }).consultarReplicasCortasALaIA;
+    const esReplicaCorta =
+      omiteLasReplicasCortas && Boolean(objetivo) && contarPalabras(texto) < PALABRAS_MINIMAS_DE_UNA_REPLICA_PARA_CONSULTAR_A_LA_IA;
     if (!usaLaIA || consultasHechas >= MAXIMO_DE_CONSULTAS_A_LA_IA || esReplicaCorta) {
       enviar(sugerenciaAplicable);
       return;

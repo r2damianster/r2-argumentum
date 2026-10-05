@@ -9,6 +9,7 @@
 
 import { normalizarModeracion } from '../shared/nucleo/coModeracion/calcularCoModeradores.js';
 import { normalizarIntegridad } from '../shared/nucleo/integridad/nivelesDeIntegridad.js';
+import { normalizarModoDeAhorro } from '../shared/nucleo/capacidad/modosDeAhorro.js';
 
 const MINIMO_DE_POSTURAS = 2;
 
@@ -22,6 +23,7 @@ export function armarProgramaDeLaSesion({
   asignacionPostura,
   moderacion,
   integridad,
+  modoDeAhorro,
 }) {
   const posturasElegidas = posturasDelPrograma.filter((postura) => idsDePosturasSeleccionadas.has(postura.id));
   if (posturasElegidas.length < MINIMO_DE_POSTURAS) {
@@ -38,6 +40,8 @@ export function armarProgramaDeLaSesion({
     moderacion: normalizarModeracion(moderacion ?? programaBase.moderacion),
     // Apagada por defecto: sin elegir nada no se registra ninguna señal de integridad.
     integridad: normalizarIntegridad(integridad ?? programaBase.integridad),
+    // Solo las actividades donde importa (foro) lo piden; el debate hablado no lo trae y rige el comportamiento de siempre.
+    ...(modoDeAhorro === undefined ? {} : { modoDeAhorro: normalizarModoDeAhorro(modoDeAhorro) }),
     // Programas guardados antes de retirar la apertura simultánea pueden traer esa fase: se
     // descarta, porque ya no existe (el ingreso con argumento se confirma en la sala de espera).
     fases: programaBase.fases?.filter((fase) => fase.tipo !== 'apertura_simultanea'),

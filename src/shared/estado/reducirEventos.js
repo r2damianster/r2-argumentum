@@ -16,6 +16,7 @@ import {
 import { NIVELES_DE_REVISION_DE_APORTE } from '../puntaje/puntajeDeAportes.js';
 import { DECISIONES_DEL_MODERADOR_SOBRE_REVISION } from '../nucleo/revision/calcularPuntajeDeRevisores.js';
 import { aplicarEventoDeEntregas, estadoInicialDeEntregas } from '../nucleo/entregas/estadoPublicoDeEntregas.js';
+import { MODOS_CONCRETOS } from '../nucleo/capacidad/modosDeAhorro.js';
 
 const NIVELES_DE_REVISION_VALIDOS = Object.values(NIVELES_DE_REVISION_DE_APORTE);
 const IDENTIDAD_DEL_MODERADOR = 'host';
@@ -67,7 +68,7 @@ export function estadoInicial() {
     sugerencias: {},
     // `identificador` distingue esta sesión de otra que haya usado el mismo código de sala
     // (ver mensajesDeLaSesionVigente y la instantánea local).
-    sesion: { cerrada: false, cerradaEn: null, identificador: null },
+    sesion: { cerrada: false, cerradaEn: null, identificador: null, modoDeAhorro: null },
     // Acciones que el motor del host ya ejecutó, marcadas en el propio log de eventos. El
     // motor llevaba esa cuenta solo en memoria: si el host refrescaba la pestaña a mitad del
     // debate, arrancaba con la cuenta en blanco y volvía a puntuar cada argumento, a repartir
@@ -849,6 +850,13 @@ function aplicarEvento(estado, evento) {
         ...participante,
         puntajeTotal: data.nuevoTotal,
       }));
+
+    // Solo vale si lo publica el host y es un modo concreto; el primero que se fija es el que rige.
+    case EVENTOS.MODO_DE_AHORRO_FIJADO:
+      if ((evento.clientId !== undefined && evento.clientId !== 'host') || estado.sesion.modoDeAhorro || !MODOS_CONCRETOS.includes(data.modo)) {
+        return estado;
+      }
+      return { ...estado, sesion: { ...estado.sesion, modoDeAhorro: data.modo } };
 
     case EVENTOS.SESION_CERRADA:
       return { ...estado, sesion: { ...estado.sesion, cerrada: true, cerradaEn: data.timestamp } };

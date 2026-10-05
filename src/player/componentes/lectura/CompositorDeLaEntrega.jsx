@@ -9,6 +9,8 @@ import { CONTEXTOS_DE_REDACCION } from '../../../shared/nucleo/integridad/canalP
 import { AdvertenciaDeIntegridad, AvisoDeIntegridad } from '../../../shared/componentes/foro/AdvertenciaDeIntegridad.jsx';
 import { IndicadorDePegado } from '../../../shared/componentes/lectura/IndicadorDePegado.jsx';
 import { penalizacionPorPegadoEstaActiva } from '../../../shared/nucleo/integridad/penalizacionPorPegado.js';
+import { EVENTOS } from '../../../shared/eventos/nombresDeEventos.js';
+import { perfilDeAhorro } from '../../../shared/nucleo/capacidad/modosDeAhorro.js';
 
 // El borrador vive en el navegador de cada persona y por sesión: quien cierra la pestaña por error
 // recupera lo escrito. No viaja a ninguna parte hasta que se envía.
@@ -44,6 +46,7 @@ export function CompositorDeLaEntrega({
   participantId,
   escrituraAbierta,
   escrituraYaCerro,
+  publicar,
   publicarIntegridad,
   publicarEntregaPrivada,
 }) {
@@ -90,14 +93,15 @@ export function CompositorDeLaEntrega({
     setEnviando(true);
     setError('');
     try {
-      // El texto va solo por el canal privado; el aviso a la sala (con los conteos) lo publica el host en lote.
+      // El texto va siempre por el canal privado. El aviso a la sala (solo conteos) depende del modo de ahorro: en
+      // sala pequeña lo publica cada estudiante al instante; en sala grande lo anuncia el host en lote (ver
+      // entregasAgrupadas.js), porque N avisos sueltos son N × N mensajes.
       await publicarEntregaPrivada(EVENTOS_PRIVADOS.ENTREGA_TEXTO, { texto: textoFinal, enviadoPorTiempo: porTiempo });
-      setEntregaLocal({
-        participantId,
-        palabras: contarPalabras(textoFinal),
-        parrafos: contarParrafos(textoFinal),
-        enviadaPorTiempo: porTiempo,
-      });
+      const conteos = { palabras: contarPalabras(textoFinal), parrafos: contarParrafos(textoFinal) };
+      if (perfilDeAhorro({ programa: estado.programa ?? programa, estado }).avisoDeEntregas === 'individual') {
+        publicar(EVENTOS.LECTURA_ENTREGA_REGISTRADA, { participantId, ...conteos, enviadoPorTiempo: porTiempo });
+      }
+      setEntregaLocal({ participantId, ...conteos, enviadaPorTiempo: porTiempo });
       setConfirmandoEnvio(false);
     } catch (fallo) {
       console.warn('[r2-argumentum] no se pudo enviar la entrega', fallo);

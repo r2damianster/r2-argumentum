@@ -872,3 +872,39 @@ describe('cortacircuitos de ruleta en el motor de sesión', () => {
   });
 });
 
+describe('modo de ahorro «automático» al iniciar la sesión', () => {
+  const PRESENCIA_DE_N = (cantidad) =>
+    Array.from({ length: cantidad }, (_, indice) => ({ participantId: `p${indice}`, nombre: `P${indice}`, conectado: true }));
+
+  function iniciarConModo(modoDeAhorro, cantidad) {
+    const programa = modoDeAhorro === undefined ? PROGRAMA : { ...PROGRAMA, modoDeAhorro };
+    const ingresos = PRESENCIA_DE_N(cantidad).map(({ participantId }) => evento(EVENTOS.INGRESO_CONFIRMADO, { participantId, stanceId: 'izquierda' }));
+    const estado = [evento(EVENTOS.PROGRAMA_PUBLICADO, { programa }), ...ingresos].reduce(
+      (acumulado, siguiente) => reducirEventos(acumulado, siguiente),
+      estadoInicial()
+    );
+    const publicar = vi.fn();
+    const motor = crearMotorDeSesion({ programa });
+    motor.sincronizar({ estado, presencia: PRESENCIA_DE_N(cantidad), publicar });
+    motor.iniciarSesion();
+    return eventosPublicados(publicar, EVENTOS.MODO_DE_AHORRO_FIJADO);
+  }
+
+  it('con pocas personas fija el modo de sala pequeña', () => {
+    const fijados = iniciarConModo('automatico', 12);
+    expect(fijados).toHaveLength(1);
+    expect(fijados[0].modo).toBe('pequena');
+  });
+
+  it('con muchas personas fija el modo de sala grande y deja registrado cuántas había', () => {
+    const fijados = iniciarConModo('automatico', 60);
+    expect(fijados[0].modo).toBe('moderada');
+    expect(fijados[0].totalParticipantes).toBe(60);
+  });
+
+  it('con un modo elegido por el docente, o sin el campo (debate hablado), no fija nada', () => {
+    expect(iniciarConModo('moderada', 60)).toHaveLength(0);
+    expect(iniciarConModo('pequena', 12)).toHaveLength(0);
+    expect(iniciarConModo(undefined, 12)).toHaveLength(0);
+  });
+});

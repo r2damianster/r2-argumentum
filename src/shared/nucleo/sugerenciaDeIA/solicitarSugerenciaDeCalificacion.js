@@ -9,7 +9,9 @@ import { resolverEstructuraDelPrograma, resolverDistribucion, resolverNumeroDePa
 import { resolverIdiomaDelDebate } from '../../programa/idiomaDelDebate.js';
 
 // `programa` debe ser el Programa COMPLETO del host: las claves de la lectura no viajan en el publicado.
-export async function solicitarSugerenciaDeCalificacion({ texto, programa, rubrica, solicitar = fetch }) {
+// `razonamiento`: 'bajo' pide al modelo poco esfuerzo de razonamiento (~50 % menos tokens; modo de sala grande);
+// cualquier otro valor usa el esfuerzo normal.
+export async function solicitarSugerenciaDeCalificacion({ texto, programa, rubrica, razonamiento = 'normal', solicitar = fetch }) {
   const idioma = resolverIdiomaDelDebate(programa);
   const estructura = resolverEstructuraDelPrograma(programa, idioma);
   try {
@@ -28,6 +30,7 @@ export async function solicitarSugerenciaDeCalificacion({ texto, programa, rubri
         },
         rubrica: rubrica.map((criterio) => ({ id: criterio.id, nombre: criterio.nombre, descripcion: criterio.descripcion })),
         claves: programa.clavesDeLaLectura ?? '',
+        razonamiento,
         idioma,
       }),
     });

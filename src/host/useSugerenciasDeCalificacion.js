@@ -14,7 +14,7 @@ import {
 // Devuelve `estados`: por entrega, 'en_curso', 'en_espera' (la IA alcanzó su límite por minuto: la cola se pausa y
 // sigue sola) o 'fallo'. Un fallo no bloquea nada: el docente califica
 // a mano o pide la sugerencia con «Reintentar».
-export function useSugerenciasDeCalificacion({ activo, cola, programa, rubrica, publicarComoDocente }) {
+export function useSugerenciasDeCalificacion({ activo, cola, programa, rubrica, publicarComoDocente, razonamiento = 'normal' }) {
   const [estados, setEstados] = useState({});
   const [reintentoManual, setReintentoManual] = useState(0);
   const enCurso = useRef(new Set());
@@ -40,7 +40,7 @@ export function useSugerenciasDeCalificacion({ activo, cola, programa, rubrica, 
     ultimoIntento.current[item.participantId] = Date.now();
     marcar(item.participantId, 'en_curso');
 
-    const respuesta = await solicitarSugerenciaDeCalificacion({ texto: item.texto, programa, rubrica });
+    const respuesta = await solicitarSugerenciaDeCalificacion({ texto: item.texto, programa, rubrica, razonamiento });
     try {
       if (respuesta.fallo && respuesta.reintentarEnMs) {
         // Límite por minuto de Groq: no es un fallo de esta entrega. Se pausa toda la cola y se vuelve a intentar sola.
