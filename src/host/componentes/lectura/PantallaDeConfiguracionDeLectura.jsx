@@ -231,7 +231,7 @@ export function PantallaDeConfiguracionDeLectura({ programaBase, onConfirmarConf
 
       <SelectorDeIntegridad integridad={integridad} onCambiarIntegridad={setIntegridad} />
 
-      <SelectorDeModoDeAhorro modoDeAhorro={modoDeAhorro} onCambiarModoDeAhorro={setModoDeAhorro} />
+      <SelectorDeModoDeAhorro modoDeAhorro={modoDeAhorro} onCambiarModoDeAhorro={setModoDeAhorro} conMasivo />
 
       {integridadEstaActiva({ integridad }) && (
         <div className="bloque-de-configuracion">

@@ -95,6 +95,10 @@ export const EVENTOS = {
   // la sala se entrega a todos, y con N personas entregando a la vez N avisos sueltos son N × N mensajes
   // (docs/06-pendientes.md, prueba de carga). Solo vale si lo publica el host, que ya validó cada entrega.
   LECTURA_ENTREGAS_REGISTRADAS: 'lectura.entregas_registradas',
+  // Lo mismo para las revisiones enviadas, las confirmaciones y las devoluciones (modos de sala grande «ahorro» y masivo).
+  LECTURA_REVISIONES_REGISTRADAS: 'lectura.revisiones_registradas',
+  LECTURA_CONFIRMACIONES_REGISTRADAS: 'lectura.confirmaciones_registradas',
+  LECTURA_DEVUELTAS_REGISTRADAS: 'lectura.devueltas_registradas',
   // El docente devolvió la calificación (los comentarios van por el canal privado del estudiante).
   LECTURA_DEVUELTA: 'lectura.devuelta',
   // El estudiante respondió «de acuerdo» o «no estoy de acuerdo»; la confirma sola el host al vencer la ventana.
@@ -108,6 +112,9 @@ export const EVENTOS = {
   // El host fija al iniciar el modo de ahorro cuando el Programa lo dejó en «automático» (según cuántas personas hay):
   // así host y estudiantes aplican el mismo y no cambia a mitad de la sesión. Ver nucleo/capacidad/modosDeAhorro.js.
   MODO_DE_AHORRO_FIJADO: 'sesion.modo_de_ahorro_fijado',
+  // Ingresos anunciados EN LOTE por el host (modo masivo): los participantes no publican en la sala, mandan su ingreso por
+  // el canal privado y el host lo anuncia aquí. Es lo mismo que `ingreso.confirmado` de cada persona, de a muchas.
+  INGRESOS_REGISTRADOS: 'sesion.ingresos_registrados',
 };
 
 // Cómo se califica la exposición oral de un argumento ya publicado. "sin_exposicion" es la

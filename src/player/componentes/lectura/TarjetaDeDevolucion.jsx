@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { DECISIONES_DE_CONFIRMACION, EVENTOS } from '../../../shared/eventos/nombresDeEventos.js';
 import { EVENTOS_PRIVADOS } from '../../../shared/nucleo/entregas/canalesPrivados.js';
+import { perfilDeAhorro } from '../../../shared/nucleo/capacidad/modosDeAhorro.js';
 import { useCuentaAtras } from '../../../shared/nucleo/temporizador/useCuentaAtras.js';
 import { formatearCuentaAtras } from '../../../shared/nucleo/temporizador/calcularTiempoRestante.js';
 
@@ -21,6 +22,8 @@ export function TarjetaDeDevolucion({ estado, participantId, devolucion, publica
   const [motivo, setMotivo] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
+  // Lo que esta persona acaba de responder: si el host anuncia en lote, la sala lo sabe unos segundos después.
+  const [respuestaLocal, setRespuestaLocal] = useState(null);
 
   const ventana = entrega?.devueltaEn && entrega?.confirmaHasta
     ? {
@@ -43,7 +46,11 @@ export function TarjetaDeDevolucion({ estado, participantId, devolucion, publica
         decision,
         motivo: decision === DECISIONES_DE_CONFIRMACION.EN_DESACUERDO ? motivo.trim() : '',
       });
-      publicar(EVENTOS.LECTURA_CONFIRMADA, { participantId, decision });
+      // En los modos «ahorro» y masivo el aviso a la sala lo anuncia el host en lote (anunciosEnLote.js).
+      if (perfilDeAhorro({ programa: estado.programa, estado }).avisosDeLaLectura === 'sueltos') {
+        publicar(EVENTOS.LECTURA_CONFIRMADA, { participantId, decision });
+      }
+      setRespuestaLocal({ decision, confirmadaEn: Date.now() });
     } catch (fallo) {
       console.warn('[r2-argumentum] no se pudo enviar la respuesta', fallo);
       setError('No se pudo enviar tu respuesta. Revisa tu conexión y vuelve a intentarlo.');
@@ -52,7 +59,7 @@ export function TarjetaDeDevolucion({ estado, participantId, devolucion, publica
     }
   }
 
-  const respuesta = entrega.confirmacion;
+  const respuesta = entrega.confirmacion ?? respuestaLocal;
   const puedeResponder = !respuesta && !cuentaAtras.haVencido;
   const motivoSuficiente = motivo.trim().length >= MINIMO_DE_CARACTERES_DEL_MOTIVO;
 

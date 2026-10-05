@@ -12,6 +12,8 @@
 
 export const EVENTOS_PRIVADOS = {
   // Participante → host (canal de entregas)
+  // El ingreso de una persona en el modo masivo (nombre y avatar): no se publica en la sala, el host lo anuncia en lote.
+  ENTREGA_INGRESO: 'entrega.ingreso',
   ENTREGA_TEXTO: 'entrega.texto',
   ENTREGA_CONFIRMACION: 'entrega.confirmacion',
   // La revisión que una persona hace del texto de un par (niveles y comentarios, sin saber de quién es)
@@ -47,6 +49,8 @@ export function nombreDelCanalDeDevolucion(clientId, sessionId) {
 }
 
 export const MAXIMO_DE_CARACTERES_DE_UNA_ENTREGA = 20000;
+export const MAXIMO_DE_CARACTERES_DEL_NOMBRE = 40;
+export const MAXIMO_DE_CARACTERES_DEL_EMOJI = 16;
 export const MAXIMO_DE_CARACTERES_DEL_MOTIVO_DE_DESACUERDO = 600;
 export const MAXIMO_DE_CARACTERES_DEL_COMENTARIO_DE_UNA_REVISION = 600;
 export const MAXIMO_DE_REVISIONES_POR_PERSONA = 10;
@@ -62,6 +66,17 @@ export function procesarMensajeDeEntrega(mensaje) {
   const carga = mensaje?.data;
   if (!carga || typeof carga !== 'object' || !mensaje.clientId || mensaje.clientId !== carga.participantId) {
     return null;
+  }
+
+  if (mensaje.name === EVENTOS_PRIVADOS.ENTREGA_INGRESO) {
+    return {
+      nombre: mensaje.name,
+      idDelMensaje: mensaje.id ?? `${mensaje.clientId}-${mensaje.timestamp}`,
+      participantId: carga.participantId,
+      nombreDeLaPersona: acotar(carga.nombre, MAXIMO_DE_CARACTERES_DEL_NOMBRE).trim(),
+      emoji: acotar(carga.emoji, MAXIMO_DE_CARACTERES_DEL_EMOJI),
+      enviadoEn: Number(mensaje.timestamp ?? carga.enviadoEn ?? 0),
+    };
   }
 
   if (mensaje.name === EVENTOS_PRIVADOS.ENTREGA_TEXTO) {

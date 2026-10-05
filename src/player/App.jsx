@@ -318,11 +318,13 @@ function SesionDeParticipante({ codigoDeSala, participantId, secreto, nombre, em
         <AvisoDeConexion conexion={conexion} />
         {esControlDeLectura ? (
           <IngresoAlControlDeLectura
+            estado={estado}
             programa={programa}
             participantId={participantId}
             nombre={nombre}
             emoji={emoji}
             publicar={publicar}
+            publicarEntregaPrivada={publicarEntregaPrivada}
           />
         ) : esForo ? (
           <IngresoAlForo

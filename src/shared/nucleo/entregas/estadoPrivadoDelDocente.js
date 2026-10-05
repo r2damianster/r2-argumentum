@@ -22,6 +22,8 @@ export const ESTADOS_DE_CALIFICACION = {
 
 export function estadoPrivadoInicial() {
   return {
+    // Quiénes ingresaron por el canal privado (modo masivo): { [participantId]: { nombre, emoji, enviadoEn } }.
+    ingresos: {},
     textos: {},
     confirmaciones: {},
     calificaciones: {},
@@ -62,6 +64,19 @@ export function reducirEstadoPrivado(estado, registro) {
   const { participantId } = registro;
 
   switch (registro.nombre) {
+    // El ingreso del modo masivo: el primero de cada persona es el que vale.
+    case EVENTOS_PRIVADOS.ENTREGA_INGRESO:
+      if (estado.ingresos[participantId] || !registro.nombreDeLaPersona) {
+        return estado;
+      }
+      return {
+        ...estado,
+        ingresos: {
+          ...estado.ingresos,
+          [participantId]: { nombre: registro.nombreDeLaPersona, emoji: registro.emoji, enviadoEn: registro.enviadoEn },
+        },
+      };
+
     case EVENTOS_PRIVADOS.ENTREGA_TEXTO:
       // No se edita después de enviar: el primer texto es el que vale.
       if (estado.textos[participantId]) {

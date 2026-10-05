@@ -27,6 +27,8 @@ export function CalificadorDeEntrega({
   alDevolver,
   alResolverDesacuerdo,
   alReintentarSugerencia,
+  sugerenciaPorDemanda = false,
+  alPedirSugerencia,
 }) {
   const calificacionInicial = item.calificacion;
   const [niveles, setNiveles] = useState(() => calificacionInicial?.niveles ?? {});
@@ -89,6 +91,14 @@ export function CalificadorDeEntrega({
           guardando={guardando}
           alDecidir={alDecidirIntegridad}
         />
+      )}
+
+      {sugerenciaPorDemanda && !item.sugerencia && !estadoDeLaSugerencia && !item.sugerenciaOmitida && !item.textoPendiente && (
+        <p className="texto-de-ayuda">
+          <button type="button" className="boton-secundario" onClick={alPedirSugerencia}>
+            ✨ Pedir sugerencia de la IA para esta entrega
+          </button>
+        </p>
       )}
 
       {(item.sugerencia || estadoDeLaSugerencia || item.sugerenciaOmitida) && (

@@ -102,13 +102,22 @@ export function PanelDelControlDeLecturaParaElDocente({
   const sesionCerrada = estado.sesion.cerrada;
   // Groq sugiere a medida que llegan las entregas. Lleva el Programa COMPLETO del host (con las claves de
   // la lectura, que no viajan en el publicado).
-  const { estados: estadosDeLaSugerencia, reintentar: reintentarSugerencia } = useSugerenciasDeCalificacion({
+  const perfilDeLaSesion = perfilDeAhorro({ programa: programaVigente, estado });
+  const sugerenciasPorDemanda = perfilDeLaSesion.sugerenciasDeLaIA === 'por_demanda';
+  const {
+    estados: estadosDeLaSugerencia,
+    reintentar: reintentarSugerencia,
+    pedir: pedirSugerencia,
+    pedirPendientes: pedirSugerenciasPendientes,
+    cantidadSinPedir: cantidadSinPedirSugerencia,
+  } = useSugerenciasDeCalificacion({
     activo: !sesionCerrada && programaVigente.sugerenciasDeIA !== false,
     cola,
     programa: { ...programaVigente, clavesDeLaLectura: programa.clavesDeLaLectura },
     rubrica,
     publicarComoDocente,
-    razonamiento: perfilDeAhorro({ programa: programaVigente, estado }).razonamientoDeGroq === 'bajo' ? 'bajo' : 'normal',
+    razonamiento: perfilDeLaSesion.razonamientoDeGroq === 'bajo' ? 'bajo' : 'normal',
+    modo: perfilDeLaSesion.sugerenciasDeLaIA,
   });
 
   // Revisión entre pares: el reparto se hace solo al empezar esa fase (docs/14-control-de-lectura.md).
@@ -165,7 +174,11 @@ export function PanelDelControlDeLecturaParaElDocente({
     });
     await enviarAlEstudiante(item.participantId, EVENTOS_PRIVADOS.DEVOLUCION_RECIBIDA, { ...contenido, hasta, revisada });
     await publicarComoDocente(EVENTOS_PRIVADOS.DEVOLUCION_ENVIADA, { participantId: item.participantId, hasta, revisada });
-    publicar(EVENTOS.LECTURA_DEVUELTA, { participantId: item.participantId, hasta, revisada });
+    // En los modos «ahorro» y masivo el host anuncia las devoluciones en lote (useAnunciosEnLote), con lo que ya quedó en
+    // su estado privado; aquí solo se publica el aviso suelto en los modos que no las agrupan.
+    if (perfilDeAhorro({ programa: programaVigente, estado }).avisosDeLaLectura === 'sueltos') {
+      publicar(EVENTOS.LECTURA_DEVUELTA, { participantId: item.participantId, hasta, revisada });
+    }
   }
 
   function devolver(item) {
@@ -446,6 +459,17 @@ export function PanelDelControlDeLecturaParaElDocente({
                   </li>
                 ))}
               </ul>
+              {sugerenciasPorDemanda && cantidadSinPedirSugerencia > 0 && (
+                <div>
+                  <button type="button" className="boton-secundario" onClick={pedirSugerenciasPendientes}>
+                    ✨ Pedir sugerencia de la IA de las {cantidadSinPedirSugerencia} entregas pendientes
+                  </button>
+                  <p className="texto-de-ayuda">
+                    En esta sala la IA no sugiere sola, para cuidar el límite de su plan gratuito (unas 8 por minuto): pídela por entrega
+                    o de las pendientes, y llegarán de a poco.
+                  </p>
+                </div>
+              )}
               {paraAprobarEnLote.length > 0 && (
                 <button type="button" className="boton-secundario" disabled={guardando} onClick={aprobarEnLoteLasSugerencias}>
                   ✨ Aprobar las {paraAprobarEnLote.length} sugerencias claras (nota alta, sin marcas)
@@ -471,6 +495,8 @@ export function PanelDelControlDeLecturaParaElDocente({
               guardando={guardando}
               estadoDeLaSugerencia={estadosDeLaSugerencia[itemElegido.participantId] ?? null}
               alReintentarSugerencia={() => reintentarSugerencia(itemElegido.participantId)}
+              sugerenciaPorDemanda={sugerenciasPorDemanda}
+              alPedirSugerencia={() => pedirSugerencia(itemElegido.participantId)}
               integridad={integridadActiva ? (integridadPorEntrega[itemElegido.participantId] ?? null) : null}
               alDecidirIntegridad={(decision) => decidirIntegridad(itemElegido, decision)}
               puedeDevolver={puedeDevolver}

@@ -4,6 +4,10 @@
 // Se corrió con HOST_USER=prueba y HOST_PASSWORD=prueba-local (valores solo locales).
 import { chromium } from 'playwright-core';
 
+// MODO_DE_AHORRO=pequena|moderada|ahorro|automatico elige el modo de ahorro en la configuración (por defecto, automático).
+const MODO = process.env.MODO_DE_AHORRO ?? 'automatico';
+const ETIQUETA_DEL_MODO = { automatico: 'Automático', pequena: 'Sala pequeña', moderada: 'Sala grande (moderado)', ahorro: 'Sala grande (ahorro)' };
+
 const BASE = 'http://localhost:5173';
 const resultados = [];
 const anotar = (nombre, ok, detalle = '') => {
@@ -34,6 +38,10 @@ await host.getByRole('button', { name: 'Entrar' }).click();
 await host.getByText('Foro escrito').first().click();
 await host.getByRole('button', { name: /Foro: ¿Ha sido útil/ }).click();
 await host.getByText('Con advertencias').first().click();
+if (MODO !== 'automatico') {
+  // Se elige por el título de la opción (el texto de ayuda de «Automático» también nombra a los demás modos).
+  await host.locator(`label:has(strong:text-is("${ETIQUETA_DEL_MODO[MODO]}"))`).click();
+}
 await host.getByRole('button', { name: /Confirmar configuración/ }).click();
 await host.locator('.codigo-de-sala').waitFor();
 const sala = (await host.locator('.codigo-de-sala').innerText()).trim();
@@ -109,6 +117,7 @@ anotar('los posts llegan a los demás en tiempo real', textoP3.includes('formula
 anotar('los demás no ven la sugerencia de la IA ni etiquetas de falacia', !/falacia/i.test(textoP3));
 
 anotar('Groq sugirió (completo/incompleto) a quien escribe antes de publicar', sugerenciasDeLaIA.length >= 2, JSON.stringify(sugerenciasDeLaIA));
+const sugerenciasAntesDeLaReplica = sugerenciasDeLaIA.length;
 // Réplica
 await p3.pagina.getByRole('button', { name: /Responder/ }).first().click();
 await p3.pagina.locator('#compositor-del-foro textarea').fill('Viví algo parecido: en estadística tampoco analizamos datos reales y por eso me costó aplicarlo después en mi proyecto.');
@@ -116,6 +125,17 @@ await p3.pagina.getByRole('button', { name: /Publicar respuesta/ }).click();
 await terminarEnvio(p3.pagina);
 await esperar(2500);
 anotar('la réplica aparece en el hilo para todos', (await p1.pagina.locator('body').innerText()).includes('estadística tampoco analizamos'));
+
+// En el modo «ahorro» las réplicas no consultan a la IA; en los demás, una réplica de 15 palabras o más sí.
+{
+  await esperar(1500);
+  const consultasDeLaReplica = sugerenciasDeLaIA.length - sugerenciasAntesDeLaReplica;
+  console.log(`     modo ${MODO}: consultas a la IA por la réplica → ${consultasDeLaReplica}`);
+  anotar(
+    MODO === 'ahorro' ? 'ahorro: la réplica no consulta a la IA' : 'la réplica larga sí consulta a la IA',
+    MODO === 'ahorro' ? consultasDeLaReplica === 0 : consultasDeLaReplica === 1
+  );
+}
 
 // Reacción
 await p4.pagina.getByRole('button', { name: /Me convenció/ }).first().click();

@@ -42,17 +42,22 @@ escribiendo → entregada → [revisión de pares] → docente califica (a ciega
 
 ## Salas grandes: modo de ahorro
 
-El selector «Modo de ahorro» está en la configuración previa. **Automático** (por defecto): al iniciar, el host cuenta cuántas personas hay y fija el modo (50 o más → sala grande; menos → sala pequeña); queda registrado en el evento `sesion.modo_de_ahorro_fijado` y no cambia durante la sesión. Se puede forzar uno a mano. En la sala de espera el docente ve qué modo regiría con los conectados de ahora y, si eligió uno que no corresponde al tamaño de la sala, un aviso para cambiarlo.
+El selector «Modo de ahorro» está en la configuración previa. **Automático** (por defecto): al iniciar, el host cuenta cuántas personas hay y fija el modo (menos de 50: sala pequeña; de 50 a 119: sala grande moderada; 120 o más: sala grande ahorro); queda registrado en el evento `sesion.modo_de_ahorro_fijado` y no cambia durante la sesión. Se puede forzar uno a mano. **El modo masivo solo se elige a mano y antes de abrir la sala** (el ingreso ya ocurre en la sala de espera). En la sala de espera el docente ve qué modo regiría con los conectados de ahora y, si eligió uno que no corresponde al tamaño de la sala, un aviso para cambiarlo.
 
-| | Sala pequeña | Sala grande (moderado) |
-|---|---|---|
-| Aviso de cada entrega a la sala | Lo publica cada estudiante al instante | Lo anuncia el host en lote cada ≤ 5 s (`lectura.entregas_registradas`) |
-| Groq (sugerencia de calificación) | Esfuerzo de razonamiento normal | `reasoning_effort: low` (~50 % menos tokens, medido) |
-| Envío de borradores al vencer el tiempo | Escalonado según la sala (casi nulo si es chica) | Igual |
-| Reintento de publicaciones rechazadas por tasa | Sí | Sí |
-| Cola de Groq se pausa ante un 429 | Sí | Sí |
+| | Sala pequeña | Moderada | Ahorro | Masiva |
+|---|---|---|---|---|
+| Ingreso | Se publica en la sala; entra a la presencia | Igual | Igual | **Privado** (`entrega.ingreso`); el host lo anuncia en lote (`sesion.ingresos_registrados`); **sin presencia** |
+| Aviso de cada entrega | Cada estudiante, al instante | **Lote** del host (`lectura.entregas_registradas`, ≤ 5 s) | Lote | Lote |
+| Revisión enviada, respuesta a la devolución, devolución | Avisos sueltos | Sueltos | **Lote** (`lectura.revisiones_registradas`, `lectura.confirmaciones_registradas`, `lectura.devueltas_registradas`) | Lote |
+| Confirmación automática al vencer la ventana | Un aviso por persona | Un aviso por persona | Un solo lote | Un solo lote |
+| Sugerencias de la IA | Solas, a medida que llegan las entregas | Solas | **Solo cuando el docente las pide** (por entrega o «Pedir sugerencia de las N pendientes») | Por demanda |
+| Razonamiento de Groq | Normal | `low` (~50 % menos tokens, medido) | `low` | `low` |
+| Envío de borradores al vencer el tiempo | Escalonado según la sala (casi nulo si es chica) | Igual | Igual | Igual |
+| Reintento de publicaciones rechazadas; cola de Groq que se pausa ante un 429 | Sí | Sí | Sí | Sí |
 
-Todo lo demás es igual. Los modos «Ahorro» y «Masivo» no existen todavía (ver `06-pendientes.md`).
+En los modos de lote, el estudiante ve **su propia** acción al instante (la pantalla recuerda lo que acaba de enviar); lo que ve de la sala llega con hasta ~5 s de retraso. En el modo masivo, al entrar el estudiante ve «Tu docente te deja pasar en unos segundos» hasta que el host anuncia su ingreso, y el docente **no ve quién está conectado** (solo quién ya ingresó). Todo lo que protagoniza una persona viaja por canales privados que solo lee el host; el estado público sigue sin llevar texto, comentarios, niveles ni notas.
+
+Verificado en vivo (4-oct-2026) en los cuatro modos con Ably y Groq reales (`lectura-vivo-local.mjs`, variable `MODO_DE_AHORRO`). Carga del modo masivo y el límite de conexiones del plan de Ably: `06-pendientes.md`.
 
 ## Anonimato del docente
 
@@ -72,7 +77,7 @@ El docente ve «Entrega K7F2», un **código derivado de un hash** de quien la e
 | `textoDeReferencia` | Opcional. **Solo host**: sirve para detectar copia literal de la lectura. No se envía a Groq. |
 | `revisionDePares` | `{ activa, revisionesPorPersona: 2, duracionMin: 10 }` |
 | `ventanaDeConfirmacionMin` | 10 por defecto |
-| `modoDeAhorro` | `automatico` (por defecto), `pequena` o `moderada`: cómo se cuidan los mensajes de Ably y los tokens de Groq según el tamaño de la sala (ver «Salas grandes» abajo y `nucleo/capacidad/modosDeAhorro.js`) |
+| `modoDeAhorro` | `automatico` (por defecto), `pequena`, `moderada`, `ahorro` o `masivo`: cómo se cuidan los mensajes de Ably y los tokens de Groq según el tamaño de la sala (ver «Salas grandes» abajo y `nucleo/capacidad/modosDeAhorro.js`) |
 | `umbralesDeSimilitud` | `{ atencion: 20, alto: 40, probableCopia: 60 }` |
 | `integridad` | `{ nivel }`; **con advertencias por defecto** en esta actividad |
 

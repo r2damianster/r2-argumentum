@@ -3,8 +3,11 @@ import { describirElModoDeAhorro } from '../../shared/nucleo/capacidad/modosDeAh
 
 // En la sala de espera: avisa al docente cuando hay muchas personas conectadas (ver avisoDeSalaGrande.js) y qué modo de
 // ahorro rige (ver modosDeAhorro.js).
-export function AvisoDeSalaGrande({ presencia = [], programa = null }) {
-  const conectados = presencia.filter((presente) => presente.conectado !== false && presente.participantId !== 'host').length;
+export function AvisoDeSalaGrande({ presencia = [], estado = null, programa = null }) {
+  // En el modo masivo nadie entra a la presencia: se cuenta también a quienes ya ingresaron en el estado de la sesión.
+  const enPresencia = presencia.filter((presente) => presente.conectado !== false && presente.participantId !== 'host').length;
+  const ingresaron = Object.values(estado?.participantes ?? {}).filter((participante) => participante.ingresoConfirmado).length;
+  const conectados = Math.max(enPresencia, ingresaron);
   const aviso = avisoDeSalaGrande(conectados);
   const modo = describirElModoDeAhorro({ programa, conectados });
   if (!aviso && !modo) {

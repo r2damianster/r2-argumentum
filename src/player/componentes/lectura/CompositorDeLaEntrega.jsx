@@ -95,7 +95,7 @@ export function CompositorDeLaEntrega({
     try {
       // El texto va siempre por el canal privado. El aviso a la sala (solo conteos) depende del modo de ahorro: en
       // sala pequeña lo publica cada estudiante al instante; en sala grande lo anuncia el host en lote (ver
-      // entregasAgrupadas.js), porque N avisos sueltos son N × N mensajes.
+      // anunciosEnLote.js), porque N avisos sueltos son N × N mensajes.
       await publicarEntregaPrivada(EVENTOS_PRIVADOS.ENTREGA_TEXTO, { texto: textoFinal, enviadoPorTiempo: porTiempo });
       const conteos = { palabras: contarPalabras(textoFinal), parrafos: contarParrafos(textoFinal) };
       if (perfilDeAhorro({ programa: estado.programa ?? programa, estado }).avisoDeEntregas === 'individual') {

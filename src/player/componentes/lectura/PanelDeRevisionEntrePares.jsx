@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { EVENTOS, TIPOS_DE_FASE } from '../../../shared/eventos/nombresDeEventos.js';
 import { EVENTOS_PRIVADOS } from '../../../shared/nucleo/entregas/canalesPrivados.js';
+import { perfilDeAhorro } from '../../../shared/nucleo/capacidad/modosDeAhorro.js';
 import { ESCALA_DE_NIVELES, resolverRubricaDelPrograma, rubricaEstaCompleta } from '../../../shared/nucleo/rubrica/rubrica.js';
 import { useCuentaAtras } from '../../../shared/nucleo/temporizador/useCuentaAtras.js';
 import { BarraDeTiempo } from '../../../shared/componentes/foro/BarraDeTiempo.jsx';
@@ -100,7 +101,9 @@ export function PanelDeRevisionEntrePares({ estado, programa, participantId, rev
   const cuentaAtras = useCuentaAtras(fase);
   const rubrica = resolverRubricaDelPrograma(programa);
   const entrego = Boolean(estado.lectura?.entregas?.[participantId]);
-  const enviadas = estado.lectura?.revisiones?.[participantId] ?? {};
+  // Las revisiones que esta persona acaba de enviar: si el host anuncia en lote, la sala lo sabe unos segundos después.
+  const [enviadasLocalmente, setEnviadasLocalmente] = useState({});
+  const enviadas = { ...enviadasLocalmente, ...(estado.lectura?.revisiones?.[participantId] ?? {}) };
   const faseAbierta = Boolean(fase) && !cuentaAtras.haVencido && !estado.sesion.cerrada;
 
   if (!fase && Object.keys(enviadas).length === 0 && !revisionAsignada) {
@@ -109,7 +112,11 @@ export function PanelDeRevisionEntrePares({ estado, programa, participantId, rev
 
   async function enviarRevision({ indice, niveles, comentariosPorCriterio, comentarioGeneral }) {
     await publicarEntregaPrivada(EVENTOS_PRIVADOS.ENTREGA_REVISION_PAR, { indice, niveles, comentariosPorCriterio, comentarioGeneral });
-    publicar(EVENTOS.LECTURA_REVISION_ENVIADA, { participantId, indice });
+    // En los modos «ahorro» y masivo el aviso a la sala lo anuncia el host en lote (anunciosEnLote.js).
+    if (perfilDeAhorro({ programa: estado.programa ?? programa, estado }).avisosDeLaLectura === 'sueltos') {
+      publicar(EVENTOS.LECTURA_REVISION_ENVIADA, { participantId, indice });
+    }
+    setEnviadasLocalmente((previas) => ({ ...previas, [indice]: { enviadaEn: Date.now() } }));
   }
 
   return (

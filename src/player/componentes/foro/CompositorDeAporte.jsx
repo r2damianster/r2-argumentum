@@ -30,7 +30,6 @@ const ETIQUETA_DE_TIPO_DE_REPLICA = {
 // Cuántas veces se consulta a la IA por cada aporte: la primera orienta y la segunda confirma que se
 // mejoró. Pasado eso se publica directo, así la IA nunca frena a quien ya decidió qué escribir y el
 // costo por aporte queda acotado.
-const MAXIMO_DE_CONSULTAS_A_LA_IA = 2;
 // Una réplica corta («estoy de acuerdo porque lo viví») no gana nada con la sugerencia de la IA y cuesta una llamada
 // a Groq: con salas grandes el plan gratuito se agota enseguida (docs/06-pendientes.md). Se publica directo.
 const PALABRAS_MINIMAS_DE_UNA_REPLICA_PARA_CONSULTAR_A_LA_IA = 15;
@@ -207,11 +206,15 @@ export function CompositorDeAporte({
       return;
     }
     // Sin IA, o con las consultas agotadas, se publica directo.
-    // Solo en el modo de sala grande: en sala pequeña la cuota alcanza y toda réplica puede recibir sugerencia.
-    const omiteLasReplicasCortas = !perfilDeAhorro({ programa: estado.programa ?? programa, estado }).consultarReplicasCortasALaIA;
+    // Según el modo de ahorro (modosDeAhorro.js): en sala pequeña la cuota alcanza y toda réplica puede recibir sugerencia;
+    // en sala grande las réplicas muy cortas no se consultan; en «ahorro» y masivo, ninguna réplica y una sola consulta por aporte.
+    const perfil = perfilDeAhorro({ programa: estado.programa ?? programa, estado });
+    const omiteLasReplicasCortas = !perfil.consultarReplicasCortasALaIA;
     const esReplicaCorta =
-      omiteLasReplicasCortas && Boolean(objetivo) && contarPalabras(texto) < PALABRAS_MINIMAS_DE_UNA_REPLICA_PARA_CONSULTAR_A_LA_IA;
-    if (!usaLaIA || consultasHechas >= MAXIMO_DE_CONSULTAS_A_LA_IA || esReplicaCorta) {
+      Boolean(objetivo) &&
+      (!perfil.consultarReplicasALaIA ||
+        (omiteLasReplicasCortas && contarPalabras(texto) < PALABRAS_MINIMAS_DE_UNA_REPLICA_PARA_CONSULTAR_A_LA_IA));
+    if (!usaLaIA || consultasHechas >= perfil.maximoDeConsultasALaIAPorAporte || esReplicaCorta) {
       enviar(sugerenciaAplicable);
       return;
     }

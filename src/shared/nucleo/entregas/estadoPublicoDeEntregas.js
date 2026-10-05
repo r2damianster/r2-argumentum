@@ -4,6 +4,10 @@
 // párrafos, si ya se devolvió y qué respondió la persona. El texto, los comentarios y las notas
 // nunca pasan por aquí (van por canales privados). Función pura: la usa el reducer del log y no
 // conoce ninguna actividad.
+//
+// Cada hecho puede llegar de dos maneras (ver nucleo/capacidad/modosDeAhorro.js): como aviso SUELTO de quien lo
+// protagoniza (modo de sala pequeña) o dentro de un LOTE que anuncia el host (modos de sala grande y masivo). El
+// lote exige que lo publique el host, que ya validó cada entrada contra lo que recibió por los canales privados.
 
 import { DECISIONES_DE_CONFIRMACION, EVENTOS, TIPOS_DE_FASE } from '../../eventos/nombresDeEventos.js';
 
@@ -13,6 +17,9 @@ const IDENTIDAD_DEL_HOST = 'host';
 export const MARGEN_PARA_ENTREGAS_POR_TIEMPO_MS = 2 * 60 * 1000;
 const MAXIMO_DE_PALABRAS_ACEPTADO = 20000;
 const MAXIMO_DE_LUGARES_DEL_PODIO = 10;
+// Máximo de entradas que acepta un solo aviso en lote.
+const MAXIMO_DE_ENTRADAS_POR_LOTE = 500;
+const MAXIMO_DE_INDICE_DE_REVISION = 9;
 
 export function estadoInicialDeEntregas() {
   return { entregas: {}, revisiones: {}, podio: null };
@@ -60,8 +67,75 @@ function crearEntregaPublica(data, timestamp) {
   };
 }
 
-// Máximo de entregas que acepta un solo aviso en lote.
-const MAXIMO_DE_ENTREGAS_POR_LOTE = 500;
+// --- Cambios sobre `lectura` comunes al aviso suelto y al lote: devuelven la MISMA `lectura` si no hay nada que cambiar.
+
+function conEntregaDevuelta(lectura, { participantId, hasta, revisada, timestamp }) {
+  const entrega = lectura.entregas[participantId];
+  if (!entrega) {
+    return lectura;
+  }
+  return {
+    ...lectura,
+    entregas: {
+      ...lectura.entregas,
+      [participantId]: {
+        ...entrega,
+        // La primera devolución fija el inicio de la ventana; una devolución revisada (tras un desacuerdo) no la reabre.
+        devueltaEn: entrega.devueltaEn ?? timestamp ?? null,
+        confirmaHasta: entrega.confirmaHasta ?? (Number(hasta) || null),
+        devolucionRevisada: entrega.devolucionRevisada || Boolean(revisada),
+      },
+    },
+  };
+}
+
+function conEntregaConfirmada(lectura, { participantId, decision, timestamp }) {
+  const entrega = lectura.entregas[participantId];
+  if (!entrega || !entrega.devueltaEn || entrega.confirmacion || !Object.values(DECISIONES_DE_CONFIRMACION).includes(decision)) {
+    return lectura;
+  }
+  return {
+    ...lectura,
+    entregas: { ...lectura.entregas, [participantId]: { ...entrega, confirmacion: { decision, confirmadaEn: timestamp ?? null } } },
+  };
+}
+
+function conRevisionEnviada(lectura, { participantId, indice, timestamp }) {
+  const posicion = Math.floor(Number(indice));
+  if (
+    !lectura.entregas[participantId] ||
+    !Number.isInteger(posicion) ||
+    posicion < 0 ||
+    posicion > MAXIMO_DE_INDICE_DE_REVISION ||
+    lectura.revisiones?.[participantId]?.[posicion]
+  ) {
+    return lectura;
+  }
+  return {
+    ...lectura,
+    revisiones: {
+      ...lectura.revisiones,
+      [participantId]: { ...lectura.revisiones?.[participantId], [posicion]: { enviadaEn: timestamp ?? null } },
+    },
+  };
+}
+
+function estadoConLectura(estado, lecturaOriginal, lecturaNueva) {
+  return lecturaNueva === lecturaOriginal ? estado : { ...estado, lectura: lecturaNueva };
+}
+
+// Aplica una lista de entradas de un lote, con `aplicar(lectura, entrada)` por cada una. Solo el host puede anunciar lotes.
+function aplicarLote(estado, evento, lista, aplicar) {
+  const lectura = estado.lectura ?? estadoInicialDeEntregas();
+  if (!elEmisorEs(evento, IDENTIDAD_DEL_HOST) || !Array.isArray(lista)) {
+    return estado;
+  }
+  let siguiente = lectura;
+  for (const entrada of lista.slice(0, MAXIMO_DE_ENTRADAS_POR_LOTE)) {
+    siguiente = aplicar(siguiente, entrada ?? {});
+  }
+  return siguiente === lectura ? estado : { ...estado, lectura: siguiente };
+}
 
 // Devuelve el estado nuevo, o `undefined` si el evento no es de este módulo (el reducer sigue con
 // los demás casos). Un evento inválido o repetido devuelve el estado sin cambios.
@@ -91,109 +165,62 @@ export function aplicarEventoDeEntregas(estado, evento) {
     }
 
     // El host anuncia varias entregas de una vez. Él ya comprobó que cada una llegó a tiempo (ver
-    // entregasAgrupadas.js), así que aquí solo se exige que el emisor sea el host y que quien entregó haya ingresado.
-    case EVENTOS.LECTURA_ENTREGAS_REGISTRADAS: {
-      if (!elEmisorEs(evento, IDENTIDAD_DEL_HOST) || !Array.isArray(data.entregas)) {
-        return estado;
-      }
-      const nuevas = {};
-      for (const entrega of data.entregas.slice(0, MAXIMO_DE_ENTREGAS_POR_LOTE)) {
-        const participantId = entrega?.participantId;
-        if (
-          !estado.participantes[participantId]?.ingresoConfirmado ||
-          participantId === IDENTIDAD_DEL_HOST ||
-          lectura.entregas[participantId] ||
-          nuevas[participantId]
-        ) {
-          continue;
+    // anunciosEnLote.js), así que aquí solo se exige que el emisor sea el host y que quien entregó haya ingresado.
+    case EVENTOS.LECTURA_ENTREGAS_REGISTRADAS:
+      return aplicarLote(estado, evento, data.entregas, (acumulada, entrega) => {
+        const participantId = entrega.participantId;
+        if (!estado.participantes[participantId]?.ingresoConfirmado || participantId === IDENTIDAD_DEL_HOST || acumulada.entregas[participantId]) {
+          return acumulada;
         }
-        nuevas[participantId] = crearEntregaPublica({ ...entrega, participantId }, Number(entrega.entregadaEn) || data.timestamp);
-      }
-      if (Object.keys(nuevas).length === 0) {
-        return estado;
-      }
-      return { ...estado, lectura: { ...lectura, entregas: { ...lectura.entregas, ...nuevas } } };
-    }
+        return {
+          ...acumulada,
+          entregas: {
+            ...acumulada.entregas,
+            [participantId]: crearEntregaPublica({ ...entrega, participantId }, Number(entrega.entregadaEn) || data.timestamp),
+          },
+        };
+      });
 
     case EVENTOS.LECTURA_DEVUELTA: {
-      const entrega = lectura.entregas[data.participantId];
-      if (!entrega || !elEmisorEs(evento, IDENTIDAD_DEL_HOST)) {
+      if (!elEmisorEs(evento, IDENTIDAD_DEL_HOST)) {
         return estado;
       }
-      return {
-        ...estado,
-        lectura: {
-          ...lectura,
-          entregas: {
-            ...lectura.entregas,
-            [data.participantId]: {
-              ...entrega,
-              // La primera devolución fija el inicio de la ventana; una devolución revisada (tras
-              // un desacuerdo) no reabre la confirmación.
-              devueltaEn: entrega.devueltaEn ?? data.timestamp ?? null,
-              confirmaHasta: entrega.confirmaHasta ?? (Number(data.hasta) || null),
-              devolucionRevisada: entrega.devolucionRevisada || Boolean(data.revisada),
-            },
-          },
-        },
-      };
+      return estadoConLectura(estado, lectura, conEntregaDevuelta(lectura, { participantId: data.participantId, hasta: data.hasta, revisada: data.revisada, timestamp: data.timestamp }));
     }
 
+    case EVENTOS.LECTURA_DEVUELTAS_REGISTRADAS:
+      return aplicarLote(estado, evento, data.devoluciones, (acumulada, devolucion) =>
+        conEntregaDevuelta(acumulada, { ...devolucion, timestamp: Number(devolucion.devueltaEn) || data.timestamp })
+      );
+
     case EVENTOS.LECTURA_CONFIRMADA: {
-      const entrega = lectura.entregas[data.participantId];
-      if (!entrega || !entrega.devueltaEn || entrega.confirmacion) {
-        return estado;
-      }
       const esAutomatica = data.decision === DECISIONES_DE_CONFIRMACION.AUTOMATICA;
-      const decisionValida = Object.values(DECISIONES_DE_CONFIRMACION).includes(data.decision);
       // Una respuesta propia solo vale si la publicó la misma persona; la automática, solo el host.
-      const emisorValido = esAutomatica
-        ? elEmisorEs(evento, IDENTIDAD_DEL_HOST)
-        : elEmisorEs(evento, data.participantId);
-      if (!decisionValida || !emisorValido) {
+      const emisorValido = esAutomatica ? elEmisorEs(evento, IDENTIDAD_DEL_HOST) : elEmisorEs(evento, data.participantId);
+      if (!emisorValido) {
         return estado;
       }
-      return {
-        ...estado,
-        lectura: {
-          ...lectura,
-          entregas: {
-            ...lectura.entregas,
-            [data.participantId]: {
-              ...entrega,
-              confirmacion: { decision: data.decision, confirmadaEn: data.timestamp ?? null },
-            },
-          },
-        },
-      };
+      return estadoConLectura(estado, lectura, conEntregaConfirmada(lectura, { participantId: data.participantId, decision: data.decision, timestamp: data.timestamp }));
     }
+
+    case EVENTOS.LECTURA_CONFIRMACIONES_REGISTRADAS:
+      return aplicarLote(estado, evento, data.confirmaciones, (acumulada, confirmacion) =>
+        conEntregaConfirmada(acumulada, { ...confirmacion, timestamp: Number(confirmacion.confirmadaEn) || data.timestamp })
+      );
 
     // Quien revisa a un par avisa que ya envió una de sus revisiones (el contenido va por el canal privado).
     // Solo vale durante la fase de revisión, de alguien que entregó, y la primera de cada una es la que cuenta.
     case EVENTOS.LECTURA_REVISION_ENVIADA: {
-      const indice = Math.floor(Number(data.indice));
-      if (
-        estado.fase.actual?.tipo !== TIPOS_DE_FASE.REVISION_DE_PARES ||
-        !lectura.entregas[data.participantId] ||
-        !Number.isInteger(indice) ||
-        indice < 0 ||
-        indice > 9 ||
-        lectura.revisiones?.[data.participantId]?.[indice] ||
-        !elEmisorEs(evento, data.participantId)
-      ) {
+      if (estado.fase.actual?.tipo !== TIPOS_DE_FASE.REVISION_DE_PARES || !elEmisorEs(evento, data.participantId)) {
         return estado;
       }
-      return {
-        ...estado,
-        lectura: {
-          ...lectura,
-          revisiones: {
-            ...lectura.revisiones,
-            [data.participantId]: { ...lectura.revisiones?.[data.participantId], [indice]: { enviadaEn: data.timestamp ?? null } },
-          },
-        },
-      };
+      return estadoConLectura(estado, lectura, conRevisionEnviada(lectura, { participantId: data.participantId, indice: data.indice, timestamp: data.timestamp }));
     }
+
+    case EVENTOS.LECTURA_REVISIONES_REGISTRADAS:
+      return aplicarLote(estado, evento, data.revisiones, (acumulada, revision) =>
+        conRevisionEnviada(acumulada, { ...revision, timestamp: Number(revision.enviadaEn) || data.timestamp })
+      );
 
     case EVENTOS.LECTURA_PODIO_PUBLICADO: {
       if (!elEmisorEs(evento, IDENTIDAD_DEL_HOST) || !Array.isArray(data.lugares)) {

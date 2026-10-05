@@ -10,6 +10,7 @@ import {
   publicarEnElCanalDeIntegridad,
 } from '../ably/clienteAbly.js';
 import { publicarConReintentos } from '../ably/reintentarPublicacion.js';
+import { perfilDeAhorro } from '../nucleo/capacidad/modosDeAhorro.js';
 import { NOMBRE_DEL_EVENTO_DE_INTEGRIDAD } from '../nucleo/integridad/canalPrivado.js';
 import { EVENTOS } from '../eventos/nombresDeEventos.js';
 import { estadoInicial, reducirEventos } from './reducirEventos.js';
@@ -251,7 +252,16 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
       return huboHueco;
     }
 
+    // Modo masivo: los participantes no entran a la presencia ni la observan (cada entrada llegaría a todos los demás:
+    // N × N mensajes). El host sabe quién está por los ingresos que anuncia en lote. Ver nucleo/capacidad/modosDeAhorro.js.
+    function sinPresenciaPorElModoMasivo() {
+      return Boolean(datosDePresencia) && perfilDeAhorro({ programa: estadoLocal.programa, estado: estadoLocal }).ingreso === 'privado';
+    }
+
     async function refrescarPresencia() {
+      if (sinPresenciaPorElModoMasivo()) {
+        return;
+      }
       const miembrosActuales = await canal.presence.get();
       if (cancelado) {
         return;
@@ -324,7 +334,9 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
       await reconstruirDesdeElHistorial({ esLaPrimeraVez: true });
 
       await refrescarPresencia();
-      canal.presence.subscribe(manejarPresencia);
+      if (!sinPresenciaPorElModoMasivo()) {
+        canal.presence.subscribe(manejarPresencia);
+      }
 
       // `datosDePresencia` en null significa "solo observo" (el host: nunca entra a presence).
       // El participante entra apenas se conecta — el requisito de ingreso con argumento (ver
@@ -334,7 +346,7 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
       // la sala pero no terminó — con presence diferida, esas personas eran invisibles del
       // todo: nunca aparecían en `presencia`, así que ninguna lista podía mostrarlas. Bug real
       // reportado en prueba en vivo.
-      if (datosDePresencia) {
+      if (datosDePresencia && !sinPresenciaPorElModoMasivo()) {
         await canal.presence.enter(datosDePresencia);
       }
 

@@ -201,6 +201,27 @@ function aplicarEvento(estado, evento) {
         emoji: data.emoji ?? participante.emoji,
       }));
 
+    // El host anuncia ingresos en lote (modo masivo). Solo vale si lo publica el host.
+    case EVENTOS.INGRESOS_REGISTRADOS: {
+      if ((evento.clientId !== undefined && evento.clientId !== 'host') || !Array.isArray(data.ingresos)) {
+        return estado;
+      }
+      let siguiente = estado;
+      for (const ingreso of data.ingresos.slice(0, 500)) {
+        const participantId = typeof ingreso?.participantId === 'string' ? ingreso.participantId : '';
+        if (!participantId || participantId === 'host') {
+          continue;
+        }
+        siguiente = conParticipanteActualizado(siguiente, participantId, (participante) => ({
+          ...participante,
+          ingresoConfirmado: true,
+          nombre: ingreso.nombre ?? participante.nombre,
+          emoji: ingreso.emoji ?? participante.emoji,
+        }));
+      }
+      return siguiente;
+    }
+
     case EVENTOS.ARGUMENTO_EN_EXPOSICION: {
       // Solo tiene sentido mientras ese turno siga en curso: un evento tardío de un turno ya
       // cerrado no debe pegarse al turno siguiente.

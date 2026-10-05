@@ -1,6 +1,44 @@
 // Prueba EN VIVO del control de lectura, EN LOCAL: Chrome real + /api local + Ably real + Groq real (4-oct-2026).
 // Mismas condiciones que foro-vivo-local.mjs (ver su encabezado); además necesita GROQ_API_KEY en .env.local.
+import { readFileSync } from 'node:fs';
 import { chromium } from 'playwright-core';
+
+// MODO_DE_AHORRO=pequena|moderada|ahorro|masivo|automatico elige el modo en la configuración (por defecto, automático).
+const MODO = process.env.MODO_DE_AHORRO ?? 'automatico';
+const AGRUPA_TODO = MODO === 'ahorro' || MODO === 'masivo';
+const ETIQUETA_DEL_MODO = {
+  automatico: 'Automático',
+  pequena: 'Sala pequeña',
+  moderada: 'Sala grande (moderado)',
+  ahorro: 'Sala grande (ahorro)',
+  masivo: 'Sala masiva',
+};
+for (const linea of readFileSync('C:/Users/User/Documents/Desarrollo Web/Debate/.env.local', 'utf-8').split(/\r?\n/)) {
+  const m = linea.match(/^([A-Z0-9_]+)=(.*)$/);
+  if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].replace(/^"|"$/g, '');
+}
+
+// Cuántas personas hay en la presencia de la sala (en el modo masivo nadie entra a ella).
+async function contarPresenciaDeLaSala(sala) {
+  const credencial = Buffer.from(process.env.ABLY_API_KEY).toString('base64');
+  const respuesta = await fetch(`https://rest.ably.io/channels/${encodeURIComponent(`debate:sala:${sala}`)}/presence`, {
+    headers: { Authorization: `Basic ${credencial}` },
+  });
+  const miembros = await respuesta.json();
+  return Array.isArray(miembros) ? miembros.filter((miembro) => miembro.clientId !== 'host').length : -1;
+}
+
+// Cuenta, por el historial REST de Ably, qué eventos de entrega viajaron por el canal público de la sala.
+async function contarEventosDeLaSala(sala) {
+  const credencial = Buffer.from(process.env.ABLY_API_KEY).toString('base64');
+  const respuesta = await fetch(`https://rest.ably.io/channels/${encodeURIComponent(`debate:sala:${sala}`)}/messages?limit=1000`, {
+    headers: { Authorization: `Basic ${credencial}` },
+  });
+  const mensajes = await respuesta.json();
+  const cuenta = {};
+  for (const mensaje of Array.isArray(mensajes) ? mensajes : []) cuenta[mensaje.name] = (cuenta[mensaje.name] ?? 0) + 1;
+  return cuenta;
+}
 
 const BASE = 'http://localhost:5173';
 const resultados = [];
@@ -29,6 +67,10 @@ await host.getByText('Control de lectura').first().click();
 await host.getByRole('button', { name: /Control de lectura:/ }).click();
 // La muestra pedagógica de la estructura se ve en la configuración previa
 anotar('la configuración muestra qué es PEEL con su ejemplo', /¿qué es peel?/i.test(await host.locator('body').innerText()));
+if (MODO !== 'automatico') {
+  // Se elige por el título de la opción (el texto de ayuda de «Automático» también nombra a los demás modos).
+  await host.locator(`label:has(strong:text-is("${ETIQUETA_DEL_MODO[MODO]}"))`).click();
+}
 await host.getByRole('button', { name: /Confirmar configuración/ }).click();
 await host.locator('.codigo-de-sala').waitFor();
 const sala = (await host.locator('.codigo-de-sala').innerText()).trim();
@@ -60,6 +102,7 @@ const TEXTOS = {
   Carla: 'Mi equipo favorito jugó anoche y ganó dos a uno con un gol en el último minuto, fue un partido muy emocionante para todos los hinchas del estadio.',
 };
 for (const { nombre, pagina } of participantes) {
+  await pagina.locator('textarea').waitFor({ timeout: 30000 });
   await pagina.locator('textarea').fill(TEXTOS[nombre]);
   await pagina.getByRole('button', { name: 'Enviar mi texto' }).click();
   await pagina.getByRole('button', { name: 'Sí, enviar' }).click();
@@ -71,10 +114,40 @@ await esperar(3000);
 let entregados = 0;
 for (const { pagina } of participantes) if ((await pagina.locator('body').innerText()).includes('Entregaste tu texto')) entregados += 1;
 anotar('los 3 entregaron', entregados === 3, `${entregados}/3`);
+{
+  await esperar(7000); // deja pasar el intervalo del lote
+  const eventos = await contarEventosDeLaSala(sala);
+  const sueltos = eventos['lectura.entrega_registrada'] ?? 0;
+  const enLote = eventos['lectura.entregas_registradas'] ?? 0;
+  console.log(`     modo ${MODO}: eventos de entrega en la sala → sueltos ${sueltos} · lotes ${enLote}`);
+  if (MODO === 'pequena' || MODO === 'automatico') {
+    anotar('sala pequeña: cada estudiante avisó su entrega al instante (3 avisos sueltos)', sueltos === 3);
+  } else {
+    anotar('sala grande: ningún aviso suelto de los estudiantes y el host anunció las entregas en lote', sueltos === 0 && enLote >= 1);
+  }
+  const ingresosSueltos = eventos['ingreso.confirmado'] ?? 0;
+  const ingresosEnLote = eventos['sesion.ingresos_registrados'] ?? 0;
+  const enPresencia = await contarPresenciaDeLaSala(sala);
+  console.log(`     ingresos en la sala → sueltos ${ingresosSueltos} · lotes ${ingresosEnLote} · en presencia ${enPresencia}`);
+  if (MODO === 'masivo') {
+    anotar('masivo: nadie publicó su ingreso en la sala ni entró a la presencia; el host lo anunció en lote', ingresosSueltos === 0 && enPresencia === 0 && ingresosEnLote >= 1);
+  } else {
+    anotar('el ingreso se publica en la sala y los 3 entran a la presencia', ingresosSueltos === 3 && enPresencia === 3);
+  }
+  const conEntrega = (await host.locator('.entrega-de-la-cola').allInnerTexts()).length;
+  anotar('el host ve las 3 entregas en su cola', conEntrega === 3, `${conEntrega}/3`);
+}
 
 // Groq: las sugerencias llegan solas, en cola, mientras se escribe
 await host.waitForFunction(() => document.querySelectorAll('.entrega-de-la-cola').length === 3, null, { timeout: 15000 });
-await host.waitForFunction(() => [...document.querySelectorAll('.entrega-de-la-cola')].every((e) => e.innerText.includes('✨')), null, { timeout: 90000 }).catch(() => {});
+if (AGRUPA_TODO) {
+  // En «ahorro» y masivo la IA no sugiere sola: antes de pedir nada no hay ninguna sugerencia.
+  await esperar(4000);
+  const sinPedir = (await host.locator('.entrega-de-la-cola').allInnerTexts()).filter((texto) => texto.includes('✨')).length;
+  anotar('con la IA por demanda no hay sugerencias hasta que el docente las pide', sinPedir === 0, `${sinPedir}/3 con ✨`);
+  await host.getByRole('button', { name: /Pedir sugerencia de la IA de las \d+ entregas pendientes/ }).click();
+}
+await host.waitForFunction(() => [...document.querySelectorAll('.entrega-de-la-cola')].every((e) => e.innerText.includes('✨')), null, { timeout: 120000 }).catch(() => {});
 const estadoCola = await host.locator('.entrega-de-la-cola').allInnerTexts();
 const conSugerencia = estadoCola.filter((texto) => texto.includes('✨')).length;
 anotar('Groq sugirió una calificación para las 3 entregas', conSugerencia === 3, `${conSugerencia}/3 con ✨`);
@@ -125,6 +198,37 @@ if (await pendiente.count()) {
     await tal.click();
     await esperar(2000);
     anotar('«Aprobar tal cual» aprueba con lo que sugirió Groq', (await host.locator('.autor-revelado').count()) > 0);
+  }
+}
+
+// Devolución y respuesta de los estudiantes (los avisos a la sala van sueltos o en lote según el modo)
+{
+  const botonDevolver = host.getByRole('button', { name: /Devolver las \d+ aprobadas/ });
+  anotar('el docente puede devolver las aprobadas', (await botonDevolver.count()) > 0);
+  if (await botonDevolver.count()) {
+    await botonDevolver.click();
+    await esperar(AGRUPA_TODO ? 9000 : 4000);
+    let respondieron = 0;
+    for (const { pagina } of participantes) {
+      const botonDeAcuerdo = pagina.getByRole('button', { name: /De acuerdo/ });
+      if (await botonDeAcuerdo.count()) {
+        await botonDeAcuerdo.click();
+        respondieron += 1;
+      }
+    }
+    anotar('los estudiantes con devolución la ven y responden «de acuerdo»', respondieron === 2, `${respondieron}/2`);
+    await esperar(AGRUPA_TODO ? 9000 : 3000);
+    const eventos = await contarEventosDeLaSala(sala);
+    const sueltas = eventos['lectura.devuelta'] ?? 0;
+    const devueltasEnLote = eventos['lectura.devueltas_registradas'] ?? 0;
+    const confirmadasSueltas = eventos['lectura.confirmada'] ?? 0;
+    const confirmadasEnLote = eventos['lectura.confirmaciones_registradas'] ?? 0;
+    console.log(`     devoluciones → sueltas ${sueltas} · lotes ${devueltasEnLote}; respuestas → sueltas ${confirmadasSueltas} · lotes ${confirmadasEnLote}`);
+    if (AGRUPA_TODO) {
+      anotar('ahorro/masivo: devoluciones y respuestas viajan en lote, ninguna suelta', sueltas === 0 && confirmadasSueltas === 0 && devueltasEnLote >= 1 && confirmadasEnLote >= 1);
+    } else {
+      anotar('sala pequeña/moderada: devoluciones y respuestas viajan sueltas', sueltas === 2 && confirmadasSueltas === 2 && devueltasEnLote === 0 && confirmadasEnLote === 0);
+    }
   }
 }
 

@@ -10,7 +10,8 @@ import { PantallaDeConfiguracionDeLectura } from './componentes/lectura/Pantalla
 import { PanelDelControlDeLecturaParaElDocente } from './componentes/lectura/PanelDelControlDeLecturaParaElDocente.jsx';
 import { ResumenDeConfiguracionDeLectura } from './componentes/lectura/ResumenDeConfiguracionDeLectura.jsx';
 import { useEstadoPrivadoDelHost } from './useEstadoPrivadoDelHost.js';
-import { useEntregasAgrupadas } from './useEntregasAgrupadas.js';
+import { useAnunciosEnLote } from './useAnunciosEnLote.js';
+import { perfilDeAhorro } from '../shared/nucleo/capacidad/modosDeAhorro.js';
 import { AvisoDeSalaGrande } from './componentes/AvisoDeSalaGrande.jsx';
 import { SelectorDeActividad } from './componentes/SelectorDeActividad.jsx';
 import { PanelDeDesignacionDeCoModeradores } from './componentes/PanelDeDesignacionDeCoModeradores.jsx';
@@ -409,8 +410,10 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
     sessionId: codigoDeSala,
     activo: esLectura,
   });
-  // Las entregas se anuncian a la sala EN LOTE desde aquí (no una por estudiante): ver entregasAgrupadas.js.
-  useEntregasAgrupadas({ activo: esLectura, estado, estadoPrivado, publicar });
+  // En los modos de sala grande y masivo lo que protagoniza cada persona se anuncia a la sala EN LOTE desde aquí (no un
+  // aviso suelto por estudiante): ver anunciosEnLote.js y modosDeAhorro.js.
+  const perfilDeLaSesion = perfilDeAhorro({ programa: estado.programa ?? programa, estado });
+  useAnunciosEnLote({ activo: esLectura, estado, estadoPrivado, publicar, perfil: perfilDeLaSesion });
   // Señales de integridad: solo el host lee el canal privado. Con la integridad apagada no se conecta.
   const integridadActiva = integridadEstaActiva(estado.programa ?? programa);
   const { registros: registrosDeIntegridad } = useSenalesDeIntegridadDelHost({
@@ -609,7 +612,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
             <BotonCopiarLink url={urlDeIngreso} />
           </div>
 
-          <AvisoDeSalaGrande presencia={presencia} programa={programaVisible} />
+          <AvisoDeSalaGrande presencia={presencia} estado={estado} programa={programaVisible} />
 
           {esLectura ? (
             <ResumenDeConfiguracionDeLectura

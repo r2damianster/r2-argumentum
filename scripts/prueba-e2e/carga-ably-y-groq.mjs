@@ -12,6 +12,10 @@
 // unos 130.000 entregas). Si usas la misma cuenta de Ably en producción, no la corras durante una clase.
 //
 // Qué mide:
+//   Con --masivo se mide además el modo masivo (docs/06-pendientes.md): los clientes NO publican en la sala; mandan su ingreso
+//   y su texto por REST a un canal que lee solo el host, y un «host» simulado anuncia lo nuevo en lote cada 5 s. Se
+//   comprueba que cada cliente recibe todos los anuncios y se cuentan las entregas de mensaje (comparar con A y C).
+//   Con --solomasivo se corre solo ese escenario (sin A, B, C).
 //   Con --presencia se mide además el costo de la presencia (cada cliente entra y se suscribe a la de los demás),
 //   para decidir si conviene que solo el host la observe (docs/06-pendientes.md).
 //   Ably: cuántas conexiones se sostienen (rampa) y, con ese número de clientes, tres patrones de tráfico:
@@ -36,6 +40,8 @@ const PETICIONES_A_GROQ = Number(argumentos.groq ?? 40);
 const SOLO = argumentos.solo ?? null;
 const CON_MITIGACIONES = Boolean(argumentos.mitigaciones);
 const CON_PRESENCIA = Boolean(argumentos.presencia);
+const SOLO_MASIVO = Boolean(argumentos.solomasivo);
+const CON_MASIVO = Boolean(argumentos.masivo) || SOLO_MASIVO;
 
 for (const linea of readFileSync(new URL('../../.env.local', import.meta.url), 'utf-8').split(/\r?\n/)) {
   const coincidencia = linea.match(/^([A-Z0-9_]+)=(.*)$/);
@@ -171,6 +177,88 @@ async function pruebaDeAbly() {
     }
     if (CON_MITIGACIONES) console.log(`    publicaciones rechazadas que se reintentaron: ${reintentosHechos}`);
     console.log(`    errores al publicar (definitivos): ${erroresDePublicacion.length}${erroresDePublicacion.length ? ' · ' + [...new Set(erroresDePublicacion)].slice(0, 3).join(' | ') : ''}`);
+  }
+
+  if (CON_MASIVO) {
+    titulo(`Ably · M «masivo»: ${totalActivos} clientes (ingreso y entrega por canal privado) y un host que anuncia en lote`);
+    const canalPublico = `debate:sala:${identificadorDeLaCarga}-masivo`;
+    const canalPrivado = `debate:entrega:${identificadorDeLaCarga}-masivo`;
+    const anunciosPorCliente = new Map(activos.map(({ indice }) => [indice, { lotes: 0, ingresos: 0, entregas: 0, latencias: [] }]));
+    for (const { cliente, indice } of activos) {
+      await cliente.channels.get(canalPublico).subscribe((mensaje) => {
+        const resumen = anunciosPorCliente.get(indice);
+        resumen.lotes += 1;
+        resumen.ingresos += mensaje.data.ingresos?.length ?? 0;
+        resumen.entregas += mensaje.data.entregas?.length ?? 0;
+        resumen.latencias.push(Date.now() - mensaje.data.t);
+      });
+    }
+    // El host simulado: recibe por el canal privado y anuncia en lote cada 5 s.
+    const clienteDelHost = new Ably.Realtime({ key: process.env.ABLY_API_KEY, clientId: 'host-simulado' });
+    const recibidoPorElHost = { ingresos: [], entregas: [] };
+    await clienteDelHost.channels.get(canalPrivado).subscribe((mensaje) => {
+      (mensaje.name === 'entrega.ingreso' ? recibidoPorElHost.ingresos : recibidoPorElHost.entregas).push({ participantId: mensaje.data.indice });
+    });
+    let anunciados = { ingresos: 0, entregas: 0 };
+    let lotesPublicados = 0;
+    const erroresDelHost = [];
+    const temporizadorDelHost = setInterval(async () => {
+      const ingresos = recibidoPorElHost.ingresos.slice(anunciados.ingresos);
+      const entregas = recibidoPorElHost.entregas.slice(anunciados.entregas);
+      anunciados = { ingresos: recibidoPorElHost.ingresos.length, entregas: recibidoPorElHost.entregas.length };
+      for (const [lista, campo] of [[ingresos, 'ingresos'], [entregas, 'entregas']]) {
+        if (lista.length === 0) continue;
+        lotesPublicados += 1;
+        try {
+          await publicarConReintentos(() => clienteDelHost.channels.get(canalPublico).publish(`lote.${campo}`, { [campo]: lista, t: Date.now() }));
+        } catch (error) {
+          erroresDelHost.push(`${error.code ?? ''} ${error.message}`.trim());
+        }
+      }
+    }, 5000);
+    const rest = new Ably.Rest({ key: process.env.ABLY_API_KEY });
+    const erroresDeLosClientes = [];
+    let reintentosDeLosClientes = 0;
+    const publicarPrivado = async (nombre, datos) => {
+      try {
+        await publicarConReintentos(async () => {
+          try {
+            return await rest.channels.get(canalPrivado).publish(nombre, datos);
+          } catch (error) {
+            reintentosDeLosClientes += 1;
+            throw error;
+          }
+        });
+      } catch (error) {
+        erroresDeLosClientes.push(`${error.code ?? ''} ${error.message}`.trim());
+      }
+    };
+    const inicio = Date.now();
+    await Promise.all(
+      activos.map(async ({ indice }) => {
+        await esperar(Math.random() * 10000); // entran en 10 s (escanear el QR)
+        await publicarPrivado('entrega.ingreso', { indice, nombre: `p${indice}` });
+        await esperar(Math.random() * ventanaDelEscalonadoMs(totalActivos)); // y entregan escalonados
+        await publicarPrivado('entrega.texto', { indice, texto: 'x'.repeat(1200) });
+      })
+    );
+    await esperar(12000);
+    clearInterval(temporizadorDelHost);
+    const resumenes = [...anunciosPorCliente.values()];
+    const completos = resumenes.filter((r) => r.ingresos >= totalActivos && r.entregas >= totalActivos).length;
+    const entregasDeMensaje = resumenes.reduce((suma, r) => suma + r.lotes, 0);
+    const latencias = resumenes.flatMap((r) => r.latencias);
+    console.log(`  host simulado recibió ${recibidoPorElHost.ingresos.length} ingresos y ${recibidoPorElHost.entregas.length} textos de ${totalActivos}`);
+    console.log(`  lotes publicados por el host: ${lotesPublicados} · entregas de mensaje a los clientes: ${entregasDeMensaje} (en A+C eran ~${totalActivos * totalActivos * 2})`);
+    console.log(`  clientes que vieron a TODOS ingresar y entregar: ${completos}/${totalActivos} · latencia del anuncio ${resumirLatencias(latencias)}`);
+    console.log(`  duración ${((Date.now() - inicio) / 1000).toFixed(0)} s · reintentos por tasa de los clientes ${reintentosDeLosClientes} · errores definitivos: clientes ${erroresDeLosClientes.length}, host ${erroresDelHost.length}${erroresDeLosClientes.length ? ' · ' + [...new Set(erroresDeLosClientes)].slice(0, 2).join(' | ') : ''}`);
+    clienteDelHost.close();
+  }
+
+  if (SOLO_MASIVO) {
+    for (const { cliente } of clientes) cliente.close();
+    await esperar(1500);
+    return;
   }
 
   if (CON_PRESENCIA) {

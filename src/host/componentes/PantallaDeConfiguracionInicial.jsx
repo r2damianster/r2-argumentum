@@ -56,7 +56,8 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
       asignacionPostura,
       moderacion,
       integridad,
-      modoDeAhorro: esForo ? modoDeAhorro : undefined,
+      // El modo masivo es del control de lectura: un Programa de foro que lo trajera usa el de ahorro.
+      modoDeAhorro: esForo ? (modoDeAhorro === 'masivo' ? 'ahorro' : modoDeAhorro) : undefined,
     });
 
     if (!programaConfigurado) {

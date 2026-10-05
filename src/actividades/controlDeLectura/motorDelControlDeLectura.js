@@ -14,6 +14,7 @@ import { resolverRubricaDelPrograma } from '../../shared/nucleo/rubrica/rubrica.
 import { calcularPodioPorNota } from '../../shared/nucleo/podio/calcularPodioPorNota.js';
 import { construirColaDelDocente, estadoPrivadoInicial } from '../../shared/nucleo/entregas/estadoPrivadoDelDocente.js';
 import { calcularPuntosDeRevisores, calcularPuntuacionesDelPodio } from '../../shared/nucleo/entregas/revisionesEntrePares.js';
+import { perfilDeAhorro } from '../../shared/nucleo/capacidad/modosDeAhorro.js';
 
 const TIPOS_DE_FASE_CON_TIEMPO = [TIPOS_DE_FASE.CONTROL_DE_LECTURA, TIPOS_DE_FASE.REVISION_DE_PARES];
 
@@ -46,6 +47,10 @@ export function crearProcesosDelControlDeLectura(servicios) {
   // docente fijó la ventana y la clase no se puede quedar esperando.
   function confirmarSolasLasDevolucionesVencidas() {
     const { estado, publicar } = obtenerContexto();
+    // En los modos que agrupan (ahorro y masivo) todas las que vencieron en este momento viajan en UN solo aviso: si no,
+    // al vencer la ventana de toda la clase a la vez serían N avisos que cada uno recibe N veces.
+    const agrupa = perfilDeAhorro({ programa: estado?.programa ?? programa, estado }).avisosDeLaLectura === 'lote';
+    const vencidas = [];
     for (const entrega of Object.values(estado?.lectura?.entregas ?? {})) {
       if (!entrega.devueltaEn || entrega.confirmacion || !entrega.confirmaHasta || Date.now() < entrega.confirmaHasta) {
         continue;
@@ -55,11 +60,18 @@ export function crearProcesosDelControlDeLectura(servicios) {
         continue;
       }
       comenzarAccion(clave);
+      if (agrupa) {
+        vencidas.push({ participantId: entrega.participantId, decision: DECISIONES_DE_CONFIRMACION.AUTOMATICA, confirmadaEn: Date.now() });
+        continue;
+      }
       publicar(EVENTOS.LECTURA_CONFIRMADA, {
         participantId: entrega.participantId,
         decision: DECISIONES_DE_CONFIRMACION.AUTOMATICA,
         claveDeIdempotencia: clave,
       });
+    }
+    if (vencidas.length > 0) {
+      publicar(EVENTOS.LECTURA_CONFIRMACIONES_REGISTRADAS, { confirmaciones: vencidas });
     }
   }
 

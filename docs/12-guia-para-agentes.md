@@ -68,8 +68,8 @@ Sin base de datos para el estado en vivo (Ably). La proyección usa `BroadcastCh
 Ably rechaza lo que pasa de 50 mensajes/s en un canal y de 600/s en toda la cuenta, y **un mensaje rechazado es un mensaje perdido**. Cada publicación a la sala se entrega a todos: N personas publicando a la vez son N × N entregas.
 - Publica siempre con `publicarConReintentos` (`src/shared/ably/reintentarPublicacion.js`), nunca con `canal.publish` suelto.
 - Una acción que todos disparan en el mismo instante (enviar el borrador al vencer el tiempo) se **escalona** con una espera aleatoria (`escalonadoDelEnvio.js`).
-- Lo que muchos publican a la vez se **agrupa en el host**: en el modo de sala grande las entregas del control de lectura se anuncian en lote (`lectura.entregas_registradas`, `useEntregasAgrupadas`) en vez de un aviso por estudiante.
-- Las medidas de ahorro dependen del **modo de ahorro** de la sesión (`nucleo/capacidad/modosDeAhorro.js`: sala pequeña, sala grande o automático). Para saber qué hacer en un punto, pregúntale al perfil (`perfilDeAhorro({ programa, estado })`), no compares tamaños de sala a mano. Un modo nuevo se agrega con su comportamiento ya construido, no antes.
+- Lo que muchos publican a la vez se **agrupa en el host**: en el modo de sala grande las entregas del control de lectura se anuncian en lote (`lectura.entregas_registradas`, `useAnunciosEnLote`) en vez de un aviso por estudiante.
+- Las medidas de ahorro dependen del **modo de ahorro** de la sesión (`nucleo/capacidad/modosDeAhorro.js`: sala pequeña, moderada, ahorro, masivo, o automático). Para saber qué hacer en un punto, pregúntale al perfil (`perfilDeAhorro({ programa, estado })`), no compares tamaños de sala a mano. Lo que protagoniza cada persona y que en sala grande se anuncia en lote lo calcula el host con lo que recibió por los canales privados (`anunciosEnLote.js`, `useAnunciosEnLote`): si agregas otro hecho de ese tipo, agrégalo ahí con su evento en lote y su prueba, no como evento suelto desde el cliente. En el modo masivo los participantes no publican nada en la sala.
 - Antes de agregar un evento que cada participante publica a la sala, calcula cuántas entregas genera con 80 y con 200 personas. `scripts/prueba-e2e/carga-ably-y-groq.mjs` mide el efecto (con `--mitigaciones` usa lo que usa la app).
 
 ### Regla 9c — Groq nunca condiciona el trabajo (4-oct-2026)
@@ -121,6 +121,7 @@ El hook global `auto-commit` de Claude Code ignora este repositorio (existe `.no
 | 4-oct | El lote «aprobar las sugerencias de confianza alta» habría aprobado notas muy bajas | Se usó la «confianza» del modelo como señal de calidad; en la prueba con Groq real era inestable (20–90 % para el mismo texto) | Prueba en vivo con Groq real | El lote exige además nota sugerida ≥ 6 y sin marcas de integridad; pruebas nuevas |
 | 4-oct | El descuento por pegado no contaba lo **arrastrado** como pegado | Se medía solo el evento `paste` | Revisión de la regla del mínimo de caracteres pegados | `arrastradoCaracteres` entra en el mínimo; pruebas |
 | 4-oct | Con 80 o más personas parte de las entregas y posts **se perdía** sin aviso | Ably rechaza publicaciones por límite de tasa (42913/42917) y el cliente no reintentaba; además todos enviaban el borrador en el mismo instante | Prueba de carga con Ably real | Regla 9d: `publicarConReintentos` y envío escalonado (pendiente de probar con Ably real) |
+| 4-oct | La prueba con 500 clientes **restringió la cuenta de Ably** («connection limit exceeded», 40111) | El plan de Ably no sostiene 500 conexiones simultáneas; la prueba no avisa antes | Prueba de carga del modo masivo | Los scripts de carga avisan del riesgo; para 500 hace falta otro plan (`06-pendientes.md`) |
 | 24-sep | Falso «zoom 30 %» en un navegador automatizado (tapaba botones) | `viewport` fijo en una ventana con otro tamaño | Capturas del e2e | El script usa `no_viewport` |
 
 ## 4. Cómo probar
@@ -137,7 +138,8 @@ El hook global `auto-commit` de Claude Code ignora este repositorio (existe `.no
 | Móviles | `python scripts/prueba-e2e/moviles.py` | 8 modelos, táctil, teclado, horizontal |
 | Foro escrito | `python scripts/prueba-e2e/foro.py` | actividad, moderación, integridad, IA, revisión, cierre e informe (sin ejecutar aún en producción) |
 | Foro escrito **en local**, Ably y Groq reales | `node scripts/prueba-e2e/foro-vivo-local.mjs` | 1 host + 6 participantes en Chrome: co-moderador, posts con la sugerencia de Groq, réplica, reacción, pegado con aviso, canal privado de integridad, informe |
-| Control de lectura **en local**, Ably y Groq reales | `node scripts/prueba-e2e/lectura-vivo-local.mjs` | 1 host + 3 participantes: muestra pedagógica, entrega, sugerencias de Groq en cola (anónimas, el estudiante no las ve), lote que solo ofrece lo claro |
+| Revisión entre pares **en local** por modo de ahorro | `MODO_DE_AHORRO=ahorro node scripts/prueba-e2e/revision-vivo-local.mjs` | 3 participantes, 6 revisiones, avisos sueltos o en lote |
+| Control de lectura **en local**, Ably y Groq reales | `node scripts/prueba-e2e/lectura-vivo-local.mjs` (con `MODO_DE_AHORRO=pequena|moderada|ahorro|masivo`) | 1 host + 3 participantes: muestra pedagógica, entrega, sugerencias de Groq en cola (anónimas, el estudiante no las ve), lote que solo ofrece lo claro |
 
 Los scripts manejan **producción** (Ably y Groq solo existen en Vercel) y consumen unas pocas llamadas reales. El login del host lo escribe el docente (o `login_host.py` con la clave que él entregue); ver `scripts/prueba-e2e/README.md`.
 

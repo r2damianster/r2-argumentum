@@ -14,8 +14,13 @@ import {
 // Devuelve `estados`: por entrega, 'en_curso', 'en_espera' (la IA alcanzó su límite por minuto: la cola se pausa y
 // sigue sola) o 'fallo'. Un fallo no bloquea nada: el docente califica
 // a mano o pide la sugerencia con «Reintentar».
-export function useSugerenciasDeCalificacion({ activo, cola, programa, rubrica, publicarComoDocente, razonamiento = 'normal' }) {
+//
+// `modo`: 'automaticas' (la IA sugiere a medida que llegan las entregas) o 'por_demanda' (solo las que el docente pide con
+// `pedir` o `pedirPendientes`; modos «ahorro» y masivo, donde pedirlas todas gastaría tokens que el plan gratuito no tiene).
+export function useSugerenciasDeCalificacion({ activo, cola, programa, rubrica, publicarComoDocente, razonamiento = 'normal', modo = 'automaticas' }) {
   const [estados, setEstados] = useState({});
+  // Entregas cuya sugerencia pidió el docente (solo cuenta en el modo por demanda).
+  const [solicitadas, setSolicitadas] = useState(() => new Set());
   const [reintentoManual, setReintentoManual] = useState(0);
   const enCurso = useRef(new Set());
   const intentos = useRef({});
@@ -70,8 +75,9 @@ export function useSugerenciasDeCalificacion({ activo, cola, programa, rubrica, 
     if (!activo) {
       return undefined;
     }
+    const colaVisible = modo === 'por_demanda' ? cola.filter((item) => solicitadas.has(item.participantId)) : cola;
     const pendientes = elegirConsultasPendientes({
-      cola,
+      cola: colaVisible,
       enCurso: enCurso.current,
       intentos: intentos.current,
       ultimoIntento: ultimoIntento.current,
@@ -94,7 +100,7 @@ export function useSugerenciasDeCalificacion({ activo, cola, programa, rubrica, 
       ([participantId, hechos]) =>
         hechos < MAXIMO_DE_INTENTOS_AUTOMATICOS &&
         !enCurso.current.has(participantId) &&
-        cola.some((item) => item.participantId === participantId && !item.sugerenciaConsultada)
+        colaVisible.some((item) => item.participantId === participantId && !item.sugerenciaConsultada)
     );
     if (!hayFallosEnEspera) {
       return undefined;
@@ -102,7 +108,7 @@ export function useSugerenciasDeCalificacion({ activo, cola, programa, rubrica, 
     const temporizador = setTimeout(() => setReintentoManual((veces) => veces + 1), ESPERA_ENTRE_INTENTOS_MS + 500);
     return () => clearTimeout(temporizador);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activo, cola, estados, reintentoManual]);
+  }, [activo, cola, estados, reintentoManual, modo, solicitadas]);
 
   // «Reintentar»: borra el conteo de intentos de esa entrega y vuelve a mirar.
   function reintentar(participantId) {
@@ -113,5 +119,16 @@ export function useSugerenciasDeCalificacion({ activo, cola, programa, rubrica, 
     setReintentoManual((veces) => veces + 1);
   }
 
-  return { estados, reintentar };
+  // Modo por demanda: pide la sugerencia de una entrega, o de todas las que todavía no tienen y ya llegó su texto.
+  function pedir(participantId) {
+    setSolicitadas((previas) => new Set(previas).add(participantId));
+  }
+
+  const pendientesDePedir = cola.filter((item) => item.texto && !item.sugerenciaConsultada && !solicitadas.has(item.participantId));
+
+  function pedirPendientes() {
+    setSolicitadas((previas) => new Set([...previas, ...pendientesDePedir.map((item) => item.participantId)]));
+  }
+
+  return { estados, reintentar, pedir, pedirPendientes, cantidadSinPedir: pendientesDePedir.length };
 }
