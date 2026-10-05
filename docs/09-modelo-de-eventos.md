@@ -284,7 +284,8 @@ Por el canal de la sala viajan **solo estados y contadores**; texto, comentarios
 
 ```
 phase.started        { phaseType: "control_de_lectura" | "revision_de_pares", duracionMin }
-lectura.entrega_registrada { participantId, palabras, parrafos, enviadoPorTiempo? }   // una por persona; sin texto
+lectura.entrega_registrada { participantId, palabras, parrafos, enviadoPorTiempo? }   // una por persona; sin texto. Ya no la publica la app (ver el lote)
+lectura.entregas_registradas { entregas: [{ participantId, palabras, parrafos, enviadoPorTiempo?, entregadaEn }] }  // solo el host, EN LOTE cada ~5 s; sin texto
 lectura.revision_enviada   { participantId, indice }                                  // solo en la fase de revisión; sin contenido
 lectura.devuelta           { participantId, hasta, revisada? }                        // solo el host; `revisada` tras un desacuerdo
 lectura.confirmada         { participantId, decision: "de_acuerdo" | "en_desacuerdo" | "automatica" }
@@ -293,6 +294,7 @@ lectura.podio_publicado    { lugares: [{ lugar, participantIds }] }             
 
 - El reducer acepta cada uno solo si lo publicó quien dice ser (`clientId`): la entrega y la revisión, la propia persona; la devolución y el podio, el host; la confirmación, la persona (`de_acuerdo` / `en_desacuerdo`) o el host (`automatica`, al vencer la ventana).
 - Una entrega solo entra con la escritura abierta, o hasta 2 minutos después del cierre si viene marcada `enviadoPorTiempo`. La primera de cada persona es la que vale.
+- **Entregas en lote (4-oct-2026).** El estudiante manda su texto solo por su canal privado (`entrega.texto`); el host, que lo recibe, anuncia a la sala las entregas nuevas con `lectura.entregas_registradas`, a lo sumo cada 5 s y hasta 500 por mensaje (`useEntregasAgrupadas`, `entregasAgrupadas.js`). El host comprueba cada una antes de anunciarla (con la hora de llegada al servidor, no la del anuncio) y el reducer solo exige que lo publique el host y que la persona haya ingresado. Motivo: un aviso suelto por estudiante es N × N mensajes de salida y con 80 o más personas Ably rechaza parte de ellos (docs/06-pendientes.md). El aviso suelto `lectura.entrega_registrada` sigue siendo válido para el reducer (compatibilidad), pero la app ya no lo publica. Al enviar, el estudiante ve su confirmación al instante porque la pantalla recuerda lo que acaba de mandar.
 - El motor del host confirma solo las devoluciones cuya ventana venció y publica el podio justo antes de `session.closed`.
 
 ### Canales privados del control de lectura

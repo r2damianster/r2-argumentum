@@ -91,6 +91,10 @@ export const EVENTOS = {
   // estados y contadores: el texto, los comentarios y las notas van por canales privados.
   // La entrega de una persona: cuántas palabras y párrafos tiene, sin el texto.
   LECTURA_ENTREGA_REGISTRADA: 'lectura.entrega_registrada',
+  // Las mismas entregas, anunciadas EN LOTE por el host (cada pocos segundos). Es lo que usa la app: cada aviso a
+  // la sala se entrega a todos, y con N personas entregando a la vez N avisos sueltos son N × N mensajes
+  // (docs/06-pendientes.md, prueba de carga). Solo vale si lo publica el host, que ya validó cada entrega.
+  LECTURA_ENTREGAS_REGISTRADAS: 'lectura.entregas_registradas',
   // El docente devolvió la calificación (los comentarios van por el canal privado del estudiante).
   LECTURA_DEVUELTA: 'lectura.devuelta',
   // El estudiante respondió «de acuerdo» o «no estoy de acuerdo»; la confirma sola el host al vencer la ventana.

@@ -12,6 +12,8 @@
 // unos 130.000 entregas). Si usas la misma cuenta de Ably en producción, no la corras durante una clase.
 //
 // Qué mide:
+//   Con --presencia se mide además el costo de la presencia (cada cliente entra y se suscribe a la de los demás),
+//   para decidir si conviene que solo el host la observe (docs/06-pendientes.md).
 //   Ably: cuántas conexiones se sostienen (rampa) y, con ese número de clientes, tres patrones de tráfico:
 //     A «lectura»: cada cliente publica 1 evento en la sala y 1 texto en un canal privado (repartidos en 10 s).
 //     B «foro»:    cada cliente publica 3 posts en la sala (repartidos en 30 s). Cada post lo reciben todos.
@@ -33,6 +35,7 @@ const MAXIMO_DE_CLIENTES = Number(argumentos.clientes ?? 200);
 const PETICIONES_A_GROQ = Number(argumentos.groq ?? 40);
 const SOLO = argumentos.solo ?? null;
 const CON_MITIGACIONES = Boolean(argumentos.mitigaciones);
+const CON_PRESENCIA = Boolean(argumentos.presencia);
 
 for (const linea of readFileSync(new URL('../../.env.local', import.meta.url), 'utf-8').split(/\r?\n/)) {
   const coincidencia = linea.match(/^([A-Z0-9_]+)=(.*)$/);
@@ -168,6 +171,33 @@ async function pruebaDeAbly() {
     }
     if (CON_MITIGACIONES) console.log(`    publicaciones rechazadas que se reintentaron: ${reintentosHechos}`);
     console.log(`    errores al publicar (definitivos): ${erroresDePublicacion.length}${erroresDePublicacion.length ? ' · ' + [...new Set(erroresDePublicacion)].slice(0, 3).join(' | ') : ''}`);
+  }
+
+  if (CON_PRESENCIA) {
+    titulo(`Ably · P «presencia»: ${totalActivos} clientes se suscriben a la presencia y entran en 10 s`);
+    const canalDePresencia = `debate:sala:${identificadorDeLaCarga}-presencia`;
+    const eventosDePresencia = new Map(activos.map(({ indice }) => [indice, 0]));
+    const erroresDePresencia = [];
+    for (const { cliente, indice } of activos) {
+      await cliente.channels.get(canalDePresencia).presence.subscribe(() => {
+        eventosDePresencia.set(indice, eventosDePresencia.get(indice) + 1);
+      });
+    }
+    const inicioDePresencia = Date.now();
+    await Promise.all(
+      activos.map(async ({ cliente, indice }) => {
+        await esperar(Math.random() * 10000);
+        try {
+          await cliente.channels.get(canalDePresencia).presence.enter({ nombre: `p${indice}`, emoji: '🦊' });
+        } catch (error) {
+          erroresDePresencia.push(`${error.code ?? ''} ${error.message}`.trim());
+        }
+      })
+    );
+    await esperar(6000);
+    const recibidos = [...eventosDePresencia.values()];
+    console.log(`  eventos de presencia esperados por cliente: ${totalActivos} · promedio recibido ${Math.round(recibidos.reduce((a, b) => a + b, 0) / recibidos.length)} · clientes completos ${recibidos.filter((n) => n >= totalActivos).length}/${totalActivos}`);
+    console.log(`  total de entregas de presencia: ${recibidos.reduce((a, b) => a + b, 0)} en ${((Date.now() - inicioDePresencia) / 1000).toFixed(1)} s · errores al entrar: ${erroresDePresencia.length}${erroresDePresencia.length ? ' · ' + [...new Set(erroresDePresencia)].slice(0, 2).join(' | ') : ''}`);
   }
 
   titulo(`Ably · A «lectura»: ${totalActivos} entregas repartidas en 10 s`);

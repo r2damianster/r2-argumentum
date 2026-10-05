@@ -1573,3 +1573,23 @@ input {
   width: 5rem;
   min-height: 44px;
 }
+
+/* Aviso al docente cuando la sala es grande (ver avisoDeSalaGrande.js). Colores con contraste AA sobre fondo claro. */
+.aviso-de-sala-grande {
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 10px 0;
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  color: #78350f;
+}
+
+.aviso-de-sala-grande--alta {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #7f1d1d;
+}
+
+.aviso-de-sala-grande p {
+  margin: 0 0 4px;
+}

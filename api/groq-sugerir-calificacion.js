@@ -175,7 +175,12 @@ export default async function handler(request, response) {
     temperature: 0,
     top_p: 1,
     seed: 7,
-    max_tokens: 2500,
+    // `reasoning_effort: 'low'`: con el esfuerzo por defecto el modelo gastaba ~1.000–1.400 tokens «pensando» antes de
+    // responder. Medido el 4-oct-2026 con 3 textos (bueno, flojo, fuera de tema): el total por sugerencia bajó de
+    // ~1.500–2.400 a ~900–1.000 tokens y los niveles salieron iguales (salvo 2 criterios de formato en el texto
+    // fuera de tema). Con el límite de 8.000 tokens por minuto del plan gratuito, es ~2 veces más sugerencias.
+    reasoning_effort: 'low',
+    max_tokens: 1800,
     response_format: { type: 'json_object' },
   });
 

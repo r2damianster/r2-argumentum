@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { EVENTOS } from '../../../shared/eventos/nombresDeEventos.js';
 import { EVENTOS_PRIVADOS } from '../../../shared/nucleo/entregas/canalesPrivados.js';
 import { contarPalabras, contarParrafos } from '../../../shared/nucleo/escritura/contarTexto.js';
 import { esperaAleatoriaDelEnvioMs } from '../../../shared/nucleo/entregas/escalonadoDelEnvio.js';
@@ -45,11 +44,13 @@ export function CompositorDeLaEntrega({
   participantId,
   escrituraAbierta,
   escrituraYaCerro,
-  publicar,
   publicarIntegridad,
   publicarEntregaPrivada,
 }) {
-  const entrega = estado.lectura?.entregas?.[participantId] ?? null;
+  // El host anuncia las entregas a la sala en lote cada pocos segundos: para que la persona vea su confirmación
+  // al instante se recuerda aquí lo que acaba de enviar por su canal privado.
+  const [entregaLocal, setEntregaLocal] = useState(null);
+  const entrega = estado.lectura?.entregas?.[participantId] ?? entregaLocal;
   const clave = claveDelBorrador(estado.sesion.identificador, participantId);
   const idioma = resolverIdiomaDelDebate(programa);
   const parrafosPedidos = resolverNumeroDeParrafos(programa, idioma);
@@ -89,12 +90,13 @@ export function CompositorDeLaEntrega({
     setEnviando(true);
     setError('');
     try {
+      // El texto va solo por el canal privado; el aviso a la sala (con los conteos) lo publica el host en lote.
       await publicarEntregaPrivada(EVENTOS_PRIVADOS.ENTREGA_TEXTO, { texto: textoFinal, enviadoPorTiempo: porTiempo });
-      publicar(EVENTOS.LECTURA_ENTREGA_REGISTRADA, {
+      setEntregaLocal({
         participantId,
         palabras: contarPalabras(textoFinal),
         parrafos: contarParrafos(textoFinal),
-        enviadoPorTiempo: porTiempo,
+        enviadaPorTiempo: porTiempo,
       });
       setConfirmandoEnvio(false);
     } catch (fallo) {

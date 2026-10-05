@@ -30,6 +30,9 @@ const ETIQUETA_DE_TIPO_DE_REPLICA = {
 // mejoró. Pasado eso se publica directo, así la IA nunca frena a quien ya decidió qué escribir y el
 // costo por aporte queda acotado.
 const MAXIMO_DE_CONSULTAS_A_LA_IA = 2;
+// Una réplica corta («estoy de acuerdo porque lo viví») no gana nada con la sugerencia de la IA y cuesta una llamada
+// a Groq: con salas grandes el plan gratuito se agota enseguida (docs/06-pendientes.md). Se publica directo.
+const PALABRAS_MINIMAS_DE_UNA_REPLICA_PARA_CONSULTAR_A_LA_IA = 15;
 
 function generarId(prefijo) {
   return `${prefijo}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -203,7 +206,8 @@ export function CompositorDeAporte({
       return;
     }
     // Sin IA, o con las consultas agotadas, se publica directo.
-    if (!usaLaIA || consultasHechas >= MAXIMO_DE_CONSULTAS_A_LA_IA) {
+    const esReplicaCorta = Boolean(objetivo) && contarPalabras(texto) < PALABRAS_MINIMAS_DE_UNA_REPLICA_PARA_CONSULTAR_A_LA_IA;
+    if (!usaLaIA || consultasHechas >= MAXIMO_DE_CONSULTAS_A_LA_IA || esReplicaCorta) {
       enviar(sugerenciaAplicable);
       return;
     }

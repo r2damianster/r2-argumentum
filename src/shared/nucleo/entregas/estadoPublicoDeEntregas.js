@@ -45,6 +45,24 @@ function laEscrituraEstaAbierta(estado, data) {
   );
 }
 
+function crearEntregaPublica(data, timestamp) {
+  return {
+    entregaId: idDeLaEntrega(data.participantId),
+    participantId: data.participantId,
+    palabras: numeroAcotado(data.palabras, MAXIMO_DE_PALABRAS_ACEPTADO),
+    parrafos: numeroAcotado(data.parrafos, 1000),
+    entregadaEn: timestamp ?? null,
+    enviadaPorTiempo: Boolean(data.enviadoPorTiempo),
+    devueltaEn: null,
+    confirmaHasta: null,
+    devolucionRevisada: false,
+    confirmacion: null,
+  };
+}
+
+// Máximo de entregas que acepta un solo aviso en lote.
+const MAXIMO_DE_ENTREGAS_POR_LOTE = 500;
+
 // Devuelve el estado nuevo, o `undefined` si el evento no es de este módulo (el reducer sigue con
 // los demás casos). Un evento inválido o repetido devuelve el estado sin cambios.
 export function aplicarEventoDeEntregas(estado, evento) {
@@ -67,23 +85,34 @@ export function aplicarEventoDeEntregas(estado, evento) {
         ...estado,
         lectura: {
           ...lectura,
-          entregas: {
-            ...lectura.entregas,
-            [data.participantId]: {
-              entregaId: idDeLaEntrega(data.participantId),
-              participantId: data.participantId,
-              palabras: numeroAcotado(data.palabras, MAXIMO_DE_PALABRAS_ACEPTADO),
-              parrafos: numeroAcotado(data.parrafos, 1000),
-              entregadaEn: data.timestamp ?? null,
-              enviadaPorTiempo: Boolean(data.enviadoPorTiempo),
-              devueltaEn: null,
-              confirmaHasta: null,
-              devolucionRevisada: false,
-              confirmacion: null,
-            },
-          },
+          entregas: { ...lectura.entregas, [data.participantId]: crearEntregaPublica(data, data.timestamp) },
         },
       };
+    }
+
+    // El host anuncia varias entregas de una vez. Él ya comprobó que cada una llegó a tiempo (ver
+    // entregasAgrupadas.js), así que aquí solo se exige que el emisor sea el host y que quien entregó haya ingresado.
+    case EVENTOS.LECTURA_ENTREGAS_REGISTRADAS: {
+      if (!elEmisorEs(evento, IDENTIDAD_DEL_HOST) || !Array.isArray(data.entregas)) {
+        return estado;
+      }
+      const nuevas = {};
+      for (const entrega of data.entregas.slice(0, MAXIMO_DE_ENTREGAS_POR_LOTE)) {
+        const participantId = entrega?.participantId;
+        if (
+          !estado.participantes[participantId]?.ingresoConfirmado ||
+          participantId === IDENTIDAD_DEL_HOST ||
+          lectura.entregas[participantId] ||
+          nuevas[participantId]
+        ) {
+          continue;
+        }
+        nuevas[participantId] = crearEntregaPublica({ ...entrega, participantId }, Number(entrega.entregadaEn) || data.timestamp);
+      }
+      if (Object.keys(nuevas).length === 0) {
+        return estado;
+      }
+      return { ...estado, lectura: { ...lectura, entregas: { ...lectura.entregas, ...nuevas } } };
     }
 
     case EVENTOS.LECTURA_DEVUELTA: {

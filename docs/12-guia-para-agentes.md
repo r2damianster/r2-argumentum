@@ -68,6 +68,7 @@ Sin base de datos para el estado en vivo (Ably). La proyección usa `BroadcastCh
 Ably rechaza lo que pasa de 50 mensajes/s en un canal y de 600/s en toda la cuenta, y **un mensaje rechazado es un mensaje perdido**. Cada publicación a la sala se entrega a todos: N personas publicando a la vez son N × N entregas.
 - Publica siempre con `publicarConReintentos` (`src/shared/ably/reintentarPublicacion.js`), nunca con `canal.publish` suelto.
 - Una acción que todos disparan en el mismo instante (enviar el borrador al vencer el tiempo) se **escalona** con una espera aleatoria (`escalonadoDelEnvio.js`).
+- Lo que muchos publican a la vez se **agrupa en el host**: las entregas del control de lectura se anuncian en lote (`lectura.entregas_registradas`, `useEntregasAgrupadas`) en vez de un aviso por estudiante. No vuelvas a publicar el aviso suelto desde el cliente.
 - Antes de agregar un evento que cada participante publica a la sala, calcula cuántas entregas genera con 80 y con 200 personas. `scripts/prueba-e2e/carga-ably-y-groq.mjs` mide el efecto (con `--mitigaciones` usa lo que usa la app).
 
 ### Regla 9c — Groq nunca condiciona el trabajo (4-oct-2026)
