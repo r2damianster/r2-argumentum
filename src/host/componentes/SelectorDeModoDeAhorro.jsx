@@ -37,6 +37,8 @@ export function SelectorDeModoDeAhorro({ modoDeAhorro, onCambiarModoDeAhorro, co
           {
             modo: MODOS_DE_AHORRO.MASIVO,
             titulo: ETIQUETA_DEL_MODO_DE_AHORRO[MODOS_DE_AHORRO.MASIVO],
+            // El plan gratuito de Ably no sostiene cientos de conexiones simultáneas (la prueba con 500 restringió la cuenta).
+            advertencia: '⚠️ Plan gratuito insuficiente: requiere un plan de pago de Ably',
             ayuda:
               'Para cientos de personas: nadie publica en la sala (ni siquiera al entrar); todo va por canales privados y tú ves resúmenes cada pocos segundos. La entrada tarda unos segundos y ya no ves quién está conectado. Se elige aquí, antes de abrir la sala.',
           },
@@ -59,6 +61,12 @@ export function SelectorDeModoDeAhorro({ modoDeAhorro, onCambiarModoDeAhorro, co
               />
               <span>
                 <strong>{opcion.titulo}</strong>
+                {opcion.advertencia && (
+                  <>
+                    {' '}
+                    <span className="etiqueta-de-advertencia">{opcion.advertencia}</span>
+                  </>
+                )}
                 <br />
                 <span className="texto-de-ayuda">{opcion.ayuda}</span>
               </span>

@@ -1599,3 +1599,13 @@ input {
   background: #f8fafc;
   color: #0f172a;
 }
+.etiqueta-de-advertencia {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  color: #78350f;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
