@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { CONCURRENCIA_DE_CONSULTAS, ESPERA_ENTRE_INTENTOS_MS, MAXIMO_DE_INTENTOS_AUTOMATICOS, elegirConsultasPendientes } from './colaDeConsultas.js';
+import {
+  CONCURRENCIA_DE_CONSULTAS,
+  ESPERA_ENTRE_INTENTOS_MS,
+  MAXIMO_DE_INTENTOS_AUTOMATICOS,
+  PAUSA_MAXIMA_POR_LIMITE_MS,
+  PAUSA_MINIMA_POR_LIMITE_MS,
+  calcularPausaPorLimite,
+  elegirConsultasPendientes,
+} from './colaDeConsultas.js';
 
 const entrega = (participantId, extra = {}) => ({ participantId, texto: `Texto de ${participantId}`, sugerenciaConsultada: false, ...extra });
 
@@ -30,5 +38,21 @@ describe('elegirConsultasPendientes', () => {
     expect(
       elegirConsultasPendientes({ ...base, intentos: { a: MAXIMO_DE_INTENTOS_AUTOMATICOS }, ultimoIntento: { a: 0 } })
     ).toEqual([]);
+  });
+});
+
+describe('pausa por el límite por minuto de Groq', () => {
+  it('con la cola pausada no se consulta nada, y al terminar la pausa sigue sola', () => {
+    const cola = ['a', 'b'].map((id) => entrega(id));
+    const ahora = 1_000_000;
+    expect(elegirConsultasPendientes({ cola, enCurso: new Set(), ahora, pausadoHasta: ahora + 10_000 })).toEqual([]);
+    expect(elegirConsultasPendientes({ cola, enCurso: new Set(), ahora, pausadoHasta: ahora - 1 })).toHaveLength(2);
+  });
+
+  it('la pausa respeta lo que pide Groq, con un mínimo y un máximo', () => {
+    expect(calcularPausaPorLimite(20_000)).toBe(20_000);
+    expect(calcularPausaPorLimite(100)).toBe(PAUSA_MINIMA_POR_LIMITE_MS);
+    expect(calcularPausaPorLimite(10 * 60 * 1000)).toBe(PAUSA_MAXIMA_POR_LIMITE_MS);
+    expect(calcularPausaPorLimite(undefined)).toBe(PAUSA_MINIMA_POR_LIMITE_MS);
   });
 });

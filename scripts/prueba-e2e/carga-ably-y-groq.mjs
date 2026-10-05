@@ -1,6 +1,11 @@
 // Prueba de CARGA, EN LOCAL, con Ably y Groq reales (4-oct-2026). No usa navegador: clientes de Ably sin interfaz.
 //
-//   node scripts/prueba-e2e/carga-ably-y-groq.mjs [--clientes=200] [--groq=40] [--solo=ably|groq]
+//   node scripts/prueba-e2e/carga-ably-y-groq.mjs [--clientes=200] [--groq=40] [--solo=ably|groq] [--mitigaciones]
+//
+// Con --mitigaciones los clientes simulados usan lo mismo que la app desde el 4-oct-2026: publican con
+// `publicarConReintentos` (reintento con espera aleatoria ante 42913/42917) y, en la ráfaga C, escalonan el envío con
+// `esperaAleatoriaDelEnvioMs` (src/shared/ably/ y src/shared/nucleo/entregas/). Sin la bandera se mide el comportamiento
+// sin mitigar, para comparar. Para la cola de Groq no hace falta bandera: la pausa por 429 está en la app.
 //
 // Necesita ABLY_API_KEY y GROQ_API_KEY en .env.local. Usa canales propios (`debate:sala:carga-…`), nunca los de una
 // sala real. OJO: abre hasta N conexiones de Ably a la vez y gasta mensajes de la cuota mensual (con 200 clientes,
@@ -15,6 +20,8 @@
 //   (cuántas dan 429) y la misma carga con la concurrencia de la app (2 a la vez).
 import { readFileSync } from 'node:fs';
 import Ably from 'ably';
+import { publicarConReintentos } from '../../src/shared/ably/reintentarPublicacion.js';
+import { esperaAleatoriaDelEnvioMs, ventanaDelEscalonadoMs } from '../../src/shared/nucleo/entregas/escalonadoDelEnvio.js';
 
 const argumentos = Object.fromEntries(
   process.argv.slice(2).map((texto) => {
@@ -25,6 +32,7 @@ const argumentos = Object.fromEntries(
 const MAXIMO_DE_CLIENTES = Number(argumentos.clientes ?? 200);
 const PETICIONES_A_GROQ = Number(argumentos.groq ?? 40);
 const SOLO = argumentos.solo ?? null;
+const CON_MITIGACIONES = Boolean(argumentos.mitigaciones);
 
 for (const linea of readFileSync(new URL('../../.env.local', import.meta.url), 'utf-8').split(/\r?\n/)) {
   const coincidencia = linea.match(/^([A-Z0-9_]+)=(.*)$/);
@@ -120,9 +128,22 @@ async function pruebaDeAbly() {
     latenciasDelHost.push(Date.now() - mensaje.data.t);
   });
 
+  let reintentosHechos = 0;
   async function publicar(cliente, nombreDelCanal, nombre, datos) {
     try {
-      await cliente.channels.get(nombreDelCanal).publish(nombre, { ...datos, t: Date.now() });
+      const publicarUnaVez = () => cliente.channels.get(nombreDelCanal).publish(nombre, { ...datos, t: Date.now() });
+      if (CON_MITIGACIONES) {
+        await publicarConReintentos(async () => {
+          try {
+            return await publicarUnaVez();
+          } catch (error) {
+            reintentosHechos += 1;
+            throw error;
+          }
+        });
+      } else {
+        await publicarUnaVez();
+      }
     } catch (error) {
       erroresDePublicacion.push(`${error.code ?? ''} ${error.message}`.trim());
     }
@@ -132,6 +153,7 @@ async function pruebaDeAbly() {
     latenciasDelHost.length = 0;
     recibidoPorElHost = 0;
     erroresDePublicacion.length = 0;
+    reintentosHechos = 0;
   };
   function informe(nombre, publicadosEnLaSala, publicadosEnEntregas = 0) {
     const todas = [...recibidos.values()].flat();
@@ -144,7 +166,8 @@ async function pruebaDeAbly() {
     if (publicadosEnEntregas) {
       console.log(`    canal privado de entregas (host): ${recibidoPorElHost}/${publicadosEnEntregas} · ${resumirLatencias(latenciasDelHost)}`);
     }
-    console.log(`    errores al publicar: ${erroresDePublicacion.length}${erroresDePublicacion.length ? ' · ' + [...new Set(erroresDePublicacion)].slice(0, 3).join(' | ') : ''}`);
+    if (CON_MITIGACIONES) console.log(`    publicaciones rechazadas que se reintentaron: ${reintentosHechos}`);
+    console.log(`    errores al publicar (definitivos): ${erroresDePublicacion.length}${erroresDePublicacion.length ? ' · ' + [...new Set(erroresDePublicacion)].slice(0, 3).join(' | ') : ''}`);
   }
 
   titulo(`Ably · A «lectura»: ${totalActivos} entregas repartidas en 10 s`);
@@ -174,13 +197,15 @@ async function pruebaDeAbly() {
 
   titulo(`Ably · C «ráfaga»: ${totalActivos} publican a la vez (vence el tiempo y se envían todos los borradores)`);
   reiniciarMedicion();
+  if (CON_MITIGACIONES) console.log(`  (envío escalonado en una ventana de ${(ventanaDelEscalonadoMs(totalActivos) / 1000).toFixed(1)} s)`);
   await Promise.all(
     activos.map(async ({ cliente, indice }) => {
+      if (CON_MITIGACIONES) await esperar(esperaAleatoriaDelEnvioMs(totalActivos));
       await publicar(cliente, canalDeLaSala, 'lectura.entrega_registrada', { indice });
       await publicar(cliente, canalDeLasEntregas, 'entrega.texto', { indice, texto: 'z'.repeat(1200) });
     })
   );
-  await esperar(8000);
+  await esperar(CON_MITIGACIONES ? 20000 : 8000);
   informe('Resultado C', totalActivos, totalActivos);
 
   titulo('Ably · cierre');
@@ -287,7 +312,9 @@ async function pruebaDeGroq() {
 }
 
 // ------------------------------------------------------------------------------------------------ ejecución
-console.log(`Prueba de carga · clientes ${MAXIMO_DE_CLIENTES} · peticiones a Groq ${PETICIONES_A_GROQ}${SOLO ? ' · solo ' + SOLO : ''}`);
+console.log(
+  `Prueba de carga · clientes ${MAXIMO_DE_CLIENTES} · peticiones a Groq ${PETICIONES_A_GROQ}${SOLO ? ' · solo ' + SOLO : ''} · ${CON_MITIGACIONES ? 'CON mitigaciones' : 'sin mitigaciones'}`
+);
 if (SOLO !== 'groq') await pruebaDeAbly();
 if (SOLO !== 'ably') await pruebaDeGroq();
 console.log('\nFin.');

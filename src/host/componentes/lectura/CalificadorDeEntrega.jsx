@@ -103,6 +103,9 @@ export function CalificadorDeEntrega({
             </span>
           </p>
           {estadoDeLaSugerencia === 'en_curso' && <p className="texto-de-ayuda">Consultando…</p>}
+          {estadoDeLaSugerencia === 'en_espera' && (
+            <p className="texto-de-ayuda">En espera: la IA alcanzó su límite por minuto. La sugerencia llegará sola; mientras tanto puedes calificar a mano.</p>
+          )}
           {estadoDeLaSugerencia === 'fallo' && (
             <p className="texto-de-ayuda">
               No se pudo obtener la sugerencia. Puedes calificar a mano.{' '}

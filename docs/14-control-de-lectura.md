@@ -33,7 +33,7 @@ escribiendo → entregada → [revisión de pares] → docente califica (a ciega
 | Estudiante en desacuerdo | Escribe un motivo (lo ve solo el docente). El docente mantiene o cambia la calificación **una sola vez**; el estudiante recibe los comentarios actualizados («revisada») y la ventana original no se reabre. |
 | Nunca confirma | Confirmación automática al vencer la ventana. |
 | No entregó | Cuenta 0 y aparece como «sin entrega» en el informe. |
-| Tiempo agotado con borrador | Se envía lo que haya, con la marca «enviado por tiempo». Se acepta hasta 2 minutos después del cierre; una entrega normal fuera de tiempo no entra. |
+| Tiempo agotado con borrador | Se envía lo que haya, con la marca «enviado por tiempo». Se acepta hasta 2 minutos después del cierre; una entrega normal fuera de tiempo no entra. El envío es **escalonado**: cada cliente espera un tiempo aleatorio (N²/300 s, tope de 75 s; ~5 s con 40 personas, ~21 s con 80) para no superar el límite de mensajes de Ably, y ve «Enviando tu texto…»; si falla, «Reintentar el envío». |
 | Se desconecta tras entregar | Al volver ve su devolución: el canal privado conserva historial. |
 | Groq falla o no hay cuota | El docente califica a mano; la cola no se bloquea. Hay «Reintentar» por entrega. |
 | Revisor que no revisó | No gana puntos y no afecta al autor. |
@@ -108,6 +108,7 @@ El ejemplo usa **otro tema** (no la consigna) para que sirva de forma sin dar la
 - El estudiante **nunca** ve la sugerencia. El docente la ve anónima y decide: «Usar como punto de partida», «Aprobar tal cual» (si es completa) o, en lote, «Aprobar las N sugerencias claras» (con confirmación; la IA no aprueba nada sola).
 - **Qué entra al lote:** sugerencia completa, confianza ≥ 80 %, **nota sugerida ≥ 6** y **sin marcas de integridad**. Lo comprobó la prueba con Groq real: la «confianza» que informa el modelo mide qué tan seguro está, no qué tan bueno es el texto, y es inestable (el mismo texto flojo dio 20 %, 30 %, 80 % y 90 % en distintas corridas). Por eso una nota baja o una posible copia las mira el docente una por una, aunque Groq diga estar seguro.
 - Las llamadas salen **a medida que llegan las entregas**, en cola con 2 a la vez; un fallo se reintenta una vez tras 15 s y queda para «Reintentar». Con 40+ estudiantes son unas 40 llamadas de ~2.000 tokens (~80.000 en total), sin ráfaga al cerrar. La sugerencia queda en el canal privado del docente: un refresco no repite llamadas.
+- **Límite por minuto de Groq:** el plan gratuito da 8.000 tokens por minuto, unas 5 sugerencias por minuto. Cuando Groq responde 429, el endpoint lo devuelve con la espera pedida y la **cola se pausa** ese tiempo (5–70 s) y sigue sola; esos choques no cuentan como fallo de la entrega, que muestra «En espera: la IA alcanzó su límite por minuto».
 - **Si Groq falla o no hay cuota, no se bloquea nada:** la entrega queda «sin sugerencia» con el aviso «No se pudo obtener la sugerencia. Puedes calificar a mano» y un «Reintentar». El docente califica a mano y el podio y el informe salen igual (regla 9c de `12-guia-para-agentes.md`).
 - Esto **no cambia** «Groq no es juez autoritativo»: es una sugerencia que el docente aprueba o corrige. Se actualizó la línea correspondiente de `CLAUDE.md`.
 

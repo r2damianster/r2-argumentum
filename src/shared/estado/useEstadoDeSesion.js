@@ -9,6 +9,7 @@ import {
   publicarEnElCanalDeEntregas,
   publicarEnElCanalDeIntegridad,
 } from '../ably/clienteAbly.js';
+import { publicarConReintentos } from '../ably/reintentarPublicacion.js';
 import { NOMBRE_DEL_EVENTO_DE_INTEGRIDAD } from '../nucleo/integridad/canalPrivado.js';
 import { EVENTOS } from '../eventos/nombresDeEventos.js';
 import { estadoInicial, reducirEventos } from './reducirEventos.js';
@@ -366,7 +367,8 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
     if (!canalRef.current) {
       return Promise.resolve();
     }
-    return canalRef.current.publish(nombreDeEvento, { timestamp: Date.now(), ...payload });
+    // Con salas grandes Ably puede rechazar una publicación por límite de tasa; se reintenta con espera.
+    return publicarConReintentos(() => canalRef.current.publish(nombreDeEvento, { timestamp: Date.now(), ...payload }));
   }
 
   // Las señales de integridad viajan por un canal aparte que solo el host puede leer. Es «lo mejor

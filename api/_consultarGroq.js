@@ -15,6 +15,9 @@ function esperar(milisegundos) {
 // errores 4xx distintos de 429 (petición mal formada, clave inválida) no se reintentan.
 export async function consultarGroqConReintentos(cuerpoDeLaPeticion) {
   let ultimoFallo = { error: 'No se pudo contactar a Groq', detalle: null };
+  // Si el último fallo fue un límite de tasa (429), cuántos segundos pide esperar Groq: el cliente pausa su cola
+  // ese tiempo en vez de seguir golpeando un límite por minuto que ya se agotó.
+  let ultimaEsperaPedidaSegundos = null;
 
   for (let intento = 1; intento <= MAXIMO_DE_INTENTOS_CON_GROQ; intento += 1) {
     let respuestaGroq;
@@ -44,7 +47,8 @@ export async function consultarGroqConReintentos(cuerpoDeLaPeticion) {
           ultimoFallo = { error: 'Groq no devolvió JSON válido', detalle: datos };
         }
       } else {
-        ultimoFallo = { error: 'Groq devolvió un error', detalle: datos };
+        ultimoFallo = { error: 'Groq devolvió un error', detalle: datos, estado: respuestaGroq.status };
+        ultimaEsperaPedidaSegundos = null;
         const esTransitorio = respuestaGroq.status === 429 || respuestaGroq.status >= 500;
         if (!esTransitorio) {
           return ultimoFallo;
@@ -52,6 +56,7 @@ export async function consultarGroqConReintentos(cuerpoDeLaPeticion) {
         const segundosPedidos = Number(respuestaGroq.headers?.get?.('retry-after'));
         if (Number.isFinite(segundosPedidos) && segundosPedidos > 0) {
           esperaSugeridaMs = segundosPedidos * 1000;
+          ultimaEsperaPedidaSegundos = segundosPedidos;
         }
       }
     }
@@ -61,5 +66,5 @@ export async function consultarGroqConReintentos(cuerpoDeLaPeticion) {
     }
   }
 
-  return ultimoFallo;
+  return ultimaEsperaPedidaSegundos === null ? ultimoFallo : { ...ultimoFallo, reintentarEnSegundos: ultimaEsperaPedidaSegundos };
 }

@@ -40,4 +40,13 @@ describe('solicitarSugerenciaDeCalificacion', () => {
     const sinRed = vi.fn().mockRejectedValue(new Error('sin red'));
     expect(await solicitarSugerenciaDeCalificacion({ texto: 'x', programa: PROGRAMA, rubrica: RUBRICA, solicitar: sinRed })).toEqual({ fallo: true });
   });
+  it('un límite de tasa de Groq (429) informa cuánto esperar para que la cola se pause', async () => {
+    const limite = vi.fn().mockResolvedValue({ ok: false, status: 429, json: async () => ({ reintentarEnSegundos: 12 }) });
+    expect(await solicitarSugerenciaDeCalificacion({ texto: 'x', programa: PROGRAMA, rubrica: RUBRICA, solicitar: limite })).toEqual({
+      fallo: true,
+      reintentarEnMs: 12000,
+    });
+    const sinEspera = vi.fn().mockResolvedValue({ ok: false, status: 429, json: async () => ({}) });
+    expect(await solicitarSugerenciaDeCalificacion({ texto: 'x', programa: PROGRAMA, rubrica: RUBRICA, solicitar: sinEspera })).toEqual({ fallo: true });
+  });
 });

@@ -181,6 +181,12 @@ export default async function handler(request, response) {
 
   const consulta = await consultarGroqConReintentos(cuerpoDeLaPeticion);
   if (consulta.error) {
+    // Un límite de tasa de Groq se responde como 429 con la espera que pidió, para que la cola del docente se
+    // pause ese tiempo (el plan gratuito da unas 5 sugerencias por minuto) en vez de reintentar a ciegas.
+    if (consulta.estado === 429) {
+      response.status(429).json({ error: consulta.error, reintentarEnSegundos: consulta.reintentarEnSegundos ?? null });
+      return;
+    }
     response.status(502).json({ error: consulta.error, detalle: consulta.detalle });
     return;
   }

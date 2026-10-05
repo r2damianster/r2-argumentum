@@ -32,7 +32,9 @@ export async function solicitarSugerenciaDeCalificacion({ texto, programa, rubri
       }),
     });
     if (!respuesta.ok) {
-      return { fallo: true };
+      // 429: Groq alcanzó su límite por minuto y dijo cuánto esperar. La cola del docente se pausa ese tiempo.
+      const esperaPedida = respuesta.status === 429 ? Number((await respuesta.json().catch(() => ({})))?.reintentarEnSegundos) : NaN;
+      return Number.isFinite(esperaPedida) && esperaPedida > 0 ? { fallo: true, reintentarEnMs: esperaPedida * 1000 } : { fallo: true };
     }
     const { sugerencia = null, motivo = null } = await respuesta.json();
     return { sugerencia, motivo };

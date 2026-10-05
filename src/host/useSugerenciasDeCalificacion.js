@@ -4,13 +4,15 @@ import { solicitarSugerenciaDeCalificacion } from '../shared/nucleo/sugerenciaDe
 import {
   ESPERA_ENTRE_INTENTOS_MS,
   MAXIMO_DE_INTENTOS_AUTOMATICOS,
+  calcularPausaPorLimite,
   elegirConsultasPendientes,
 } from '../shared/nucleo/sugerenciaDeIA/colaDeConsultas.js';
 
 // Pide a Groq la sugerencia de cada entrega a medida que llega (en cola, pocas a la vez) y la guarda en
 // el canal privado del docente. Groq solo sugiere y el estudiante nunca la ve (docs/14-control-de-lectura.md).
 //
-// Devuelve `estados`: por entrega, 'en_curso' o 'fallo'. Un fallo no bloquea nada: el docente califica
+// Devuelve `estados`: por entrega, 'en_curso', 'en_espera' (la IA alcanzó su límite por minuto: la cola se pausa y
+// sigue sola) o 'fallo'. Un fallo no bloquea nada: el docente califica
 // a mano o pide la sugerencia con «Reintentar».
 export function useSugerenciasDeCalificacion({ activo, cola, programa, rubrica, publicarComoDocente }) {
   const [estados, setEstados] = useState({});
@@ -18,6 +20,7 @@ export function useSugerenciasDeCalificacion({ activo, cola, programa, rubrica, 
   const enCurso = useRef(new Set());
   const intentos = useRef({});
   const ultimoIntento = useRef({});
+  const pausadoHasta = useRef(0);
 
   const marcar = useCallback((participantId, valor) => {
     setEstados((previos) => {
@@ -39,6 +42,13 @@ export function useSugerenciasDeCalificacion({ activo, cola, programa, rubrica, 
 
     const respuesta = await solicitarSugerenciaDeCalificacion({ texto: item.texto, programa, rubrica });
     try {
+      if (respuesta.fallo && respuesta.reintentarEnMs) {
+        // Límite por minuto de Groq: no es un fallo de esta entrega. Se pausa toda la cola y se vuelve a intentar sola.
+        intentos.current[item.participantId] = Math.max(0, (intentos.current[item.participantId] ?? 1) - 1);
+        pausadoHasta.current = Date.now() + calcularPausaPorLimite(respuesta.reintentarEnMs);
+        marcar(item.participantId, 'en_espera');
+        return;
+      }
       if (respuesta.fallo) {
         marcar(item.participantId, 'fallo');
         return;
@@ -65,10 +75,18 @@ export function useSugerenciasDeCalificacion({ activo, cola, programa, rubrica, 
       enCurso: enCurso.current,
       intentos: intentos.current,
       ultimoIntento: ultimoIntento.current,
+      pausadoHasta: pausadoHasta.current,
     });
     pendientes.forEach((item) => {
       consultar(item);
     });
+
+    // En pausa por el límite de Groq: se vuelve a mirar cuando termine la pausa.
+    const pausaRestante = pausadoHasta.current - Date.now();
+    if (pausaRestante > 0) {
+      const temporizadorDePausa = setTimeout(() => setReintentoManual((veces) => veces + 1), pausaRestante + 250);
+      return () => clearTimeout(temporizadorDePausa);
+    }
 
     // Un fallo necesita que alguien vuelva a mirar cuando pase la espera: no hay otro evento que lo haga.
     // Si ya se agotaron los intentos automáticos, queda para «Reintentar» y no se vuelve a mirar solo.
@@ -90,6 +108,7 @@ export function useSugerenciasDeCalificacion({ activo, cola, programa, rubrica, 
   function reintentar(participantId) {
     delete intentos.current[participantId];
     delete ultimoIntento.current[participantId];
+    pausadoHasta.current = 0;
     marcar(participantId, null);
     setReintentoManual((veces) => veces + 1);
   }

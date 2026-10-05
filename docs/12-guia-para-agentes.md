@@ -64,6 +64,12 @@ La «apertura simultánea» (temporizador con semáforo y selector de tiempo) se
 ### Regla 9 — Las decisiones de arquitectura no se reabren
 Sin base de datos para el estado en vivo (Ably). La proyección usa `BroadcastChannel`, no otro cliente de Ably. Groq **nunca** es juez: solo valida la forma al escribir y sugiere conexiones en lote cuando el moderador lo pide. Un solo esquema de puntaje. Detalle y motivos en `CLAUDE.md`.
 
+### Regla 9d — Las salas grandes tienen límites de tasa (4-oct-2026)
+Ably rechaza lo que pasa de 50 mensajes/s en un canal y de 600/s en toda la cuenta, y **un mensaje rechazado es un mensaje perdido**. Cada publicación a la sala se entrega a todos: N personas publicando a la vez son N × N entregas.
+- Publica siempre con `publicarConReintentos` (`src/shared/ably/reintentarPublicacion.js`), nunca con `canal.publish` suelto.
+- Una acción que todos disparan en el mismo instante (enviar el borrador al vencer el tiempo) se **escalona** con una espera aleatoria (`escalonadoDelEnvio.js`).
+- Antes de agregar un evento que cada participante publica a la sala, calcula cuántas entregas genera con 80 y con 200 personas. `scripts/prueba-e2e/carga-ably-y-groq.mjs` mide el efecto (con `--mitigaciones` usa lo que usa la app).
+
 ### Regla 9c — Groq nunca condiciona el trabajo (4-oct-2026)
 Si Groq falla (cuota 429, 5xx, sin clave, sin red, JSON ilegible), **la actividad sigue**: el texto pasa y se avisa «no fue pre-revisado por límites de la IA»; nunca «el validador no respondió, inténtalo de nuevo». Por eso:
 - Un cliente que llame a Groq para validar usa `validarArgumentoConGroq` (`src/shared/argumentos/`), que **nunca lanza** y devuelve una respuesta «aprobada sin revisión» (`sinRevisarPorIA`). No escribas un `fetch` suelto a `/api/groq-*` con un `catch` que rechace al estudiante.
@@ -112,6 +118,7 @@ El hook global `auto-commit` de Claude Code ignora este repositorio (existe `.no
 | 4-oct | Con cuota agotada o error de Groq, el estudiante **no podía ingresar ni publicar** («El validador no respondió») en 3 formularios | El fallo de Groq se trataba como rechazo del argumento | Pregunta del docente sobre la cuota con 40 personas | Regla 9c; `validarArgumentoConGroq`; con asignación «por argumento» la persona elige su postura |
 | 4-oct | El lote «aprobar las sugerencias de confianza alta» habría aprobado notas muy bajas | Se usó la «confianza» del modelo como señal de calidad; en la prueba con Groq real era inestable (20–90 % para el mismo texto) | Prueba en vivo con Groq real | El lote exige además nota sugerida ≥ 6 y sin marcas de integridad; pruebas nuevas |
 | 4-oct | El descuento por pegado no contaba lo **arrastrado** como pegado | Se medía solo el evento `paste` | Revisión de la regla del mínimo de caracteres pegados | `arrastradoCaracteres` entra en el mínimo; pruebas |
+| 4-oct | Con 80 o más personas parte de las entregas y posts **se perdía** sin aviso | Ably rechaza publicaciones por límite de tasa (42913/42917) y el cliente no reintentaba; además todos enviaban el borrador en el mismo instante | Prueba de carga con Ably real | Regla 9d: `publicarConReintentos` y envío escalonado (pendiente de probar con Ably real) |
 | 24-sep | Falso «zoom 30 %» en un navegador automatizado (tapaba botones) | `viewport` fijo en una ventana con otro tamaño | Capturas del e2e | El script usa `no_viewport` |
 
 ## 4. Cómo probar

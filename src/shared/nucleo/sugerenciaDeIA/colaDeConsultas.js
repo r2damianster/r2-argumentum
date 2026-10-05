@@ -9,6 +9,16 @@ export const CONCURRENCIA_DE_CONSULTAS = 2;
 export const MAXIMO_DE_INTENTOS_AUTOMATICOS = 2;
 export const ESPERA_ENTRE_INTENTOS_MS = 15 * 1000;
 
+// Con el plan gratuito de Groq (8.000 tokens por minuto) caben unas 5 sugerencias por minuto: cuando Groq dice que
+// se alcanzó el límite, TODA la cola se pausa lo que él pida (acotado a este rango) y los intentos que chocaron
+// con el límite no cuentan como fallos de la entrega (prueba de carga del 4-oct-2026, docs/06-pendientes.md).
+export const PAUSA_MINIMA_POR_LIMITE_MS = 5 * 1000;
+export const PAUSA_MAXIMA_POR_LIMITE_MS = 70 * 1000;
+
+export function calcularPausaPorLimite(reintentarEnMs) {
+  return Math.min(PAUSA_MAXIMA_POR_LIMITE_MS, Math.max(PAUSA_MINIMA_POR_LIMITE_MS, Number(reintentarEnMs) || 0));
+}
+
 // `cola`: la cola del docente. `enCurso`: Set de participantId con una consulta en vuelo.
 // `intentos` y `ultimoIntento`: por participantId. Devuelve las entregas a consultar ahora, sin pasarse
 // de la concurrencia.
@@ -19,7 +29,11 @@ export function elegirConsultasPendientes({
   ultimoIntento = {},
   ahora = Date.now(),
   concurrencia = CONCURRENCIA_DE_CONSULTAS,
+  pausadoHasta = 0,
 }) {
+  if (ahora < pausadoHasta) {
+    return [];
+  }
   const libres = Math.max(0, concurrencia - enCurso.size);
   return cola
     .filter(

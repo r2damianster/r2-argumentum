@@ -1,5 +1,6 @@
 import * as Ably from 'ably';
 import { leerSesionDelHost } from './sesionDelHost.js';
+import { publicarConReintentos } from './reintentarPublicacion.js';
 import { NOMBRE_DE_LA_CABECERA_DEL_SECRETO } from './identidadDelParticipante.js';
 import {
   nombreDelCanalDeDevolucion,
@@ -68,7 +69,9 @@ export function nombreDelCanalDeIntegridad(sessionId) {
 }
 
 export async function publicarEnElCanalDeIntegridad(sessionId, clientId, nombreDelEvento, carga) {
-  await obtenerClienteRestAbly(clientId).channels.get(nombreDelCanalDeIntegridad(sessionId)).publish(nombreDelEvento, carga);
+  await publicarConReintentos(() =>
+    obtenerClienteRestAbly(clientId).channels.get(nombreDelCanalDeIntegridad(sessionId)).publish(nombreDelEvento, carga)
+  );
 }
 
 // Solo el host puede leerlo: con la conexión de un participante el servidor de Ably rechaza el enganche.
@@ -86,7 +89,9 @@ export function obtenerCanalDeIntegridad(sessionId) {
 // Las entregas, igual que las señales de integridad, solo se PUBLICAN (por REST, con el token de quien
 // escribe); leerlas es exclusivo del host.
 export async function publicarEnElCanalDeEntregas(sessionId, clientId, nombreDelEvento, carga) {
-  await obtenerClienteRestAbly(clientId).channels.get(nombreDelCanalDeEntregas(sessionId)).publish(nombreDelEvento, carga);
+  await publicarConReintentos(() =>
+    obtenerClienteRestAbly(clientId).channels.get(nombreDelCanalDeEntregas(sessionId)).publish(nombreDelEvento, carga)
+  );
 }
 
 export function obtenerCanalDeEntregas(sessionId) {
@@ -118,5 +123,7 @@ export async function publicarDevolucionDelHost(sessionId, participantId, nombre
   if (!clienteRestDelHost) {
     clienteRestDelHost = new Ably.Rest(opcionesDeAutenticacion('host'));
   }
-  await clienteRestDelHost.channels.get(nombreDelCanalDeDevolucion(participantId, sessionId)).publish(nombreDelEvento, carga);
+  await publicarConReintentos(() =>
+    clienteRestDelHost.channels.get(nombreDelCanalDeDevolucion(participantId, sessionId)).publish(nombreDelEvento, carga)
+  );
 }

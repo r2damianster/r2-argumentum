@@ -5,6 +5,7 @@ import {
   obtenerClienteAbly,
   publicarDevolucionDelHost,
 } from '../shared/ably/clienteAbly.js';
+import { publicarConReintentos } from '../shared/ably/reintentarPublicacion.js';
 import { procesarMensajeDeEntrega, procesarMensajeDelDocente } from '../shared/nucleo/entregas/canalesPrivados.js';
 import { reducirRegistrosPrivados } from '../shared/nucleo/entregas/estadoPrivadoDelDocente.js';
 
@@ -115,7 +116,7 @@ export function useEstadoPrivadoDelHost({ sessionId, activo }) {
 
   // Lo que decide el docente queda en su canal privado: es su estado y sobrevive a un refresco.
   const publicarComoDocente = useCallback(
-    (nombreDelEvento, carga) => obtenerCanalDelDocente(sessionId).publish(nombreDelEvento, carga),
+    (nombreDelEvento, carga) => publicarConReintentos(() => obtenerCanalDelDocente(sessionId).publish(nombreDelEvento, carga)),
     [sessionId]
   );
 

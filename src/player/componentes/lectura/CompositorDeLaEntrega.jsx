@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { EVENTOS } from '../../../shared/eventos/nombresDeEventos.js';
 import { EVENTOS_PRIVADOS } from '../../../shared/nucleo/entregas/canalesPrivados.js';
 import { contarPalabras, contarParrafos } from '../../../shared/nucleo/escritura/contarTexto.js';
+import { esperaAleatoriaDelEnvioMs } from '../../../shared/nucleo/entregas/escalonadoDelEnvio.js';
 import { resolverNumeroDeParrafos } from '../../../shared/nucleo/escritura/estructurasDeEscritura.js';
 import { resolverIdiomaDelDebate } from '../../../shared/programa/idiomaDelDebate.js';
 import { useControlDeIntegridad } from '../../../shared/nucleo/integridad/useControlDeIntegridad.js';
@@ -57,6 +58,8 @@ export function CompositorDeLaEntrega({
   const [confirmandoEnvio, setConfirmandoEnvio] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
+  // Mientras espera su turno de envío (escalonado) la persona no debe ver «no se registró ninguna entrega».
+  const [esperandoElEnvioPorTiempo, setEsperandoElEnvioPorTiempo] = useState(false);
   const yaIntentoElEnvioPorTiempo = useRef(false);
   const campoDeTexto = useRef(null);
 
@@ -103,13 +106,21 @@ export function CompositorDeLaEntrega({
     }
   }
 
-  // Al cerrarse la escritura (por tiempo o porque el docente la cerró) se envía lo que haya escrito.
+  // Al cerrarse la escritura (por tiempo o porque el docente la cerró) se envía lo que haya escrito. El envío se
+  // escalona con una espera aleatoria que crece con el tamaño de la sala: si todos publicaran en el mismo
+  // instante, Ably rechazaría parte de las entregas (ver escalonadoDelEnvio.js). No se cancela el temporizador al
+  // desmontar: lo escrito tiene que salir.
   useEffect(() => {
     if (!escrituraYaCerro || entrega || yaIntentoElEnvioPorTiempo.current || !texto.trim()) {
       return;
     }
     yaIntentoElEnvioPorTiempo.current = true;
-    integridad.intentarEnviar({ alEnviar: () => enviar({ porTiempo: true }), sinAdvertencia: true });
+    setEsperandoElEnvioPorTiempo(true);
+    const espera = esperaAleatoriaDelEnvioMs(Object.keys(estado.participantes ?? {}).length);
+    setTimeout(() => {
+      setEsperandoElEnvioPorTiempo(false);
+      integridad.intentarEnviar({ alEnviar: () => enviar({ porTiempo: true }), sinAdvertencia: true });
+    }, espera);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [escrituraYaCerro, entrega]);
 
@@ -139,6 +150,23 @@ export function CompositorDeLaEntrega({
   }
 
   if (!escrituraAbierta) {
+    if (esperandoElEnvioPorTiempo || enviando) {
+      return (
+        <section className="compositor-de-lectura">
+          <p className="texto-de-ayuda">Enviando tu texto… no cierres esta pantalla.</p>
+        </section>
+      );
+    }
+    if (error && escrituraYaCerro && texto.trim()) {
+      return (
+        <section className="compositor-de-lectura">
+          <p className="mensaje-de-error">{error}</p>
+          <button type="button" className="boton-primario" onClick={() => enviar({ porTiempo: true })}>
+            Reintentar el envío
+          </button>
+        </section>
+      );
+    }
     return (
       <section className="compositor-de-lectura">
         <p className="texto-de-ayuda">
