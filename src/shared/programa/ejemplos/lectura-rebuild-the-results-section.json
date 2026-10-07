@@ -1,0 +1,101 @@
+{
+  "programId": "lectura-rebuild-the-results-section-2026",
+  "titulo": "Writing task: Rebuild the Results Section",
+  "categoria": "Academic Reading and Writing (control de lectura)",
+  "actividad": "control_de_lectura",
+  "idioma": "en",
+  "version": "1.0.0",
+  "creadoPor": "arturo.rodriguez@uleam.edu.ec",
+  "fechaCreacion": "2026-10-07",
+
+  "temaCentral": "Integrar los patrones de párrafo académico (general a específico, SPRE, CER, PEEL), los conectores y la paráfrasis en una mini sección de investigación.",
+  "consigna": "Read the notes of this fictional study and write a mini research section in your OWN words (do not copy the notes).\n\nNOTES. Weekly retrieval quizzes in a first-year Biology course, Manabí. n = 48. Quiz group: M = 76.5, SD = 8.2. Control group (re-reading only): M = 68.9, SD = 9.1. t(46) = 3.10, p = .003, d = 0.89. Problem: students rely on re-reading and forget content before exams. Limitation: one university, one semester. Some students said the quizzes were stressful.\n\nWRITE 3 PARAGRAPHS (about 250-350 words in total):\n1. Introduction (5-6 sentences). Move from general to specific, then follow SPRE: Situation, Problem, Response, Evaluation.\n2. Results (3-4 sentences). Follow CER: Claim, Evidence (with the statistics), Reasoning (what the numbers mean).\n3. Discussion (4-5 sentences). Follow PEEL: Point, Evidence, Explanation, Link to the wider teaching context.\n\nREQUIREMENTS:\n- Paraphrase the notes and use at least 2 nominalizations so each sentence picks up something already given (given/new contract).\n- Use at least 1 hedge (suggests, may, appears to).\n- Use at least 1 connector from each family: strong contrast (however), concession (although, despite), comparison (whereas, unlike), cause (because, since), result (therefore, consequently), addition (moreover, furthermore).\n- Punctuate connectors correctly: «however» and «therefore» between sentences need a period or semicolon before them, not a comma; «unlike» needs a noun phrase after it.",
+  "objetivoAprendizaje": "Aplicar de forma integrada los patrones de párrafo (general a específico, SPRE, CER, PEEL), los conectores de relación y progresión, el contrato dado/nuevo y la atenuación (hedging) al reescribir con palabras propias los datos de un estudio.",
+  "instruccionesParaEstudiantes": "Write in English and in your own words. Each paragraph has its own pattern; the guide shows which one. Do not copy the notes: paraphrase them. Check your text before sending it: it cannot be edited afterwards.",
+
+  "estructura": {
+    "nombre": { "es": "Mini sección de investigación", "en": "Mini research section" },
+    "partes": [
+      {
+        "nombre": { "es": "Introducción (general a específico + SPRE)", "en": "Introduction (general to specific + SPRE)" },
+        "descripcion": {
+          "es": "5-6 oraciones: del campo amplio al vacío específico, siguiendo Situación, Problema, Respuesta y Evaluación.",
+          "en": "5-6 sentences: from the broad field to the specific gap, following Situation, Problem, Response and Evaluation."
+        }
+      },
+      {
+        "nombre": { "es": "Resultados (CER)", "en": "Results (CER)" },
+        "descripcion": {
+          "es": "3-4 oraciones: Afirmación, Evidencia con los estadísticos y Razonamiento que interpreta qué significan.",
+          "en": "3-4 sentences: Claim, Evidence with the statistics, and Reasoning that interprets what they mean."
+        }
+      },
+      {
+        "nombre": { "es": "Discusión (PEEL)", "en": "Discussion (PEEL)" },
+        "descripcion": {
+          "es": "4-5 oraciones: Punto, Evidencia, Explicación y Enlace con el contexto docente más amplio.",
+          "en": "4-5 sentences: Point, Evidence, Explanation and a Link to the wider teaching context."
+        }
+      }
+    ]
+  },
+  "distribucion": "desarrollada",
+  "numeroDeParrafos": 3,
+
+  "rubrica": [
+    {
+      "nombre": "Own-words paraphrase",
+      "descripcion": "Reformula las notas con palabras propias: no copia frases ni la estructura de las notas.",
+      "peso": 3
+    },
+    {
+      "nombre": "Introduction: general to specific + SPRE",
+      "descripcion": "Va de lo amplio a lo específico y contiene Situación, Problema, Respuesta y Evaluación reconocibles.",
+      "peso": 4
+    },
+    {
+      "nombre": "Results: complete CER",
+      "descripcion": "Afirmación, Evidencia con los estadísticos y un Razonamiento que interpreta (no repite los datos).",
+      "peso": 4
+    },
+    {
+      "nombre": "Discussion: PEEL with Explanation and Link",
+      "descripcion": "Punto, Evidencia, Explicación de qué significa la evidencia y Enlace con el contexto más amplio.",
+      "peso": 4
+    },
+    {
+      "nombre": "Connectors: variety and punctuation",
+      "descripcion": "Usa conectores de las seis familias (contraste, concesión, comparación, causa, resultado, suma) y los puntúa bien (sin comma splice, «unlike» + sintagma nominal).",
+      "peso": 3
+    },
+    {
+      "nombre": "Hedging and given/new chain",
+      "descripcion": "Atenúa las afirmaciones donde corresponde y encadena las oraciones con nominalizaciones (lo dado se retoma antes de añadir lo nuevo).",
+      "peso": 2
+    }
+  ],
+
+  "clavesDeLaLectura": "- Problema: los estudiantes se apoyan en releer y olvidan el contenido antes de los exámenes.\n- Intervención: cuestionarios semanales de recuperación frente a solo releer.\n- Datos: n = 48; grupo con cuestionarios M = 76.5 (SD = 8.2); control M = 68.9 (SD = 9.1); t(46) = 3.10, p = .003, d = 0.89.\n- Interpretación esperada: efecto grande y significativo a favor de la recuperación; sugiere que la práctica de recordar mejora la retención.\n- Limitaciones: una universidad, un semestre; algunos estudiantes dijeron que los cuestionarios fueron estresantes.",
+
+  "fases": [
+    { "tipo": "control_de_lectura", "duracionMin": 40 },
+    { "tipo": "cierre_y_ranking" }
+  ],
+
+  "ventanaDeConfirmacionMin": 10,
+  "revisionDePares": { "activa": false, "revisionesPorPersona": 2, "duracionMin": 10 },
+  "integridad": { "nivel": "advertencias" },
+
+  "ejemplosPorTema": [
+    {
+      "malo": "Quizzes are good. The group with quizzes had 76.5 and the other group had 68.9. This is better.",
+      "bueno": "Frequent low-stakes testing appears to strengthen memory. Participants who took weekly quizzes scored higher (M = 76.5) than those who only re-read the material (M = 68.9); this difference was statistically significant and large, t(46) = 3.10, p = .003, d = 0.89. Therefore, retrieval practice may be a more effective study strategy than re-reading.",
+      "porque": "El malo repite los datos sin conectarlos ni interpretarlos; el bueno atenúa, retoma lo dado («this difference») y cierra con un Razonamiento."
+    }
+  ],
+
+  "exportaJSON": { "eventLogCompleto": true, "perfilPorEstudiante": true },
+  "exportaPDF": true,
+
+  "duracionTotalEstimada": 50
+}
