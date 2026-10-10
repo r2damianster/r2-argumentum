@@ -56,7 +56,7 @@
       "id": "describe_escena",
       "etiqueta": "Describe una escena de la película",
       "descripcion": "Cuenta quién está, qué ocurre y qué hace o dice cada quien; no basta con nombrarla.",
-      "activoPorDefecto": true
+      "activoPorDefecto": false
     },
     {
       "id": "nombra_la_tecnica",
