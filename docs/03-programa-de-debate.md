@@ -87,6 +87,16 @@ sugerenciasDeIA: true                                              // false apag
 integridad: { nivel: "ninguna" | "advertencias" | "restrictiva" }  // por defecto "ninguna"
 ```
 
+**Criterios adicionales** (foro escrito): exigencias extra sobre lo que se escribe, más allá de «afirmación + razón» (por ejemplo, «describe una escena de la película»). El Programa los propone y el moderador activa o apaga cada uno en la configuración de la sesión; quedan fijos al iniciar. Máximo 3 activos y 6 definidos.
+
+```
+criteriosAdicionales: [
+  { id: "describe_escena", etiqueta: "Describe una escena", descripcion: "Quién, qué ocurre…", activoPorDefecto: true }
+]
+```
+
+Son una **ayuda, no puntaje**: quien escribe los ve como recordatorio, la IA solo **sugiere** si se cumplen (misma llamada de siempre, con confianza mínima 0,6; ante la duda no señala nada) y co-moderadores y moderador los ven como guía al decidir los tres niveles de siempre. No suman ni restan puntos por sí mismos: la fórmula sigue siendo única (`05`). Código: `src/shared/nucleo/criteriosAdicionales/`. Los campos `promptSistemaFase1/2` y `criterioValidacion` de los Programas **no los lee ningún código**; para pedir algo más, usa criterios adicionales.
+
 No hay tiempos por respuesta. `duracionMin` solo lo consumen las fases con tiempo total (la del foro); en el debate hablado se conserva por compatibilidad pero no se aplica. El moderador puede extender el tiempo (+5 min) o cerrar antes. Detalle en `13-foro-escrito-y-nucleo-reutilizable.md`.
 
 En la **Ronda 1** (primera fase de intervenciones), el motor prioriza que al menos una persona que haya preparado su argumento dentro de cada postura activa reciba el turno de exposición en la ruleta antes de repetir posturas.

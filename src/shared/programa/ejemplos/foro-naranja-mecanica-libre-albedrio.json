@@ -51,8 +51,20 @@
       "porque": "El malo reduce el final a una frase sin escena; el bueno describe dos momentos concretos y razona sobre el efecto que muestran."
     }
   ],
-  "promptSistemaFase1": "Evalúa si el aporte tiene tres elementos: una afirmación, una escena de la película descrita (no solo nombrada) y una razón explícita ('porque', 'ya que', una consecuencia) que conecte la escena con la afirmación. No evalúes si la postura sobre el libre albedrío o el conductismo es correcta, ni si la persona coincide con la película. Si falta la descripción de la escena, sugiere agregarla; si falta la razón, sugiere agregarla. Solo sugiere: la decisión es de las personas que moderan.",
-  "promptSistemaFase2": "Sugiere conexiones entre aportes del foro (apoyo, contraargumento, dilema, reformulación, concesión), sobre todo entre aportes que usen la misma escena para sostener posturas distintas. Las decisiones son de las personas que moderan.",
+  "criteriosAdicionales": [
+    {
+      "id": "describe_escena",
+      "etiqueta": "Describe una escena de la película",
+      "descripcion": "Cuenta quién está, qué ocurre y qué hace o dice cada quien; no basta con nombrarla.",
+      "activoPorDefecto": true
+    },
+    {
+      "id": "nombra_la_tecnica",
+      "etiqueta": "Nombra la idea conductista",
+      "descripcion": "Relaciona la escena con condicionamiento, estímulo-respuesta o refuerzo, y no solo con \"castigo\".",
+      "activoPorDefecto": false
+    }
+  ],
 
   "formulaCoModeradores": "ceil(n * 0.10)_min_1",
   "topeMaximoCoModeradores": null,

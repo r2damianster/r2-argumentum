@@ -10,6 +10,7 @@ import {
   NIVELES_DE_REVISION_DE_APORTE,
 } from '../../shared/puntaje/puntajeDeAportes.js';
 import { SugerenciaDeIA } from '../../shared/componentes/foro/SugerenciaDeIA.jsx';
+import { GuiaDeCriteriosAdicionales } from '../../shared/componentes/foro/GuiaDeCriteriosAdicionales.jsx';
 
 const NIVELES_EN_ORDEN_DE_BOTONES = [
   NIVELES_DE_REVISION_DE_APORTE.CUENTA_COMPLETO,
@@ -52,6 +53,8 @@ export function PanelDeRevisionDelModerador({ estado, presencia, publicar }) {
           : 'Sin co-moderadores, tu decisión es la única revisión.'}{' '}
         La IA solo sugiere.
       </p>
+
+      <GuiaDeCriteriosAdicionales programa={estado.programa} encabezado="Al decidir, considera además:" />
 
       <div className="orden-de-hilos">
         <label>

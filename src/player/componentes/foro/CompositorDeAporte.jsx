@@ -7,6 +7,7 @@ import { solicitarSugerenciaDeEvaluacion } from '../../../shared/nucleo/sugerenc
 import { AVISO_SIN_REVISION_DE_IA } from '../../../shared/argumentos/validarArgumentoConGroq.js';
 import { perfilDeAhorro } from '../../../shared/nucleo/capacidad/modosDeAhorro.js';
 import { SugerenciaDeIA } from '../../../shared/componentes/foro/SugerenciaDeIA.jsx';
+import { GuiaDeCriteriosAdicionales } from '../../../shared/componentes/foro/GuiaDeCriteriosAdicionales.jsx';
 import { AdvertenciaDeIntegridad, AvisoDeIntegridad } from '../../../shared/componentes/foro/AdvertenciaDeIntegridad.jsx';
 import { useControlDeIntegridad } from '../../../shared/nucleo/integridad/useControlDeIntegridad.js';
 import { CONTEXTOS_DE_REDACCION } from '../../../shared/nucleo/integridad/canalPrivado.js';
@@ -286,6 +287,8 @@ export function CompositorDeAporte({
           <span className="texto-de-ayuda">Di lo que piensas y la razón, un dato o un ejemplo que lo sostiene.</span>
         </p>
       )}
+
+      <GuiaDeCriteriosAdicionales programa={estado.programa ?? programa} encabezado="Se espera además:" />
 
       <label>
         {objetivo ? 'Tu respuesta' : 'Tu post'}

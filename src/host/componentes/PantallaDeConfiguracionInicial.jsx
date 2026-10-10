@@ -8,6 +8,8 @@ import {
 } from '../../shared/nucleo/coModeracion/calcularCoModeradores.js';
 import { SelectorDeModeracion } from './SelectorDeModeracion.jsx';
 import { SelectorDeIntegridad } from './SelectorDeIntegridad.jsx';
+import { SelectorDeCriteriosAdicionales } from './SelectorDeCriteriosAdicionales.jsx';
+import { normalizarCriteriosAdicionales } from '../../shared/nucleo/criteriosAdicionales/criteriosAdicionales.js';
 import { SelectorDeModoDeAhorro } from './SelectorDeModoDeAhorro.jsx';
 import { normalizarModoDeAhorro } from '../../shared/nucleo/capacidad/modosDeAhorro.js';
 import { ID_FORO_ESCRITO } from '../../actividades/foroEscrito/definicion.js';
@@ -29,6 +31,11 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
   );
   const [moderacion, setModeracion] = useState(() => normalizarModeracion(programaBase.moderacion));
   const [integridad, setIntegridad] = useState(() => normalizarIntegridad(programaBase.integridad));
+  // Criterios adicionales: el Programa propone y el moderador activa o apaga cada uno (solo el foro los usa).
+  const [criteriosDelPrograma] = useState(() => normalizarCriteriosAdicionales(programaBase.criteriosAdicionales));
+  const [idsDeCriteriosActivos, setIdsDeCriteriosActivos] = useState(
+    () => new Set(criteriosDelPrograma.filter((criterio) => criterio.activo).map((criterio) => criterio.id))
+  );
   // El modo de ahorro solo importa donde muchas personas escriben a la vez (foro); el debate hablado no lo usa.
   const esForo = resolverActividadDelPrograma(programaBase).id === ID_FORO_ESCRITO;
   const [modoDeAhorro, setModoDeAhorro] = useState(() => normalizarModoDeAhorro(programaBase.modoDeAhorro));
@@ -56,6 +63,7 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
       asignacionPostura,
       moderacion,
       integridad,
+      idsDeCriteriosActivos,
       // El modo masivo es del control de lectura: un Programa de foro que lo trajera usa el de ahorro.
       modoDeAhorro: esForo ? (modoDeAhorro === 'masivo' ? 'ahorro' : modoDeAhorro) : undefined,
     });
@@ -204,6 +212,13 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
 
       <SelectorDeModeracion moderacion={moderacion} onCambiarModeracion={setModeracion} />
       <SelectorDeIntegridad integridad={integridad} onCambiarIntegridad={setIntegridad} />
+      {esForo && (
+        <SelectorDeCriteriosAdicionales
+          criterios={criteriosDelPrograma}
+          idsDeCriteriosActivos={idsDeCriteriosActivos}
+          onCambiarCriteriosActivos={setIdsDeCriteriosActivos}
+        />
+      )}
       {esForo && <SelectorDeModoDeAhorro modoDeAhorro={modoDeAhorro} onCambiarModoDeAhorro={setModoDeAhorro} />}
 
       <div className="bloque-de-configuracion">

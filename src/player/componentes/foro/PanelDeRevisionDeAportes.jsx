@@ -10,6 +10,7 @@ import {
   NIVELES_DE_REVISION_DE_APORTE,
 } from '../../../shared/puntaje/puntajeDeAportes.js';
 import { SugerenciaDeIA } from '../../../shared/componentes/foro/SugerenciaDeIA.jsx';
+import { GuiaDeCriteriosAdicionales } from '../../../shared/componentes/foro/GuiaDeCriteriosAdicionales.jsx';
 
 const NIVELES_EN_ORDEN_DE_BOTONES = [
   NIVELES_DE_REVISION_DE_APORTE.CUENTA_COMPLETO,
@@ -64,6 +65,8 @@ export function PanelDeRevisionDeAportes({ estado, presencia, participantId, pub
         la estructura (afirmación y razón), no si estás de acuerdo con la postura. La IA solo sugiere. Tu puntaje depende
         de cuánto revisas y de qué tanto coincide tu criterio con el del grupo y el del moderador.
       </p>
+
+      <GuiaDeCriteriosAdicionales programa={estado.programa} encabezado="Al decidir, considera además:" />
 
       {porRevisar.length === 0 ? (
         <p className="texto-de-ayuda">No tienes aportes pendientes por ahora.</p>

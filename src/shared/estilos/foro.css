@@ -252,3 +252,49 @@
   margin: 6px 0 0;
   padding-left: 18px;
 }
+
+/* Criterios adicionales: recordatorio al escribir y guía al revisar. */
+.guia-de-criterios-adicionales {
+  margin: 6px 0;
+  padding: 6px 10px;
+  border-left: 3px solid #2a9d8f;
+  background: #f0fdfa;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.guia-de-criterios-adicionales p {
+  margin: 0 0 4px;
+}
+
+.guia-de-criterios-adicionales ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.lista-de-criterios-sugeridos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip-de-criterio {
+  display: inline-block;
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.chip-de-criterio--cumple {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.chip-de-criterio--no_cumple {
+  background: #fef3c7;
+  color: #92400e;
+}

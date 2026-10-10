@@ -100,7 +100,48 @@ describe('normalizarSugerencia', () => {
   });
 
   it('una respuesta vacía o rota devuelve una sugerencia sin nada que mostrar, sin lanzar errores', () => {
-    expect(normalizarSugerencia(null, TEXTO)).toEqual({ completitud: null, falacias: [], comentario: '', confianza: null });
+    expect(normalizarSugerencia(null, TEXTO)).toEqual({ completitud: null, falacias: [], criterios: [], comentario: '', confianza: null });
     expect(normalizarSugerencia({ falacias: 'no es lista' }, TEXTO).falacias).toEqual([]);
+  });
+});
+
+describe('criterios adicionales', () => {
+  const PEDIDOS = [{ id: 'describe_escena', etiqueta: 'Describe una escena', descripcion: '' }];
+
+  it('incluye en el prompt los criterios pedidos y no la tarea si no hay', () => {
+    const base = { nombreDelIdioma: 'español', ejemplosFormateados: '', textoDelObjetivo: '' };
+    expect(construirPromptDeEvaluacion({ ...base, criterios: PEDIDOS })).toContain('describe_escena');
+    expect(construirPromptDeEvaluacion(base)).not.toContain('TAREA 3');
+  });
+
+  it('devuelve solo criterios pedidos, con etiqueta y confianza suficiente', () => {
+    const resultado = normalizarSugerencia(
+      {
+        completitud: 'completo',
+        criterios: [
+          { id: 'describe_escena', cumple: false, confianza: 0.9 },
+          { id: 'inventado', cumple: true, confianza: 0.9 },
+        ],
+      },
+      TEXTO,
+      PEDIDOS
+    );
+    expect(resultado.criterios).toEqual([
+      { id: 'describe_escena', etiqueta: 'Describe una escena', cumple: false, confianza: 0.9 },
+    ]);
+  });
+
+  it('ante la duda (confianza baja) o valor no booleano no señala el criterio', () => {
+    const resultado = normalizarSugerencia(
+      {
+        criterios: [
+          { id: 'describe_escena', cumple: false, confianza: 0.3 },
+          { id: 'describe_escena', cumple: 'si', confianza: 0.9 },
+        ],
+      },
+      TEXTO,
+      PEDIDOS
+    );
+    expect(resultado.criterios).toEqual([]);
   });
 });

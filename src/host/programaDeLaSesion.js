@@ -10,8 +10,17 @@
 import { normalizarModeracion } from '../shared/nucleo/coModeracion/calcularCoModeradores.js';
 import { normalizarIntegridad } from '../shared/nucleo/integridad/nivelesDeIntegridad.js';
 import { normalizarModoDeAhorro } from '../shared/nucleo/capacidad/modosDeAhorro.js';
+import { aplicarCriteriosElegidos } from '../shared/nucleo/criteriosAdicionales/criteriosAdicionales.js';
 
 const MINIMO_DE_POSTURAS = 2;
+
+function activosPorDefecto(criterios) {
+  return new Set(
+    (Array.isArray(criterios) ? criterios : [])
+      .filter((criterio) => criterio?.activo ?? criterio?.activoPorDefecto)
+      .map((criterio) => criterio.id)
+  );
+}
 
 export function armarProgramaDeLaSesion({
   programaBase,
@@ -24,6 +33,7 @@ export function armarProgramaDeLaSesion({
   moderacion,
   integridad,
   modoDeAhorro,
+  idsDeCriteriosActivos,
 }) {
   const posturasElegidas = posturasDelPrograma.filter((postura) => idsDePosturasSeleccionadas.has(postura.id));
   if (posturasElegidas.length < MINIMO_DE_POSTURAS) {
@@ -40,6 +50,15 @@ export function armarProgramaDeLaSesion({
     moderacion: normalizarModeracion(moderacion ?? programaBase.moderacion),
     // Apagada por defecto: sin elegir nada no se registra ninguna señal de integridad.
     integridad: normalizarIntegridad(integridad ?? programaBase.integridad),
+    // Criterios adicionales: el Programa los propone y el moderador activa o apaga cada uno para esta sesión.
+    ...(programaBase.criteriosAdicionales === undefined
+      ? {}
+      : {
+          criteriosAdicionales: aplicarCriteriosElegidos(
+            programaBase.criteriosAdicionales,
+            idsDeCriteriosActivos ?? activosPorDefecto(programaBase.criteriosAdicionales)
+          ),
+        }),
     // Solo las actividades donde importa (foro) lo piden; el debate hablado no lo trae y rige el comportamiento de siempre.
     ...(modoDeAhorro === undefined ? {} : { modoDeAhorro: normalizarModoDeAhorro(modoDeAhorro) }),
     // Programas guardados antes de retirar la apertura simultánea pueden traer esa fase: se

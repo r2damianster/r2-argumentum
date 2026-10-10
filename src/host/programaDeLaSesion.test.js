@@ -131,4 +131,29 @@ describe('armarProgramaDeLaSesion: integridad', () => {
   it('un nivel inválido vuelve a apagada', () => {
     expect(armarProgramaDeLaSesion({ ...base, integridad: { nivel: 'inventado' } }).integridad.nivel).toBe('ninguna');
   });
+  describe('criterios adicionales', () => {
+    const criterios = [
+      { id: 'describe_escena', etiqueta: 'Describe una escena', activoPorDefecto: true },
+      { id: 'nombra_la_tecnica', etiqueta: 'Nombra la idea', activoPorDefecto: false },
+    ];
+    const activosDe = (programa) => programa.criteriosAdicionales.filter((criterio) => criterio.activo).map((criterio) => criterio.id);
+
+    it('sin elección del moderador rigen los activos por defecto del Programa', () => {
+      const programa = armarProgramaDeLaSesion({ ...base, programaBase: { ...base.programaBase, criteriosAdicionales: criterios } });
+      expect(activosDe(programa)).toEqual(['describe_escena']);
+    });
+
+    it('la elección del moderador reemplaza a la del Programa', () => {
+      const programa = armarProgramaDeLaSesion({
+        ...base,
+        programaBase: { ...base.programaBase, criteriosAdicionales: criterios },
+        idsDeCriteriosActivos: new Set(['nombra_la_tecnica']),
+      });
+      expect(activosDe(programa)).toEqual(['nombra_la_tecnica']);
+    });
+
+    it('un Programa sin criterios no agrega el campo', () => {
+      expect('criteriosAdicionales' in armarProgramaDeLaSesion(base)).toBe(false);
+    });
+  });
 });
