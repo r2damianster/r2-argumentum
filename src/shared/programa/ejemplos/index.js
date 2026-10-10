@@ -9,6 +9,7 @@ import educacionUtilidadDeLaInvestigacion from './educacion-utilidad-de-la-inves
 import historiaEcuadorCausasDelPresente from './historia-ecuador-herencia-global-o-decisiones.json';
 import foroIaEnLaUniversidad from './foro-ia-en-la-universidad.json';
 import foroFormacionEnInvestigacion from './foro-formacion-en-investigacion.json';
+import foroNaranjaMecanicaLibreAlbedrio from './foro-naranja-mecanica-libre-albedrio.json';
 import lecturaFormacionEnInvestigacion from './lectura-formacion-en-investigacion.json';
 import lecturaRebuildTheResultsSection from './lectura-rebuild-the-results-section.json';
 
@@ -20,6 +21,7 @@ export const PROGRAMAS_DE_EJEMPLO = [
   historiaEcuadorCausasDelPresente,
   foroIaEnLaUniversidad,
   foroFormacionEnInvestigacion,
+  foroNaranjaMecanicaLibreAlbedrio,
   lecturaFormacionEnInvestigacion,
   lecturaRebuildTheResultsSection,
 ];

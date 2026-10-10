@@ -1,0 +1,65 @@
+{
+  "programId": "foro-naranja-mecanica-libre-albedrio-2026",
+  "titulo": "Foro: La naranja mecánica — ¿es buena una persona que ya no puede elegir el mal?",
+  "categoria": "Filosofía (foro escrito)",
+  "actividad": "foro_escrito",
+  "version": "1.0.0",
+  "creadoPor": "arturo.rodriguez@uleam.edu.ec",
+  "fechaCreacion": "2026-10-10",
+
+  "temaCentral": "En «La naranja mecánica», el Estado somete a Alex al tratamiento Ludovico: un condicionamiento conductista (asociar la violencia con náusea y malestar físico) que le quita la capacidad de elegir el mal. Después del tratamiento ya no agrede, pero tampoco puede defenderse ni elegir otra cosa. ¿Es auténticamente buena una persona a la que se le ha extirpado la capacidad biológica y psicológica de elegir el mal?",
+  "preguntaGuia": "Si una persona solo se porta bien porque su cuerpo la obliga, ¿su conducta es bondad o es solo ausencia de maldad? ¿Qué se pierde cuando se pierde la posibilidad de elegir?",
+  "objetivoAprendizaje": "Pensamiento crítico por escrito sobre libre albedrío y conductismo: sostener una postura con una razón y con una escena concreta de la película como evidencia, y responder a lo que otras personas plantean, no solo publicar la propia opinión.",
+  "instruccionesParaEstudiantes": "Elige tu postura y escribe en tus propias palabras. Cada aporte debe tener tres partes: (1) tu afirmación, (2) una escena de la película descrita con tus palabras (quién está, qué ocurre, qué hace Alex o quienes lo rodean) y (3) la razón por la que esa escena respalda tu afirmación. No basta con nombrar la escena: descríbela. Después responde a otras personas: apoya, contradice, plantea un dilema o reconoce lo que te convenció. Los posts sin respuesta se destacan para que nadie quede hablando solo.",
+
+  "posturas": [
+    { "id": "es_buena", "etiqueta": "Sí es buena: lo que importa es que ya no hace daño", "color": "#2a9d8f" },
+    { "id": "no_es_buena", "etiqueta": "No es buena: sin poder elegir no hay bondad", "color": "#d1495b" },
+    { "id": "matizada", "etiqueta": "Depende / matizada", "color": "#8a8a8a", "esMatizada": true }
+  ],
+  "asignacionPostura": "libre",
+  "permiteCambioPostura": false,
+
+  "fases": [
+    { "tipo": "foro_escrito", "duracionMin": 25 },
+    { "tipo": "cierre_y_ranking" }
+  ],
+
+  "limitesDePuntaje": { "maxPostsNuevos": 3, "maxReplicasPuntuadas": 5 },
+  "moderacion": { "modo": "reglamentario" },
+
+  "criterioValidacion": "claim_mas_razon",
+  "ejemplosPorTema": [
+    {
+      "malo": "En la película Alex es malo y después lo curan, así que ahora es bueno.",
+      "bueno": "Después del tratamiento Ludovico, Alex ya no es una amenaza: en la demostración ante las autoridades se encoge de náusea cuando un hombre lo humilla y cuando una mujer desnuda se le acerca, y no reacciona con violencia. Para quienes viven cerca de él eso es bondad en la práctica, porque lo que cuenta socialmente es que ya no hace daño, sin importar por qué.",
+      "porque": "El malo resume la trama sin describir ninguna escena ni dar razón; el bueno describe la demostración, dice qué ocurre y explica por qué esa escena respalda la postura."
+    },
+    {
+      "malo": "Quitarle la libertad a alguien es siempre malo, como se ve en la película.",
+      "bueno": "En la prisión, el capellán le dice al director que Alex ya no elige: se porta bien porque su cuerpo lo obliga, no porque quiera. Esa escena muestra que una conducta sin posibilidad de elegir no es moral, porque la bondad exige que se pudiera haber hecho otra cosa y que se haya preferido el bien.",
+      "porque": "El malo es una afirmación general sin escena; el bueno describe quién habla, qué dice y de dónde se saca la conclusión sobre la elección."
+    },
+    {
+      "malo": "Depende de cada persona.",
+      "bueno": "Depende de si hubo consentimiento, porque en la película Alex firma sin entender lo que le harán, y luego lo sujetan frente a la pantalla con los ojos abiertos mientras suena Beethoven. Si él hubiera aceptado el tratamiento sabiendo que perdería esa capacidad, podría verse como una decisión suya; así, es algo que le hicieron.",
+      "porque": "El malo no dice de qué depende; el bueno nombra la condición (el consentimiento), describe la escena y explica por qué cambia la valoración."
+    },
+    {
+      "malo": "Alex vuelve a ser como antes al final, así que el tratamiento no sirvió.",
+      "bueno": "Hacia el final, tras el tratamiento, Alex sufre golpes de su antiguo grupo, ahora policías, y no puede defenderse, y más tarde, al oír Beethoven en la casa del escritor, siente un malestar tan fuerte que se arroja por la ventana. Esa escena muestra que el condicionamiento produjo un efecto secundario que él no eligió: el sistema que debía hacerlo bueno lo dejó indefenso, porque no distingue entre agredir y defenderse.",
+      "porque": "El malo reduce el final a una frase sin escena; el bueno describe dos momentos concretos y razona sobre el efecto que muestran."
+    }
+  ],
+  "promptSistemaFase1": "Evalúa si el aporte tiene tres elementos: una afirmación, una escena de la película descrita (no solo nombrada) y una razón explícita ('porque', 'ya que', una consecuencia) que conecte la escena con la afirmación. No evalúes si la postura sobre el libre albedrío o el conductismo es correcta, ni si la persona coincide con la película. Si falta la descripción de la escena, sugiere agregarla; si falta la razón, sugiere agregarla. Solo sugiere: la decisión es de las personas que moderan.",
+  "promptSistemaFase2": "Sugiere conexiones entre aportes del foro (apoyo, contraargumento, dilema, reformulación, concesión), sobre todo entre aportes que usen la misma escena para sostener posturas distintas. Las decisiones son de las personas que moderan.",
+
+  "formulaCoModeradores": "ceil(n * 0.10)_min_1",
+  "topeMaximoCoModeradores": null,
+  "exclusionMutua": true,
+
+  "exportaJSON": { "eventLogCompleto": true, "mapaArgumental": true, "rankingPorPostura": true, "perfilPorEstudiante": true },
+  "exportaPDF": true,
+
+  "duracionTotalEstimada": 35
+}
