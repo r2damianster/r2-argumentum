@@ -9,3 +9,7 @@ dist/
 scripts/prueba-e2e/perfil-host/
 scripts/prueba-e2e/*.png
 scripts/prueba-e2e/*.log
+
+# Videos: fuentes y renders pesados quedan locales. Solo se versiona el README y lo publicado en public/video/.
+videos/*
+!videos/README.md

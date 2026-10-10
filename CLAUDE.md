@@ -36,6 +36,12 @@ Plataforma de debate argumental en tiempo real para uso en aula (ULEAM). No es u
 - Nombres descriptivos completos, nunca abreviaciones crípticas (`scenario` no `s`, `isVisible` no `flag`, `studentArgument` no `arg`).
 - Si en algún momento se requiere texto visible en más de un idioma, usar `t('clave')` + `translations.js` (estándar heredado de otros proyectos educativos del usuario) — pero no asumir que aplica aquí sin confirmarlo primero.
 
+## Videos
+
+- Los videos (HyperFrames) se trabajan en `videos/<nombre>/`, carpeta **local** en `.gitignore` (salvo `videos/README.md`). Nunca los crees fuera del repositorio ni en la raíz.
+- Solo lo que se muestra en la plataforma se copia a `public/video/<nombre>.mp4` y se enlaza desde `src/host/App.jsx`. Cada versión publicada pesa para siempre en el historial: sube solo definitivas.
+- Texto en español neutro, sin voseo, igual que la interfaz. Detalle y comandos: `videos/README.md`.
+
 ## Control de costos (APIs gratuitas al inicio: Ably + Groq)
 
 - Groq: nunca se llama en eventos de conexión libre (`link.created`). Solo en intentos de envío de argumento (máx. 2 por argumento, luego escala a co-moderador) y en el disparo manual de sugerencia de conexiones por ronda.
