@@ -40,6 +40,9 @@ import { DestacadoDelTurno } from '../shared/componentes/DestacadoDelTurno.jsx';
 import { PERFILES_DE_PUNTAJE, PERFIL_POR_DEFECTO } from '../shared/puntaje/formulaDePuntaje.js';
 import { IDIOMAS_DEL_DEBATE } from '../shared/programa/idiomaDelDebate.js';
 import { textoDeCreditos } from '../shared/creditos.js';
+
+// Video explicativo servido desde public/video/; se abre en pestaña nueva para presentarlo cuando se requiera.
+const RUTA_DEL_VIDEO_EXPLICATIVO = '/video/argumentum-explicado.mp4';
 import { guardarSesionDelHost, iniciarSesionDelHost, leerSesionDelHost } from '../shared/ably/sesionDelHost.js';
 import { normalizarModeracion } from '../shared/nucleo/coModeracion/calcularCoModeradores.js';
 import {
@@ -118,6 +121,11 @@ export default function App() {
           {iniciandoSesion ? 'Entrando…' : 'Entrar'}
         </button>
       </form>
+      <p className="acceso-al-video">
+        <a className="enlace-al-video" href={RUTA_DEL_VIDEO_EXPLICATIVO} target="_blank" rel="noopener noreferrer">
+          🎬 Ver el video explicativo de Argumentum
+        </a>
+      </p>
       <footer>{textoDeCreditos()}</footer>
     </main>
   );
@@ -542,6 +550,9 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
       <div className="barra-superior">
         <h1>Consola del host</h1>
         <div className="acciones-de-barra">
+          <a className="enlace-al-video" href={RUTA_DEL_VIDEO_EXPLICATIVO} target="_blank" rel="noopener noreferrer">
+            🎬 Ver video
+          </a>
           {sesionIniciada && (
             <>
               <button type="button" className="boton-cerrar-sesion" onClick={() => setModoProyeccion(true)}>

@@ -191,6 +191,31 @@ button[type='submit']:disabled {
   color: #0f172a;
 }
 
+/* Enlace al video explicativo (consola del host): se ve como botón secundario, ≥ 44 px de alto. */
+.enlace-al-video {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 9px 15px;
+  background: white;
+  border: 1.5px solid #64748b;
+  border-radius: 10px;
+  color: #1e293b;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.enlace-al-video:hover {
+  background: #f8fafc;
+  border-color: #334155;
+  color: #0f172a;
+}
+
+.acceso-al-video {
+  margin-top: 16px;
+}
+
 /* ACCIONES DEL TURNO — lo que el estudiante no puede perderse durante el debate: aceptar o
    rechazar el turno, avisar que terminó de exponer. Son grandes, de ancho completo y con un
    color que ningún otro botón usa a este tamaño (verde sólido con borde oscuro y anillo que
