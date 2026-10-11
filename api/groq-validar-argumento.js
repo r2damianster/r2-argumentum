@@ -158,8 +158,8 @@ export default async function handler(request, response) {
       // lo lee como arbitrariedad. Bug real reportado en prueba en vivo.
       temperature: 0,
       seed: 7,
-      // Validar la forma es una clasificación corta con el estudiante esperando: razonamiento bajo.
-      reasoning_effort: 'low',
+      // Sin `reasoning_effort: 'low'`: medido el 11-oct-2026 con 15 textos, bajar el razonamiento ahorra ~18 % de tokens
+      // pero cambia veredictos (aprobó un texto sin razón y movió la postura de otro). Un veredicto inestable se lee como arbitrariedad.
       // El modelo razona antes de responder y esos tokens cuentan contra el tope: con 800, un
       // argumento largo podía cortar el JSON a la mitad y el estudiante veía "el validador no
       // respondió". Reporte de prueba en vivo con 8 participantes.

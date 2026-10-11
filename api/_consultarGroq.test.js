@@ -70,4 +70,26 @@ describe('consultarGroqConEsquema', () => {
     expect(resultado).toEqual({ resultado: { a: 1 } });
     expect(JSON.parse(llamada.mock.calls[1][1].body).response_format).toEqual({ type: 'json_object' });
   });
+
+  it('registra el uso de tokens en una línea JSON sin el texto de la persona', async () => {
+    const registro = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const cuerpo = { choices: [{ message: { content: '{"a":1}' } }], usage: { prompt_tokens: 100, completion_tokens: 40, total_tokens: 140 } };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respuestaDeGroq({ ok: true, status: 200, cuerpo })));
+    await consultarGroqConEsquema(
+      { model: 'm', reasoning_effort: 'low', messages: [{ role: 'user', content: 'texto privado' }] },
+      { nombre: 'prueba', esquema }
+    );
+    const linea = registro.mock.calls[0][0];
+    registro.mockRestore();
+    expect(JSON.parse(linea)).toEqual({
+      groq: 'prueba',
+      modelo: 'm',
+      razonamiento: 'low',
+      ok: true,
+      tokensDeEntrada: 100,
+      tokensDeSalida: 40,
+      tokensTotales: 140,
+    });
+    expect(linea).not.toContain('texto privado');
+  });
 });

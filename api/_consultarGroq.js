@@ -42,7 +42,7 @@ export async function consultarGroqConReintentos(cuerpoDeLaPeticion) {
 
       if (respuestaGroq.ok) {
         try {
-          return { resultado: JSON.parse(datos.choices[0].message.content) };
+          return { resultado: JSON.parse(datos.choices[0].message.content), uso: datos.usage };
         } catch {
           ultimoFallo = { error: 'Groq no devolvió JSON válido', detalle: datos };
         }
@@ -81,8 +81,27 @@ export async function consultarGroqConEsquema(cuerpoBase, { nombre, esquema }) {
       response_format: { type: 'json_schema', json_schema: { name: nombre, strict: true, schema: esquema } },
     })
   );
-  if (consulta.estado !== 400) {
-    return consulta;
-  }
-  return consultarGroqConReintentos(JSON.stringify({ ...cuerpoBase, response_format: { type: 'json_object' } }));
+  const consultaFinal =
+    consulta.estado === 400
+      ? await consultarGroqConReintentos(JSON.stringify({ ...cuerpoBase, response_format: { type: 'json_object' } }))
+      : consulta;
+  registrarUsoDeGroq(nombre, cuerpoBase, consultaFinal);
+  return consultaFinal;
+}
+
+// Contabilidad de tokens por endpoint: una línea JSON en los registros de Vercel (nunca el texto de la
+// persona). Con el límite del plan gratuito (8.000 tokens por minuto) es lo que permite medir cualquier
+// cambio de prompt o de `reasoning_effort` con cifras y no a ojo.
+function registrarUsoDeGroq(nombre, cuerpoBase, consulta) {
+  console.info(
+    JSON.stringify({
+      groq: nombre,
+      modelo: cuerpoBase.model,
+      razonamiento: cuerpoBase.reasoning_effort ?? 'por_defecto',
+      ok: !consulta.error,
+      tokensDeEntrada: consulta.uso?.prompt_tokens ?? null,
+      tokensDeSalida: consulta.uso?.completion_tokens ?? null,
+      tokensTotales: consulta.uso?.total_tokens ?? null,
+    })
+  );
 }

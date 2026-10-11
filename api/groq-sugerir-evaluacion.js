@@ -224,8 +224,8 @@ export default async function handler(request, response) {
       // Temperatura 0: el mismo aporte tiene que dar la misma sugerencia (ver groq-validar-argumento).
       temperature: 0,
       seed: 7,
-      // Clasificación corta con la persona esperando: razonamiento bajo (ver groq-validar-argumento).
-      reasoning_effort: 'low',
+      // Sin `reasoning_effort: 'low'`: medido el 11-oct-2026 con 15 textos, ahorra ~28 % de tokens pero cambió la completitud
+      // en 4 de 15 aportes (ver groq-validar-argumento).
       // El modelo razona antes de responder; con un tope bajo el JSON se corta (ver groq-validar-argumento).
       max_tokens: 1500,
     },
