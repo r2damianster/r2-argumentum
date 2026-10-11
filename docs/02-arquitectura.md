@@ -34,7 +34,7 @@ La plataforma ejecuta **actividades** (hoy el debate hablado, el foro escrito y 
 
 Web Speech API depende de navegadores Chrome/Edge y de conexión estable a los servidores de Google. En un aula real con ruido ambiente y redes variables, es un punto de fallo alto para una demo en vivo frente a un grupo. Se pospone a una fase posterior, como mecánica opcional, no como dependencia del flujo principal.
 
-## Cómo se usa Groq — dos checkpoints controlados, nunca juez en vivo sin supervisión
+## Cómo se usa Groq — checkpoints controlados, nunca juez en vivo sin supervisión
 
 1. **Validación de forma y clasificación de postura**, al revisar un argumento (en el ingreso y al prepararlo para la ruleta): ¿tiene una afirmación (claim) y al menos una razón (conector como "porque", "ya que", "esto se debe a", evidencia, ejemplo o una relación causa-efecto identificable)? El criterio es **estructural**, no un juicio filosófico de "qué tan bueno es el argumento" — esto evita que la IA sea inconsistente y tome decisiones que un profesor no pueda justificar dos veces de la misma forma ante un estudiante. En la misma llamada Groq devuelve `posturaDetectada`, `esPosturaNueva` y `confianza`; `decidirValidacion.js` los traduce a una decisión y aplica el principio rector: **ante la duda se aprueba**. Reglas de esa decisión:
    - Con `temperature: 0` y semilla fija, el mismo texto da el mismo veredicto.

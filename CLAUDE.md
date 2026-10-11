@@ -4,7 +4,7 @@ Contexto para cualquier sesión de Claude Code que trabaje en este repositorio. 
 
 ## Qué es esto
 
-Plataforma de debate argumental en tiempo real para uso en aula (ULEAM). No es un simple debate lineal: registra relaciones entre argumentos (apoyo, contraargumento, dilema, conexión, reformulación, concesión) como un grafo que evoluciona en vivo.
+Plataforma de debate argumental en tiempo real para uso en aula (ULEAM). No es un simple debate lineal: registra relaciones entre argumentos (refuerzo, contraargumento, dilema, pregunta, concesión, conexión) como un grafo que evoluciona en vivo.
 
 ## Decisiones de arquitectura ya tomadas — no reabrir sin motivo nuevo
 
@@ -12,10 +12,12 @@ Plataforma de debate argumental en tiempo real para uso en aula (ULEAM). No es u
 - **La proyección en otra ventana no abre otra conexión a Ably ni otro motor**: la consola del host (única que corre `motorDeSesion.js`) le pasa su estado por `BroadcastChannel`. No reintroducir un segundo cliente completo: dos motores publicarían decisiones duplicadas.
 - **Los "Programas de Debate"** (plantillas: tema, posturas, reglas de puntaje, ejemplos para Groq) se guardan como archivos JSON reutilizables — sin backend en v1.
 - **Groq nunca condiciona el trabajo.** Si falla (cuota 429, 5xx, sin clave, sin red), el texto pasa y se avisa «no fue pre-revisado por límites de la IA». Validación de argumentos: `src/shared/argumentos/validarArgumentoConGroq.js`; foro y calificación ya publican/califican sin sugerencia. Con asignación «por argumento» y sin Groq, la persona elige su postura (`elegir_postura_a_mano`). No agregues un uso de Groq que bloquee el avance. Detalle en `docs/02-arquitectura.md` y `docs/12-guia-para-agentes.md` (regla 9c).
-- **Groq nunca es juez autoritativo.** Dos checkpoints controlados únicamente:
+- **Groq nunca es juez autoritativo; solo valida la forma o sugiere.** Usos permitidos, todos opcionales y sin puntuar:
   1. Validación de forma al escribir un argumento (¿tiene claim + razón? criterio estructural — "porque/ya que/evidencia" —, nunca un juicio filosófico de "qué es un buen argumento").
   2. Sugerencia de conexiones en lote, disparada manualmente por el moderador al cerrar una fase — nunca por cada clic individual de conexión.
-- **Filtros locales previos a Groq (no cuentan como un tercer checkpoint)**: `api/_revisarFormaMinima.js` (texto muy corto o conector «porque»/«ya que»… sin razón detrás) y `src/shared/argumentos/buscarArgumentoParecido.js` (argumento casi igual a otro ya publicado). Son deterministas, no juzgan el contenido y ahorran llamadas a Groq. Ninguna corrección ortográfica ni de redacción es automática: si algún día se agrega ayuda con IA, solo **sugiere** y la persona decide (ver `docs/06-pendientes.md`).
+  3. Foro: sugerencia de completitud, posibles falacias y criterios adicionales (`api/groq-sugerir-evaluacion.js`).
+  4. Control de lectura: sugerencia de nivel por criterio, solo para el docente (`api/groq-sugerir-calificacion.js`).
+- **Filtros locales previos a Groq (no cuentan como uso de Groq)**: `api/_revisarFormaMinima.js` (texto muy corto o conector «porque»/«ya que»… sin razón detrás) y `src/shared/argumentos/buscarArgumentoParecido.js` (argumento casi igual a otro ya publicado). Son deterministas, no juzgan el contenido y ahorran llamadas a Groq. Ninguna corrección ortográfica ni de redacción es automática: si algún día se agrega ayuda con IA, solo **sugiere** y la persona decide (ver `docs/06-pendientes.md`).
 - **Todo el puntaje sigue una fórmula única** (ver `docs/05-reglas-de-puntaje.md`). Si se ajusta un valor, se ajusta la fórmula — no se parchean casos sueltos con números mágicos.
 - **Reconocimiento de voz en vivo (Web Speech API) descartado para v1** — depende de Chrome/Edge y de red estable; riesgo de fallo alto en aula real. No reintroducir sin decisión explícita del usuario.
 - **Idioma: todo en español latinoamericano neutro.** Este proyecto no tiene i18n dual ES/EN previsto (a diferencia de otros proyectos educativos del usuario como DataViz Lab). No añadir textos en inglés ni una capa `t('clave')`/`translations.js` sin confirmar antes con el usuario.
@@ -44,13 +46,13 @@ Plataforma de debate argumental en tiempo real para uso en aula (ULEAM). No es u
 
 ## Control de costos (APIs gratuitas al inicio: Ably + Groq)
 
-- Groq: nunca se llama en eventos de conexión libre (`link.created`). Solo en intentos de envío de argumento (máx. 2 por argumento, luego escala a co-moderador) y en el disparo manual de sugerencia de conexiones por ronda.
+- Groq: nunca se llama en eventos de conexión libre (`link.created`). Solo en los cuatro usos de la lista de arriba: envío de argumento (máx. 2 intentos por argumento, luego escala a co-moderador), conexiones por ronda (disparo manual), aporte del foro (máx. 2 consultas por aporte) y calificación de lectura (cola del docente).
 - Ably: los mensajes de conexión son livianos y están acotados por la regla "máx. 1 conexión saliente por argumento propio" — no requieren control adicional de cuota.
 - Ronda 1/Ronda 2 con cupos decrecientes también acota naturalmente el número de intentos de validación Groq por estudiante por sesión.
 
 ## Estado actual y próximos pasos
 
-El modelo de eventos y el motor ya están construidos y desplegados (`docs/09-modelo-de-eventos.md`, `src/host/motorDeSesion.js`). Ya no aplica la regla de "no escribir componentes hasta cerrar el modelo de eventos". Lo que sigue y las decisiones abiertas están en `docs/06-pendientes.md`; el procedimiento de prueba manual en producción, con el elenco de actores, en `docs/10-guia-prueba-manual-chrome.md`. Tests de la lógica pura: `npm test`.
+El modelo de eventos y el motor están construidos y desplegados (`docs/09-modelo-de-eventos.md`, `src/host/motorDeSesion.js`). Lo que sigue y las decisiones abiertas están en `docs/06-pendientes.md`; el procedimiento de prueba manual en producción, con el elenco de actores, en `docs/10-guia-prueba-manual-chrome.md`. Tests de la lógica pura: `npm test`.
 
 ## Reglas de la interfaz (probadas en el aula)
 

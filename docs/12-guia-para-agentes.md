@@ -62,7 +62,7 @@ La «apertura simultánea» (temporizador con semáforo y selector de tiempo) se
 - Sin reconocimiento de voz (Web Speech API): descartado para la v1.
 
 ### Regla 9 — Las decisiones de arquitectura no se reabren
-Sin base de datos para el estado en vivo (Ably). La proyección usa `BroadcastChannel`, no otro cliente de Ably. Groq **nunca** es juez: solo valida la forma al escribir y sugiere conexiones en lote cuando el moderador lo pide. Un solo esquema de puntaje. Detalle y motivos en `CLAUDE.md`.
+Sin base de datos para el estado en vivo (Ably). La proyección usa `BroadcastChannel`, no otro cliente de Ably. Groq **nunca** es juez: valida la forma al escribir y **sugiere** (conexiones en lote, evaluación del foro, calificación de la lectura); decide quien modera. Un solo esquema de puntaje. Detalle y motivos en `CLAUDE.md`.
 
 ### Regla 9d — Las salas grandes tienen límites de tasa (4-oct-2026)
 Ably rechaza lo que pasa de 50 mensajes/s en un canal y de 600/s en toda la cuenta, y **un mensaje rechazado es un mensaje perdido**. Cada publicación a la sala se entrega a todos: N personas publicando a la vez son N × N entregas.

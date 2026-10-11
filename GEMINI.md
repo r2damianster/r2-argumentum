@@ -2,7 +2,7 @@
 
 Este archivo existe para que Antigravity y Gemini encuentren las reglas del proyecto.
 
-**Lee primero [`AGENTS.md`](AGENTS.md)** (resumen de 10 reglas) y después **[`docs/12-guia-para-agentes.md`](docs/12-guia-para-agentes.md)** (guía completa y catálogo de errores ya cometidos). Las decisiones de arquitectura están en [`CLAUDE.md`](CLAUDE.md).
+**Lee primero [`AGENTS.md`](AGENTS.md)** (resumen de las reglas) y después **[`docs/12-guia-para-agentes.md`](docs/12-guia-para-agentes.md)** (guía completa y catálogo de errores ya cometidos). Las decisiones de arquitectura están en [`CLAUDE.md`](CLAUDE.md).
 
 Recordatorios que ya costaron caro:
 
