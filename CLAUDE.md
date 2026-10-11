@@ -46,7 +46,7 @@ Plataforma de debate argumental en tiempo real para uso en aula (ULEAM). No es u
 
 ## Control de costos (APIs gratuitas al inicio: Ably + Groq)
 
-- Groq: nunca se llama en eventos de conexión libre (`link.created`). Solo en los cuatro usos de la lista de arriba: envío de argumento (máx. 2 intentos por argumento, luego escala a co-moderador), conexiones por ronda (disparo manual), aporte del foro (máx. 2 consultas por aporte) y calificación de lectura (cola del docente).
+- Groq: nunca se llama en eventos de conexión libre (`link.created`). Solo en los cuatro usos de la lista de arriba: envío de argumento, conexiones por ronda (disparo manual), aporte del foro (1 o 2 consultas por aporte según el modo de ahorro: `maximoDeConsultasALaIAPorAporte` en `src/shared/nucleo/capacidad/modosDeAhorro.js`) y calificación de lectura (cola del docente). `docs/05` describe un tope de 2 intentos por argumento con escalado a co-moderador que el código aún no aplica (el cliente siempre publica `viaCoModerador: false`); decisión pendiente.
 - Ably: los mensajes de conexión son livianos y están acotados por la regla "máx. 1 conexión saliente por argumento propio" — no requieren control adicional de cuota.
 - Ronda 1/Ronda 2 con cupos decrecientes también acota naturalmente el número de intentos de validación Groq por estudiante por sesión.
 
