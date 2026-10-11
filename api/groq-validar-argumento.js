@@ -6,7 +6,30 @@
 // del Programa — aquí solo se informa el hallazgo.
 
 import { revisarFormaMinima } from './_revisarFormaMinima.js';
-import { consultarGroqConReintentos } from './_consultarGroq.js';
+import { consultarGroqConEsquema } from './_consultarGroq.js';
+
+export const ESQUEMA_DE_VALIDACION = {
+  type: 'object',
+  properties: {
+    aprobado: { type: 'boolean' },
+    motivo: { type: 'string' },
+    sugerenciaDeCorreccion: { type: 'string' },
+    posturaDetectada: { type: ['string', 'null'] },
+    esPosturaNueva: { type: 'boolean' },
+    posturaSugerida: { type: 'string' },
+    confianza: { type: 'number' },
+  },
+  required: [
+    'aprobado',
+    'motivo',
+    'sugerenciaDeCorreccion',
+    'posturaDetectada',
+    'esPosturaNueva',
+    'posturaSugerida',
+    'confianza',
+  ],
+  additionalProperties: false,
+};
 
 // Idioma en que se escribe el debate (lo fija el docente en el Programa). Duplica los códigos de
 // src/shared/programa/idiomaDelDebate.js: la carpeta api/ no importa código del cliente.
@@ -123,26 +146,27 @@ export default async function handler(request, response) {
 
   const promptSistema = construirPromptSistema({ instruccionesDelIdioma, posturasFormateadas, ejemplosFormateados });
 
-  const cuerpoDeLaPeticion = JSON.stringify({
-    model: 'openai/gpt-oss-20b',
-    messages: [
-      { role: 'system', content: promptSistema },
-      { role: 'user', content: texto },
-    ],
-    // Temperatura 0: el mismo argumento tiene que dar el mismo veredicto. Con 0.2 el
-    // mismo texto pasaba de "postura nueva" a aprobado al reenviarlo, y eso el estudiante
-    // lo lee como arbitrariedad. Bug real reportado en prueba en vivo.
-    temperature: 0,
-    top_p: 1,
-    seed: 7,
-    // El modelo razona antes de responder y esos tokens cuentan contra el tope: con 800, un
-    // argumento largo podía cortar el JSON a la mitad y el estudiante veía "el validador no
-    // respondió". Reporte de prueba en vivo con 8 participantes.
-    max_tokens: 1500,
-    response_format: { type: 'json_object' },
-  });
-
-  const consulta = await consultarGroqConReintentos(cuerpoDeLaPeticion);
+  const consulta = await consultarGroqConEsquema(
+    {
+      model: 'openai/gpt-oss-20b',
+      messages: [
+        { role: 'system', content: promptSistema },
+        { role: 'user', content: texto },
+      ],
+      // Temperatura 0: el mismo argumento tiene que dar el mismo veredicto. Con 0.2 el
+      // mismo texto pasaba de "postura nueva" a aprobado al reenviarlo, y eso el estudiante
+      // lo lee como arbitrariedad. Bug real reportado en prueba en vivo.
+      temperature: 0,
+      seed: 7,
+      // Validar la forma es una clasificación corta con el estudiante esperando: razonamiento bajo.
+      reasoning_effort: 'low',
+      // El modelo razona antes de responder y esos tokens cuentan contra el tope: con 800, un
+      // argumento largo podía cortar el JSON a la mitad y el estudiante veía "el validador no
+      // respondió". Reporte de prueba en vivo con 8 participantes.
+      max_tokens: 1500,
+    },
+    { nombre: 'validacion_de_argumento', esquema: ESQUEMA_DE_VALIDACION }
+  );
   if (consulta.error) {
     response.status(502).json({ error: consulta.error, detalle: consulta.detalle });
     return;

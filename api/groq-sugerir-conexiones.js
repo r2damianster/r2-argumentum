@@ -2,7 +2,29 @@
 // disparada manualmente por el moderador al cerrar la fase de escritura.
 // Nunca se llama por cada clic de conexión individual.
 
-import { consultarGroqConReintentos } from './_consultarGroq.js';
+import { consultarGroqConEsquema } from './_consultarGroq.js';
+
+export const ESQUEMA_DE_SUGERENCIAS = {
+  type: 'object',
+  properties: {
+    sugerencias: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          sourceArgumentId: { type: 'string' },
+          targetArgumentId: { type: 'string' },
+          tipoDeRelacion: { type: 'string', enum: ['refuerzo', 'contraargumento', 'dilema', 'conexion'] },
+          confianza: { type: 'number' },
+        },
+        required: ['sourceArgumentId', 'targetArgumentId', 'tipoDeRelacion', 'confianza'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['sugerencias'],
+  additionalProperties: false,
+};
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
@@ -28,19 +50,18 @@ relaciones estructurales entre las ideas.
 Devuelve SOLO un JSON con esta forma exacta:
 {"sugerencias": [{"sourceArgumentId": "...", "targetArgumentId": "...", "tipoDeRelacion": "refuerzo|contraargumento|dilema|conexion", "confianza": 0.0}]}`;
 
-  const consulta = await consultarGroqConReintentos(
-    JSON.stringify({
+  const consulta = await consultarGroqConEsquema(
+    {
       model: 'openai/gpt-oss-120b',
       messages: [
         { role: 'system', content: promptSistema },
         { role: 'user', content: listaDeArgumentos },
       ],
       temperature: 0,
-      top_p: 1,
       seed: 7,
       max_tokens: 1500,
-      response_format: { type: 'json_object' },
-    })
+    },
+    { nombre: 'sugerencias_de_conexiones', esquema: ESQUEMA_DE_SUGERENCIAS }
   );
   if (consulta.error) {
     response.status(502).json({ error: consulta.error, detalle: consulta.detalle });

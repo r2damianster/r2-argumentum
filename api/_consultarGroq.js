@@ -68,3 +68,21 @@ export async function consultarGroqConReintentos(cuerpoDeLaPeticion) {
 
   return ultimaEsperaPedidaSegundos === null ? ultimoFallo : { ...ultimoFallo, reintentarEnSegundos: ultimaEsperaPedidaSegundos };
 }
+
+// Pide a Groq una respuesta que cumpla `esquema` (structured outputs en modo estricto: gpt-oss-20b y
+// gpt-oss-120b lo soportan). El modo estricto garantiza JSON con la forma pedida, así que ya no se
+// depende de que el modelo "obedezca" una descripción en prosa. Si Groq rechaza el esquema (400), se
+// repite la consulta con `json_object` y la forma descrita en el prompt: Groq nunca condiciona el trabajo.
+// Todas las propiedades del esquema van en `required` y cada objeto con `additionalProperties: false`.
+export async function consultarGroqConEsquema(cuerpoBase, { nombre, esquema }) {
+  const consulta = await consultarGroqConReintentos(
+    JSON.stringify({
+      ...cuerpoBase,
+      response_format: { type: 'json_schema', json_schema: { name: nombre, strict: true, schema: esquema } },
+    })
+  );
+  if (consulta.estado !== 400) {
+    return consulta;
+  }
+  return consultarGroqConReintentos(JSON.stringify({ ...cuerpoBase, response_format: { type: 'json_object' } }));
+}

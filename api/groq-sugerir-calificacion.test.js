@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import handler, {
   construirPromptDeCalificacion,
+  construirEsquemaDeCalificacion,
   contarPalabras,
   normalizarSugerenciaDeCalificacion,
 } from './groq-sugerir-calificacion.js';
@@ -169,5 +170,16 @@ describe('/api/groq-sugerir-calificacion', () => {
 
   it('cuenta palabras con tildes y ñ', () => {
     expect(contarPalabras('El año pasó rápido')).toBe(4);
+  });
+});
+
+describe('construirEsquemaDeCalificacion', () => {
+  it('exige un nivel y un comentario por cada criterio, sin propiedades extra', () => {
+    const esquema = construirEsquemaDeCalificacion(RUBRICA);
+    expect(esquema.additionalProperties).toBe(false);
+    expect(esquema.properties.niveles.required).toEqual(['pertinencia', 'estructura']);
+    expect(esquema.properties.niveles.properties.pertinencia.enum).toEqual(['excelente', 'bueno', 'aceptable', 'insuficiente']);
+    expect(esquema.properties.comentariosPorCriterio.required).toEqual(['pertinencia', 'estructura']);
+    expect(esquema.required).toContain('partesDetectadas');
   });
 });

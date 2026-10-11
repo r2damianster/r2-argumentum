@@ -6,7 +6,7 @@
 // presenta como «sugerencia» y, ante la duda, no se señala nada.
 
 import { revisarFormaMinima } from './_revisarFormaMinima.js';
-import { consultarGroqConReintentos } from './_consultarGroq.js';
+import { consultarGroqConEsquema } from './_consultarGroq.js';
 
 // Duplica los códigos de src/shared/programa/idiomaDelDebate.js y las etiquetas de
 // src/shared/nucleo/sugerenciaDeIA/: la carpeta api/ no importa código del cliente.
@@ -25,6 +25,44 @@ export const TIPOS_DE_FALACIA = [
   'razonamiento_circular',
   'falsa_causa',
 ];
+
+export const ESQUEMA_DE_EVALUACION = {
+  type: 'object',
+  properties: {
+    completitud: { type: 'string', enum: COMPLETITUDES },
+    falacias: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          tipo: { type: 'string', enum: TIPOS_DE_FALACIA },
+          fragmento: { type: 'string' },
+          explicacion: { type: 'string' },
+          confianza: { type: 'number' },
+        },
+        required: ['tipo', 'fragmento', 'explicacion', 'confianza'],
+        additionalProperties: false,
+      },
+    },
+    criterios: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          cumple: { type: 'boolean' },
+          confianza: { type: 'number' },
+        },
+        required: ['id', 'cumple', 'confianza'],
+        additionalProperties: false,
+      },
+    },
+    comentario: { type: 'string' },
+    confianza: { type: 'number' },
+  },
+  required: ['completitud', 'falacias', 'criterios', 'comentario', 'confianza'],
+  additionalProperties: false,
+};
 
 const MAXIMO_DE_FALACIAS_SUGERIDAS = 3;
 // Por debajo de esta confianza una falacia no se señala: equivocarse acusando a alguien de una
@@ -168,30 +206,31 @@ export default async function handler(request, response) {
     )
     .join('\n\n');
 
-  const cuerpoDeLaPeticion = JSON.stringify({
-    model: 'openai/gpt-oss-20b',
-    messages: [
-      {
-        role: 'system',
-        content: construirPromptDeEvaluacion({
-          nombreDelIdioma: NOMBRE_DEL_IDIOMA[idiomaDelDebate],
-          ejemplosFormateados,
-          textoDelObjetivo: String(textoDelObjetivo).slice(0, 600),
-          criterios: criteriosPedidos,
-        }),
-      },
-      { role: 'user', content: texto },
-    ],
-    // Temperatura 0: el mismo aporte tiene que dar la misma sugerencia (ver groq-validar-argumento).
-    temperature: 0,
-    top_p: 1,
-    seed: 7,
-    // El modelo razona antes de responder; con un tope bajo el JSON se corta (ver groq-validar-argumento).
-    max_tokens: 1500,
-    response_format: { type: 'json_object' },
-  });
-
-  const consulta = await consultarGroqConReintentos(cuerpoDeLaPeticion);
+  const consulta = await consultarGroqConEsquema(
+    {
+      model: 'openai/gpt-oss-20b',
+      messages: [
+        {
+          role: 'system',
+          content: construirPromptDeEvaluacion({
+            nombreDelIdioma: NOMBRE_DEL_IDIOMA[idiomaDelDebate],
+            ejemplosFormateados,
+            textoDelObjetivo: String(textoDelObjetivo).slice(0, 600),
+            criterios: criteriosPedidos,
+          }),
+        },
+        { role: 'user', content: texto },
+      ],
+      // Temperatura 0: el mismo aporte tiene que dar la misma sugerencia (ver groq-validar-argumento).
+      temperature: 0,
+      seed: 7,
+      // Clasificación corta con la persona esperando: razonamiento bajo (ver groq-validar-argumento).
+      reasoning_effort: 'low',
+      // El modelo razona antes de responder; con un tope bajo el JSON se corta (ver groq-validar-argumento).
+      max_tokens: 1500,
+    },
+    { nombre: 'evaluacion_de_aporte', esquema: ESQUEMA_DE_EVALUACION }
+  );
   if (consulta.error) {
     response.status(502).json({ error: consulta.error, detalle: consulta.detalle });
     return;

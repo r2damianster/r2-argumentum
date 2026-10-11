@@ -6,7 +6,7 @@
 // nunca ve esta sugerencia. Solo la puede pedir el host (el token de su sesión): protege la cuota y las
 // claves de la lectura, que solo conoce el docente.
 
-import { consultarGroqConReintentos } from './_consultarGroq.js';
+import { consultarGroqConEsquema } from './_consultarGroq.js';
 import { sesionDelHostEsValida } from './_sesionDelHost.js';
 
 // Duplica los códigos de src/shared/programa/idiomaDelDebate.js y los niveles de
@@ -64,6 +64,44 @@ Reglas:
 - "confianza": número entre 0 y 1 sobre qué tan segura es tu sugerencia en conjunto.
 Devuelve SOLO JSON válido con esta forma exacta:
 {"niveles": {"<id del criterio>": "excelente|bueno|aceptable|insuficiente"}, "comentariosPorCriterio": {"<id del criterio>": "..."}, "partesDetectadas": [{"nombre": "...", "presente": true}], "comentarioGeneral": "...", "confianza": 0.0}`;
+}
+
+// El esquema depende de la rúbrica: cada criterio es una propiedad obligatoria de «niveles» y de
+// «comentariosPorCriterio» (el modo estricto no admite claves dinámicas).
+export function construirEsquemaDeCalificacion(rubrica) {
+  const identificadores = [...new Set(rubrica.map((criterio) => criterio.id))];
+  const propiedadesPor = (esquemaDeLaPropiedad) =>
+    Object.fromEntries(identificadores.map((identificador) => [identificador, esquemaDeLaPropiedad]));
+  return {
+    type: 'object',
+    properties: {
+      niveles: {
+        type: 'object',
+        properties: propiedadesPor({ type: 'string', enum: NIVELES_DE_LA_RUBRICA }),
+        required: identificadores,
+        additionalProperties: false,
+      },
+      comentariosPorCriterio: {
+        type: 'object',
+        properties: propiedadesPor({ type: 'string' }),
+        required: identificadores,
+        additionalProperties: false,
+      },
+      partesDetectadas: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: { nombre: { type: 'string' }, presente: { type: 'boolean' } },
+          required: ['nombre', 'presente'],
+          additionalProperties: false,
+        },
+      },
+      comentarioGeneral: { type: 'string' },
+      confianza: { type: 'number' },
+    },
+    required: ['niveles', 'comentariosPorCriterio', 'partesDetectadas', 'comentarioGeneral', 'confianza'],
+    additionalProperties: false,
+  };
 }
 
 function limitarConfianza(valor) {
@@ -156,35 +194,34 @@ export default async function handler(request, response) {
   };
   const idiomaDelTexto = NOMBRE_DEL_IDIOMA[idioma] ? idioma : 'es';
 
-  const cuerpoDeLaPeticion = JSON.stringify({
-    model: 'openai/gpt-oss-20b',
-    messages: [
-      {
-        role: 'system',
-        content: construirPromptDeCalificacion({
-          nombreDelIdioma: NOMBRE_DEL_IDIOMA[idiomaDelTexto],
-          consigna: recortar(consigna, MAXIMO_DE_CARACTERES_DE_LA_CONSIGNA),
-          estructura: estructuraLimpia,
-          rubrica: rubricaLimpia,
-          claves: recortar(claves, MAXIMO_DE_CARACTERES_DE_LAS_CLAVES),
-        }),
-      },
-      { role: 'user', content: recortar(texto, MAXIMO_DE_CARACTERES_DEL_TEXTO) },
-    ],
-    // Temperatura 0: el mismo texto tiene que dar la misma sugerencia (ver groq-validar-argumento).
-    temperature: 0,
-    top_p: 1,
-    seed: 7,
-    // `reasoning_effort: 'low'` solo si el cliente lo pide (modo de sala grande): con el esfuerzo por defecto el modelo
-    // gastaba ~1.000–1.400 tokens «pensando» antes de responder. Medido el 4-oct-2026 con 3 textos (bueno, flojo, fuera
-    // de tema): el total por sugerencia bajó de ~1.500–2.400 a ~900–1.000 tokens y los niveles salieron iguales (salvo 2
-    // criterios de formato en el texto fuera de tema). Con 8.000 tokens por minuto, es ~2 veces más sugerencias.
-    ...(razonamiento === 'bajo' ? { reasoning_effort: 'low' } : {}),
-    max_tokens: 2500,
-    response_format: { type: 'json_object' },
-  });
-
-  const consulta = await consultarGroqConReintentos(cuerpoDeLaPeticion);
+  const consulta = await consultarGroqConEsquema(
+    {
+      model: 'openai/gpt-oss-20b',
+      messages: [
+        {
+          role: 'system',
+          content: construirPromptDeCalificacion({
+            nombreDelIdioma: NOMBRE_DEL_IDIOMA[idiomaDelTexto],
+            consigna: recortar(consigna, MAXIMO_DE_CARACTERES_DE_LA_CONSIGNA),
+            estructura: estructuraLimpia,
+            rubrica: rubricaLimpia,
+            claves: recortar(claves, MAXIMO_DE_CARACTERES_DE_LAS_CLAVES),
+          }),
+        },
+        { role: 'user', content: recortar(texto, MAXIMO_DE_CARACTERES_DEL_TEXTO) },
+      ],
+      // Temperatura 0: el mismo texto tiene que dar la misma sugerencia (ver groq-validar-argumento).
+      temperature: 0,
+      seed: 7,
+      // `reasoning_effort: 'low'` solo si el cliente lo pide (modo de sala grande): con el esfuerzo por defecto el modelo
+      // gastaba ~1.000–1.400 tokens «pensando» antes de responder. Medido el 4-oct-2026 con 3 textos (bueno, flojo, fuera
+      // de tema): el total por sugerencia bajó de ~1.500–2.400 a ~900–1.000 tokens y los niveles salieron iguales (salvo 2
+      // criterios de formato en el texto fuera de tema). Con 8.000 tokens por minuto, es ~2 veces más sugerencias.
+      ...(razonamiento === 'bajo' ? { reasoning_effort: 'low' } : {}),
+      max_tokens: 2500,
+    },
+    { nombre: 'sugerencia_de_calificacion', esquema: construirEsquemaDeCalificacion(rubricaLimpia) }
+  );
   if (consulta.error) {
     // Un límite de tasa de Groq se responde como 429 con la espera que pidió, para que la cola del docente se
     // pause ese tiempo (el plan gratuito da unas 5 sugerencias por minuto) en vez de reintentar a ciegas.
