@@ -7,7 +7,7 @@
 | Rol | Quién | Qué hace |
 |---|---|---|
 | **Moderador** | El profesor | Crea el Programa, controla el avance de fases, proyecta el grafo en vivo, puede delegar y supervisar co-moderadores |
-| **Co-moderador** | Sorteado al azar entre los participantes (ver fórmula abajo) | Valora, anota, resuelve casos escalados por Groq, marca faltas, valida tipos de relación, califica las exposiciones orales |
+| **Co-moderador** | Sorteado al azar entre los participantes (ver fórmula abajo) | Valora, anota, marca faltas, valida tipos de relación, califica las exposiciones orales |
 | **Participante** | El resto de estudiantes | Recibe turnos, escribe argumentos, conecta argumentos libremente |
 
 ### Selección de co-moderadores

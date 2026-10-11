@@ -191,7 +191,7 @@ argument.validated {   // RETIRADO (oct. 2026): ya no se emite; el reducer lo si
 
 Cuando el argumento se publica al exponerlo en su turno y su tipo tiene objetivo (contraargumento, refuerzo, dilema, conexión), el mismo cliente publica a continuación `link.created` con `sourceArgumentId` = el argumento nuevo y `targetArgumentId` = `argumentoObjetivoId` (y `tipoDeRelacion` = el tipo declarado). El bid aprobado hace lo mismo desde el motor del host. Sin ese evento el nodo queda suelto en la fila raíz del grafo.
 
-`argument.submit_attempt` y `argument.validation_result` son el ciclo de validación de forma (checkpoint 1 de Groq). Solo tras un `aprobado: true` (o una escalada a co-moderador) se publica `argument.submitted`.
+`argument.submit_attempt` y `argument.validation_result` son el ciclo de validación de forma (checkpoint 1 de Groq). Solo tras un `aprobado: true` (o un paso sin revisar por límites de la IA) se publica `argument.submitted`.
 
 ## Bids de intervención
 

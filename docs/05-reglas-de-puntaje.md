@@ -79,9 +79,10 @@ valor_base(posición 3) = 3
 descuento_ronda = 1.0   si la posición se completa en Ronda 1
 descuento_ronda = 0.7   si se completa en Ronda 2 (retrasar cuesta 30%)
 
-descuento_vía = 1.0     si el argumento pasa validación de Groq (1er o 2do intento)
-descuento_vía = 0.5     si entra por revisión manual de un co-moderador
-                        (tras 2 intentos fallidos de Groq)
+descuento_vía = 1.0     si la persona escribe y publica el argumento (Groq solo valida la
+                        forma o sugiere: no hay tope de intentos ni cambia el puntaje)
+descuento_vía = 0.5     si entra por la vía del co-moderador (turno hablado que registra
+                        el co-moderador)
 ```
 
 Todos los valores se redondean al entero más cercano, con mínimo de 1 punto (nunca 0, para no eliminar el incentivo a participar tarde).
