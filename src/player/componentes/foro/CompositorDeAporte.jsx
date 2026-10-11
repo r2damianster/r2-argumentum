@@ -225,6 +225,7 @@ export function CompositorDeAporte({
       texto: texto.trim(),
       programa,
       textoDelObjetivo: objetivo?.texto ?? '',
+      razonamiento: perfil.razonamientoDeGroq,
     });
     setConsultando(false);
 

@@ -8,6 +8,7 @@ import { nombreDeParticipante } from '../../shared/estado/seleccionesDerivadas.j
 import { AdvertenciaDeIntegridad, AvisoDeIntegridad } from '../../shared/componentes/foro/AdvertenciaDeIntegridad.jsx';
 import { useControlDeIntegridad } from '../../shared/nucleo/integridad/useControlDeIntegridad.js';
 import { CONTEXTOS_DE_REDACCION } from '../../shared/nucleo/integridad/canalPrivado.js';
+import { perfilDeAhorro } from '../../shared/nucleo/capacidad/modosDeAhorro.js';
 
 function generarId(prefijo) {
   return `${prefijo}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -72,6 +73,7 @@ export function FormularioDeContraargumentoParaOyentes({
       ejemplos: programa.ejemplosPorTema,
       posturas: programa.posturas,
       idioma: resolverIdiomaDelDebate(programa),
+      razonamiento: perfilDeAhorro({ programa }).razonamientoDeGroq,
     });
 
     setUltimaRespuestaDeGroq(respuesta);

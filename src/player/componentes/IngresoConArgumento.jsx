@@ -9,6 +9,7 @@ import { nombreDeParticipante } from '../../shared/estado/seleccionesDerivadas.j
 import { AdvertenciaDeIntegridad, AvisoDeIntegridad } from '../../shared/componentes/foro/AdvertenciaDeIntegridad.jsx';
 import { useControlDeIntegridad } from '../../shared/nucleo/integridad/useControlDeIntegridad.js';
 import { CONTEXTOS_DE_REDACCION } from '../../shared/nucleo/integridad/canalPrivado.js';
+import { perfilDeAhorro } from '../../shared/nucleo/capacidad/modosDeAhorro.js';
 
 function generarId(prefijo) {
   return `${prefijo}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -125,6 +126,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
       ejemplos: programa.ejemplosPorTema,
       posturas,
       idioma: resolverIdiomaDelDebate(programa),
+      razonamiento: perfilDeAhorro({ programa: estado.programa ?? programa, estado }).razonamientoDeGroq,
     });
 
     setUltimaRespuestaDeGroq(respuesta);

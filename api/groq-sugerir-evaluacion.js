@@ -188,7 +188,7 @@ export default async function handler(request, response) {
     return;
   }
 
-  const { texto, ejemplos = [], idioma, textoDelObjetivo = '', criterios = [] } = request.body ?? {};
+  const { texto, ejemplos = [], idioma, textoDelObjetivo = '', criterios = [], razonamiento } = request.body ?? {};
   const criteriosPedidos = limpiarCriteriosPedidos(criterios);
   const idiomaDelDebate = NOMBRE_DEL_IDIOMA[idioma] ? idioma : 'es';
 
@@ -224,8 +224,9 @@ export default async function handler(request, response) {
       // Temperatura 0: el mismo aporte tiene que dar la misma sugerencia (ver groq-validar-argumento).
       temperature: 0,
       seed: 7,
-      // Sin `reasoning_effort: 'low'`: medido el 11-oct-2026 con 15 textos, ahorra ~28 % de tokens pero cambió la completitud
-      // en 4 de 15 aportes (ver groq-validar-argumento).
+      // `reasoning_effort: 'low'` solo si el cliente lo pide (modo de sala grande): ahorra ~28 % de tokens pero cambió la
+      // completitud en 4 de 15 aportes (ver groq-validar-argumento).
+      ...(razonamiento === 'bajo' ? { reasoning_effort: 'low' } : {}),
       // El modelo razona antes de responder; con un tope bajo el JSON se corta (ver groq-validar-argumento).
       max_tokens: 1500,
     },

@@ -8,7 +8,8 @@ import { criteriosParaLaIA } from '../criteriosAdicionales/criteriosAdicionales.
 // Devuelve:
 //   { formaMinima: { valido, motivo, sugerencia }, sugerencia: { completitud, falacias, criterios, comentario, confianza } | null }
 //   { fallo: true }
-export async function solicitarSugerenciaDeEvaluacion({ texto, programa, textoDelObjetivo = '' }) {
+// `razonamiento`: 'bajo' pide poco esfuerzo de razonamiento (menos tokens; lo fija el modo de ahorro de la sala).
+export async function solicitarSugerenciaDeEvaluacion({ texto, programa, textoDelObjetivo = '', razonamiento = 'normal' }) {
   try {
     const peticion = await fetch('/api/groq-sugerir-evaluacion', {
       method: 'POST',
@@ -19,6 +20,7 @@ export async function solicitarSugerenciaDeEvaluacion({ texto, programa, textoDe
         idioma: resolverIdiomaDelDebate(programa),
         textoDelObjetivo,
         criterios: criteriosParaLaIA(programa),
+        razonamiento,
       }),
     });
     if (!peticion.ok) {

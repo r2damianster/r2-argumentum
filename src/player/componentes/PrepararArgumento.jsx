@@ -8,6 +8,7 @@ import { resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.j
 import { validarArgumentoConGroq } from '../../shared/argumentos/validarArgumentoConGroq.js';
 import { decidirValidacion, DECISIONES } from '../../shared/argumentos/decidirValidacion.js';
 import { buscarArgumentoParecido } from '../../shared/argumentos/buscarArgumentoParecido.js';
+import { perfilDeAhorro } from '../../shared/nucleo/capacidad/modosDeAhorro.js';
 import { nombreDeParticipante, siguientePosicionParaParticipante } from '../../shared/estado/seleccionesDerivadas.js';
 import {
   calcularPenalidadPorRechazoDeTurno,
@@ -143,6 +144,7 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
       ejemplos: programa.ejemplosPorTema,
       posturas: programa.posturas,
       idioma: resolverIdiomaDelDebate(programa),
+      razonamiento: perfilDeAhorro({ programa: estado.programa ?? programa, estado }).razonamientoDeGroq,
     });
 
     const decision = decidirValidacion({

@@ -114,7 +114,7 @@ export default async function handler(request, response) {
     return;
   }
 
-  const { texto, ejemplos = [], posturas = [], idioma } = request.body;
+  const { texto, ejemplos = [], posturas = [], idioma, razonamiento } = request.body;
   const instruccionesDelIdioma = INSTRUCCIONES_POR_IDIOMA[idioma] ?? INSTRUCCIONES_POR_IDIOMA.es;
 
   // Antes de gastar una llamada: un texto sin razón real ("... porque ....") no se manda a
@@ -158,8 +158,10 @@ export default async function handler(request, response) {
       // lo lee como arbitrariedad. Bug real reportado en prueba en vivo.
       temperature: 0,
       seed: 7,
-      // Sin `reasoning_effort: 'low'`: medido el 11-oct-2026 con 15 textos, bajar el razonamiento ahorra ~18 % de tokens
-      // pero cambia veredictos (aprobó un texto sin razón y movió la postura de otro). Un veredicto inestable se lee como arbitrariedad.
+      // `reasoning_effort: 'low'` solo si el cliente lo pide (modo de sala grande): medido el 11-oct-2026 con 15 textos,
+      // ahorra ~18 % de tokens pero cambia veredictos (aprobó un texto sin razón y movió la postura de otro). En sala
+      // pequeña un veredicto inestable se lee como arbitrariedad; en sala grande el límite de tokens por minuto pesa más.
+      ...(razonamiento === 'bajo' ? { reasoning_effort: 'low' } : {}),
       // El modelo razona antes de responder y esos tokens cuentan contra el tope: con 800, un
       // argumento largo podía cortar el JSON a la mitad y el estudiante veía "el validador no
       // respondió". Reporte de prueba en vivo con 8 participantes.
