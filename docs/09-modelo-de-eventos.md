@@ -59,6 +59,19 @@ El participante NO aparece en la sala por conectarse. Se suscribe al canal sin e
 
 Quien está en la sala sin `ingreso.confirmado` es **oyente**: ve todo el debate, no entra a la ruleta de turnos y no puntúa. Puede convertirse en participante de dos maneras: completando su argumento de ingreso antes de que el moderador inicie la sesión, o —ya iniciada— publicando un contraargumento desde `FormularioDeContraargumentoParaOyentes.jsx`. En ese caso elige él mismo la postura desde la que contraargumenta (no hereda la del argumento que rebate), el texto publicado debe ser exactamente el que Groq revisó, y el envío emite `argument.submitted` + `link.created` + `ingreso.confirmado`.
 
+### Atrasados: quien llega con la sesión ya iniciada
+
+```
+ingreso.atrasados_cambiado  { permitido: boolean }     // solo vale si lo publica el host
+```
+
+Es la decisión del moderador con el botón **«Permitir atrasados» / «No permitir atrasados»** de la consola. Se guarda en `sesion.permiteAtrasados` (`null` hasta que decide) y rige siempre la última. Sin decisión manda el valor por defecto de la actividad (`atrasadosPermitidosPorDefecto` en `reglasDeIngreso.js`): **foro escrito y control de lectura admiten**; **debate hablado no** (queda como oyente, como siempre).
+
+- **Con atrasados permitidos** quien llega con la sesión en marcha ve el formulario de ingreso de la actividad y entra como participante pleno (en el debate hablado, entra a la ruleta en cuanto se apruebe su argumento).
+- **Sin atrasados** el foro se muestra de solo lectura (hilos y mapa, sin compositor ni reacciones) y el control de lectura avisa que el ingreso se cerró.
+- **No expulsa a nadie**: quien ya tenía `ingreso.confirmado` sigue dentro. Tampoco entra nadie con la sesión en el cierre y ranking o cerrada.
+- **Es una regla de la pantalla, no un candado del log.** El reducer no descarta `ingreso.confirmado` tardíos: en modo masivo los anuncia el host en lote, con retraso, y en el debate hablado un oyente puede entrar publicando un contraargumento (ver arriba). La función pura es `personaPuedeIngresar(estado, programa)`.
+
 ## Propuesta de postura nueva
 
 ```

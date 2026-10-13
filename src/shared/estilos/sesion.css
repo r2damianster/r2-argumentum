@@ -455,6 +455,34 @@ input {
   font-size: 1.15rem;
 }
 
+/* Proyección del foro: hilos y mapa lado a lado en pantalla ancha; apilados en ventana angosta.
+   minmax(0, …) evita que el mapa (ancho intrínseco grande) empuje la columna de hilos. */
+.proyeccion-del-foro-con-mapa {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 1100px) {
+  .proyeccion-del-foro-con-mapa {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    align-items: start;
+  }
+}
+
+/* Botón «Permitir / No permitir atrasados» de la consola del moderador. */
+.control-de-atrasados {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0.75rem;
+}
+
+.boton-de-atrasados {
+  min-height: 44px;
+}
+
 .acciones-de-barra {
   display: flex;
   gap: 8px;

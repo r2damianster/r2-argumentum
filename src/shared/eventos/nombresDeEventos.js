@@ -115,6 +115,9 @@ export const EVENTOS = {
   // Ingresos anunciados EN LOTE por el host (modo masivo): los participantes no publican en la sala, mandan su ingreso por
   // el canal privado y el host lo anuncia aquí. Es lo mismo que `ingreso.confirmado` de cada persona, de a muchas.
   INGRESOS_REGISTRADOS: 'sesion.ingresos_registrados',
+  // El moderador permite o no el ingreso de quien llega cuando la sesión ya empezó («atrasados»). Sin esta
+  // decisión rige el valor por defecto de la actividad (ver reglasDeIngreso.js). Solo vale si lo publica el host.
+  INGRESO_DE_ATRASADOS_CAMBIADO: 'ingreso.atrasados_cambiado',
 };
 
 // Cómo se califica la exposición oral de un argumento ya publicado. "sin_exposicion" es la

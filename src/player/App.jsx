@@ -31,7 +31,7 @@ import { IntervencionVerbal } from './componentes/IntervencionVerbal.jsx';
 import { AvisoPreparateParaHablar } from './componentes/AvisoPreparateParaHablar.jsx';
 import { FormularioDeContraargumentoParaOyentes } from './componentes/FormularioDeContraargumentoParaOyentes.jsx';
 import { resolverIdiomaDelDebate } from '../shared/programa/idiomaDelDebate.js';
-import { ingresoEstaCerrado } from '../shared/ingreso/reglasDeIngreso.js';
+import { personaPuedeIngresar } from '../shared/ingreso/reglasDeIngreso.js';
 import { calcularInstruccionesDelForo } from '../shared/instrucciones/calcularInstruccionesDelForo.js';
 import { calcularInstruccionesDelControlDeLectura } from '../shared/instrucciones/calcularInstruccionesDelControlDeLectura.js';
 import { resolverActividadDelPrograma } from '../actividades/registroDeActividades.js';
@@ -294,7 +294,6 @@ function SesionDeParticipante({ codigoDeSala, participantId, secreto, nombre, em
   const sesionCerrada = estado.fase.actual?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING || estado.sesion.cerrada;
   const ingresoConfirmado = Boolean(estado.participantes[participantId]?.ingresoConfirmado);
   const tieneArgumentoListo = Boolean(estado.participantes[participantId]?.argumentoListo);
-  const ingresoCerrado = ingresoEstaCerrado(estado);
 
   // Requisito de ingreso: sin argumento aprobado no se entra al roster (docs/09). Si el debate
   // ya arrancó, quien no alcanzó a confirmar se queda como oyente y solo mira.
@@ -305,8 +304,10 @@ function SesionDeParticipante({ codigoDeSala, participantId, secreto, nombre, em
   const esForo = resolverActividadDelPrograma(programa).id === ID_FORO_ESCRITO;
   const esControlDeLectura = resolverActividadDelPrograma(programa).id === ID_CONTROL_DE_LECTURA;
 
-  // En el foro y en el control de lectura se puede entrar en cualquier momento (no hay «oyentes»).
-  if (!ingresoConfirmado && (esForo || esControlDeLectura || !ingresoCerrado)) {
+  // Quien aún no confirmó su ingreso puede hacerlo antes de iniciar y, con la sesión en marcha, solo si el
+  // moderador admite atrasados. Por defecto el foro y el control de lectura los admiten; el debate hablado, no.
+  const puedeIngresar = personaPuedeIngresar(estado, programa);
+  if (!ingresoConfirmado && puedeIngresar) {
     return (
       <main lang={idiomaDelDebate}>
         <div className="barra-superior">
@@ -408,7 +409,15 @@ function SesionDeParticipante({ codigoDeSala, participantId, secreto, nombre, em
         </>
       )}
 
-      {esControlDeLectura ? (
+      {esControlDeLectura && !ingresoConfirmado ? (
+        // Llegó con la escritura en marcha y el moderador no admite atrasados: no hay nada que entregar.
+        <section className="tarjeta-de-turno-ofrecido">
+          <p className="mensaje-de-error">
+            El moderador cerró el ingreso: llegaste cuando el control de lectura ya había empezado. Pídele que
+            admita atrasados si debes entregar tu texto.
+          </p>
+        </section>
+      ) : esControlDeLectura ? (
         <VistaDelControlDeLectura
           estado={estado}
           presencia={presencia}

@@ -9,6 +9,8 @@ import {
   participantesSinIntervenir,
   seAlcanzoElMinimoDeParticipacion,
   ingresoEstaCerrado,
+  permiteIngresoDeAtrasados,
+  personaPuedeIngresar,
   analizarBalanceDePosturas,
   verificarCupoDePostura,
 } from './reglasDeIngreso.js';
@@ -193,6 +195,98 @@ describe('cierre del ingreso', () => {
 
     expect(ingresoEstaCerrado(antes)).toBe(false);
     expect(ingresoEstaCerrado(despues)).toBe(true);
+  });
+});
+
+describe('atrasados: quien llega con la sesión ya iniciada', () => {
+  const programaDeDebate = { actividad: 'debate_hablado' };
+  const programaDeForo = { actividad: 'foro_escrito' };
+  const programaDeLectura = { actividad: 'control_de_lectura' };
+
+  function sesionIniciada(tipoDeFase, ...eventosExtra) {
+    return reducirTodos([evento(EVENTOS.FASE_INICIADA, { phaseType: tipoDeFase }), ...eventosExtra]);
+  }
+
+  it('antes de iniciar entra cualquiera, en todas las actividades', () => {
+    for (const programa of [programaDeDebate, programaDeForo, programaDeLectura]) {
+      expect(personaPuedeIngresar(estadoInicial(), programa)).toBe(true);
+    }
+  });
+
+  it('por defecto el debate hablado no admite atrasados y el foro y el control de lectura sí', () => {
+    const estado = sesionIniciada('escritura_argumentos');
+
+    expect(personaPuedeIngresar(estado, programaDeDebate)).toBe(false);
+    expect(personaPuedeIngresar(estado, programaDeForo)).toBe(true);
+    expect(personaPuedeIngresar(estado, programaDeLectura)).toBe(true);
+  });
+
+  it('un Programa sin campo actividad se comporta como debate hablado', () => {
+    expect(permiteIngresoDeAtrasados(estadoInicial(), {})).toBe(false);
+    expect(permiteIngresoDeAtrasados(estadoInicial(), undefined)).toBe(false);
+  });
+
+  it('el moderador puede cerrar el ingreso del foro con la sesión en marcha', () => {
+    const estado = sesionIniciada('foro_escrito', evento(EVENTOS.INGRESO_DE_ATRASADOS_CAMBIADO, { permitido: false }));
+
+    expect(permiteIngresoDeAtrasados(estado, programaDeForo)).toBe(false);
+    expect(personaPuedeIngresar(estado, programaDeForo)).toBe(false);
+  });
+
+  it('el moderador puede admitir atrasados en el debate hablado', () => {
+    const estado = sesionIniciada('escritura_argumentos', evento(EVENTOS.INGRESO_DE_ATRASADOS_CAMBIADO, { permitido: true }));
+
+    expect(personaPuedeIngresar(estado, programaDeDebate)).toBe(true);
+  });
+
+  it('rige la última decisión: se puede abrir y cerrar las veces que haga falta', () => {
+    const estado = sesionIniciada(
+      'foro_escrito',
+      evento(EVENTOS.INGRESO_DE_ATRASADOS_CAMBIADO, { permitido: false }),
+      evento(EVENTOS.INGRESO_DE_ATRASADOS_CAMBIADO, { permitido: true })
+    );
+
+    expect(personaPuedeIngresar(estado, programaDeForo)).toBe(true);
+  });
+
+  it('con el ingreso cerrado, quien ya confirmó sigue dentro', () => {
+    const estado = sesionIniciada(
+      'foro_escrito',
+      evento(EVENTOS.INGRESO_CONFIRMADO, { participantId: 'ana', stanceId: 'izquierda' }),
+      evento(EVENTOS.INGRESO_DE_ATRASADOS_CAMBIADO, { permitido: false })
+    );
+
+    expect(esOyente(estado, 'ana')).toBe(false);
+  });
+
+  it('nadie entra con la sesión por cerrarse, aunque se admitan atrasados', () => {
+    const enCierre = sesionIniciada(
+      'cierre_y_ranking',
+      evento(EVENTOS.INGRESO_DE_ATRASADOS_CAMBIADO, { permitido: true })
+    );
+    const cerrada = reducirEventos(
+      sesionIniciada('foro_escrito'),
+      evento(EVENTOS.SESION_CERRADA, { timestamp: 1 })
+    );
+
+    expect(personaPuedeIngresar(enCierre, programaDeDebate)).toBe(false);
+    expect(personaPuedeIngresar(cerrada, programaDeForo)).toBe(false);
+  });
+
+  it('solo vale la decisión del host', () => {
+    const intrusa = { name: EVENTOS.INGRESO_DE_ATRASADOS_CAMBIADO, data: { permitido: false }, clientId: 'ana' };
+    const delHost = { name: EVENTOS.INGRESO_DE_ATRASADOS_CAMBIADO, data: { permitido: false }, clientId: 'host' };
+    const base = sesionIniciada('foro_escrito');
+
+    expect(reducirEventos(base, intrusa).sesion.permiteAtrasados).toBe(null);
+    expect(reducirEventos(base, delHost).sesion.permiteAtrasados).toBe(false);
+  });
+
+  it('ignora un valor que no es booleano', () => {
+    const base = sesionIniciada('foro_escrito');
+    const raro = evento(EVENTOS.INGRESO_DE_ATRASADOS_CAMBIADO, { permitido: 'no' });
+
+    expect(reducirEventos(base, raro).sesion.permiteAtrasados).toBe(null);
   });
 });
 

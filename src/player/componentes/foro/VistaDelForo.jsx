@@ -19,6 +19,9 @@ export function VistaDelForo({ estado, presencia, programa, participantId, publi
   const cuentaAtras = useCuentaAtras(faseConTiempo);
   const escrituraAbierta = Boolean(faseConTiempo) && !cuentaAtras.haVencido && !estado.sesion.cerrada;
   const esCoModerador = estado.participantes[participantId]?.rol === 'co_moderador';
+  // Llega a esta pantalla sin haber confirmado su ingreso solo quien entró con el foro en marcha y el
+  // moderador sin admitir atrasados: puede leer lo que se publica, pero no participar.
+  const soloLectura = !esCoModerador && !estado.participantes[participantId]?.ingresoConfirmado;
 
   const [objetivo, setObjetivo] = useState(null);
   const [orden, setOrden] = useState(ORDENES_DE_HILOS.RECIENTES);
@@ -47,7 +50,7 @@ export function VistaDelForo({ estado, presencia, programa, participantId, publi
         </button>
       );
     }
-    if (!escrituraAbierta || aporte.participantId === participantId) {
+    if (soloLectura || !escrituraAbierta || aporte.participantId === participantId) {
       return null;
     }
     return (
@@ -72,7 +75,16 @@ export function VistaDelForo({ estado, presencia, programa, participantId, publi
 
       <FranjaDeMetricas estado={estado} />
 
-      {!esCoModerador && (
+      {soloLectura && (
+        <section className="tarjeta-de-turno-ofrecido">
+          <p className="mensaje-de-error">
+            El moderador cerró el ingreso: llegaste cuando el foro ya había empezado. Puedes leer lo que se
+            publica, pero no participar.
+          </p>
+        </section>
+      )}
+
+      {!esCoModerador && !soloLectura && (
         <>
           <AvisosDelForo
             estado={estado}
@@ -117,7 +129,7 @@ export function VistaDelForo({ estado, presencia, programa, participantId, publi
         programa={programa}
         participantId={participantId}
         renderAcciones={renderAcciones}
-        onReaccionar={reaccionar}
+        onReaccionar={soloLectura ? null : reaccionar}
         verSugerenciasDeIA={esCoModerador}
         mensajeVacio="Todavía no hay posts."
       />

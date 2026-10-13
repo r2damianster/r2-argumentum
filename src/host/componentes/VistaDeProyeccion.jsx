@@ -18,8 +18,11 @@ import { ListaDeParticipantes } from './ListaDeParticipantes.jsx';
 const HILOS_VISIBLES_EN_PROYECCION = 5;
 
 // Lo que la clase necesita ver del foro desde el fondo del aula: cuánto tiempo queda, cómo va la
-// participación y los hilos más activos. Sin sugerencias de la IA, sin aportes ocultos y sin
-// ningún control del moderador.
+// participación, los hilos más activos y el mapa de cómo se responden entre sí. Sin sugerencias de la
+// IA, sin aportes ocultos (el mapa tampoco los dibuja) y sin ningún control del moderador.
+//
+// En una pantalla ancha los hilos y el mapa van lado a lado (ver `.proyeccion-del-foro-con-mapa`);
+// en una ventana angosta se apilan, igual que antes.
 function ProyeccionDelForo({ estado, programa, presencia }) {
   const fase = estado.fase.actual;
   const faseConTiempo = fase?.tipo === TIPOS_DE_FASE.FORO_ESCRITO ? fase : null;
@@ -38,13 +41,20 @@ function ProyeccionDelForo({ estado, programa, presencia }) {
       )}
       {fase?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING && !estado.sesion.cerrada && <BarraDeTiempo escrituraCerrada />}
       <FranjaDeMetricas estado={estado} />
-      <ListaDeHilos
-        hilos={hilos}
-        estado={estado}
-        presencia={presencia}
-        programa={programa}
-        mensajeVacio="Todavía no hay posts. ¡Publica el primero!"
-      />
+      <div className="proyeccion-del-foro-con-mapa">
+        <div className="proyeccion-del-foro-hilos">
+          <ListaDeHilos
+            hilos={hilos}
+            estado={estado}
+            presencia={presencia}
+            programa={programa}
+            mensajeVacio="Todavía no hay posts. ¡Publica el primero!"
+          />
+        </div>
+        <div className="proyeccion-del-foro-mapa">
+          <GrafoDeArgumentos estado={estado} programa={programa} presencia={presencia} modoProyeccion />
+        </div>
+      </div>
       <ListaDeParticipantes estado={estado} presencia={presencia} programa={programa} />
     </>
   );

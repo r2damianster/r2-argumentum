@@ -85,6 +85,10 @@ function usarAnchoDe(referencia) {
 // Límites del alto del mapa. En pantalla normal el mapa sale compacto y crece con el debate; en
 // proyección se le deja hasta el 62 % del alto de la ventana para que se lea desde el fondo.
 function limitesDeAlto(modoProyeccion) {
+  // Sin ventana (render en servidor o en las pruebas de pantallas) se usan los límites de pantalla normal.
+  if (typeof window === 'undefined') {
+    return { altoMinimo: 240, altoMaximo: 420 };
+  }
   if (modoProyeccion) {
     return { altoMinimo: 300, altoMaximo: Math.max(360, Math.round((window.innerHeight / factorDeCompensacionActual()) * 0.62)) };
   }
@@ -104,7 +108,11 @@ export function GrafoDeArgumentos({ estado, programa, presencia, modoProyeccion 
   const anchoDelContenedor = usarAnchoDe(contenedorRef);
 
   const { nodos, aristas } = useMemo(() => {
-    const argumentos = Object.values(estado.argumentos).sort((a, b) => a.timestamp - b.timestamp);
+    // Un aporte que el moderador o un co-moderador ocultó no se dibuja: el mapa se proyecta en el aula
+    // y se ve en todos los celulares. Sus conexiones se descartan más abajo junto con el nodo.
+    const argumentos = Object.values(estado.argumentos)
+      .filter((argumento) => !argumento.oculto)
+      .sort((a, b) => a.timestamp - b.timestamp);
 
     const nodosSinUbicar = argumentos.map((argumento) => {
       const color = colorDelArgumento(argumento);

@@ -429,4 +429,21 @@ describe('proyección del foro', () => {
     expect(html).not.toContain('Sugerencia de la IA');
     expect(html).not.toContain('Ocultar');
   });
+
+  it('muestra el mapa argumental junto a los hilos y sin los aportes ocultos', async () => {
+    const { VistaDeProyeccion } = await import('../../host/componentes/VistaDeProyeccion.jsx');
+    const estado = construirEstado([
+      ...INGRESOS,
+      FORO_ABIERTO,
+      aporte('p1', 'ana'),
+      aporte('p2', 'luis'),
+      evento(EVENTOS.APORTE_OCULTADO, { argumentId: 'p2', porId: 'host' }),
+    ]);
+    const html = renderizar(h(VistaDeProyeccion, { estado, programa: PROGRAMA, presencia: PRESENCIA, conexion: null }));
+    expect(html).toContain('proyeccion-del-foro-con-mapa');
+    expect(html).toContain('Mapa argumental');
+    // El mapa dibuja un nodo por aporte visible: el oculto no tiene que estar entre ellos.
+    expect(html).toContain('data-id="p1"');
+    expect(html).not.toContain('data-id="p2"');
+  });
 });

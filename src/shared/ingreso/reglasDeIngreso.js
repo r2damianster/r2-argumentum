@@ -5,8 +5,45 @@
 // no recibe turnos y no puntúa, y puede convertirse en participante si completa su argumento
 // antes de que el moderador cierre el ingreso.
 
+import { TIPOS_DE_FASE } from '../eventos/nombresDeEventos.js';
+
+// La sesión ya arrancó (hay o hubo una fase). No dice si alguien puede entrar todavía: eso depende
+// además de si el moderador admite atrasados (ver `personaPuedeIngresar`).
 export function ingresoEstaCerrado(estado) {
   return estado.fase.actual !== null || estado.fase.historial.length > 0;
+}
+
+// Actividades escritas: cada quien trabaja a su ritmo y no hay turnos que repartir, así que por defecto
+// se admite a quien llega con la sesión en marcha. En el debate hablado, en cambio, quien llega tarde
+// queda como oyente. El moderador cambia cualquiera de los dos valores con el botón «Permitir /
+// No permitir atrasados». Los ids van como texto para no importar el registro de actividades desde
+// aquí (el motor del debate importa estas reglas y se formaría un ciclo).
+const ACTIVIDADES_QUE_ADMITEN_ATRASADOS_POR_DEFECTO = ['foro_escrito', 'control_de_lectura'];
+
+export function atrasadosPermitidosPorDefecto(programa) {
+  return ACTIVIDADES_QUE_ADMITEN_ATRASADOS_POR_DEFECTO.includes(programa?.actividad);
+}
+
+// Decisión vigente sobre quien llega con la sesión ya empezada: la del moderador si la tomó; si no,
+// el valor por defecto de la actividad.
+export function permiteIngresoDeAtrasados(estado, programa = estado.programa) {
+  const decisionDelModerador = estado.sesion?.permiteAtrasados;
+  if (typeof decisionDelModerador === 'boolean') {
+    return decisionDelModerador;
+  }
+  return atrasadosPermitidosPorDefecto(programa);
+}
+
+// ¿Una persona que todavía no confirmó su ingreso puede hacerlo ahora? Antes de iniciar, siempre.
+// Con la sesión en marcha, solo si se admiten atrasados. Cerrada la sesión (o en el cierre y ranking)
+// nadie entra: ya no hay nada en lo que participar.
+export function personaPuedeIngresar(estado, programa = estado.programa) {
+  const sesionPorCerrarse =
+    Boolean(estado.sesion?.cerrada) || estado.fase.actual?.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING;
+  if (sesionPorCerrarse) {
+    return false;
+  }
+  return !ingresoEstaCerrado(estado) || permiteIngresoDeAtrasados(estado, programa);
 }
 
 export function esOyente(estado, participantId) {

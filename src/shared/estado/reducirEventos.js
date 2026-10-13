@@ -68,7 +68,9 @@ export function estadoInicial() {
     sugerencias: {},
     // `identificador` distingue esta sesión de otra que haya usado el mismo código de sala
     // (ver mensajesDeLaSesionVigente y la instantánea local).
-    sesion: { cerrada: false, cerradaEn: null, identificador: null, modoDeAhorro: null },
+    // `permiteAtrasados`: null mientras el moderador no decide (rige el valor por defecto de la
+    // actividad, ver reglasDeIngreso.js); true/false cuando lo fija con el botón de la consola.
+    sesion: { cerrada: false, cerradaEn: null, identificador: null, modoDeAhorro: null, permiteAtrasados: null },
     // Acciones que el motor del host ya ejecutó, marcadas en el propio log de eventos. El
     // motor llevaba esa cuenta solo en memoria: si el host refrescaba la pestaña a mitad del
     // debate, arrancaba con la cuenta en blanco y volvía a puntuar cada argumento, a repartir
@@ -878,6 +880,14 @@ function aplicarEvento(estado, evento) {
         return estado;
       }
       return { ...estado, sesion: { ...estado.sesion, modoDeAhorro: data.modo } };
+
+    // Solo vale si lo publica el host. Siempre rige la última decisión: el moderador puede abrir y cerrar
+    // el ingreso de atrasados las veces que quiera. No expulsa a nadie: quien ya confirmó su ingreso sigue dentro.
+    case EVENTOS.INGRESO_DE_ATRASADOS_CAMBIADO:
+      if ((evento.clientId !== undefined && evento.clientId !== 'host') || typeof data.permitido !== 'boolean') {
+        return estado;
+      }
+      return { ...estado, sesion: { ...estado.sesion, permiteAtrasados: data.permitido } };
 
     case EVENTOS.SESION_CERRADA:
       return { ...estado, sesion: { ...estado.sesion, cerrada: true, cerradaEn: data.timestamp } };

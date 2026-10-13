@@ -1,5 +1,6 @@
 import { TIPOS_DE_FASE } from '../../shared/eventos/nombresDeEventos.js';
 import { ControlDelTiempoDelForo } from './ControlDelTiempoDelForo.jsx';
+import { ControlDeIngresoDeAtrasados } from './ControlDeIngresoDeAtrasados.jsx';
 
 const ETIQUETA_DE_FASE = {
   [TIPOS_DE_FASE.ESCRITURA_ARGUMENTOS]: 'Escritura de argumentos',
@@ -11,11 +12,15 @@ const ETIQUETA_DE_FASE = {
   [TIPOS_DE_FASE.CIERRE_Y_RANKING]: 'Cierre y ranking',
 };
 
-export function ControlDeFases({ estado, motor, programa }) {
+export function ControlDeFases({ estado, motor, programa, publicar }) {
   const esForo = programa?.actividad === 'foro_escrito';
   const esLectura = programa?.actividad === 'control_de_lectura';
   const sesionIniciada = estado.fase.actual !== null || estado.fase.historial.length > 0;
   const faseActual = estado.fase.actual;
+  // Mientras la sesión no se cierra, el moderador decide si se admite a quien llega tarde.
+  const controlDeAtrasados = publicar && !estado.sesion.cerrada && (
+    <ControlDeIngresoDeAtrasados estado={estado} programa={programa} publicar={publicar} />
+  );
 
   if (!sesionIniciada) {
     return (
@@ -28,6 +33,7 @@ export function ControlDeFases({ estado, motor, programa }) {
         >
           {esLectura ? '🚀 Iniciar control de lectura' : esForo ? '🚀 Iniciar foro' : '🚀 Iniciar debate'}
         </button>
+        {controlDeAtrasados}
       </section>
     );
   }
@@ -79,6 +85,7 @@ export function ControlDeFases({ estado, motor, programa }) {
             </button>
           </div>
         )}
+      {faseActual.tipo !== TIPOS_DE_FASE.CIERRE_Y_RANKING && controlDeAtrasados}
     </section>
   );
 }

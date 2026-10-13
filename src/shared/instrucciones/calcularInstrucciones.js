@@ -6,7 +6,7 @@
 // prepararse.
 
 import { TIPOS_DE_FASE } from '../eventos/nombresDeEventos.js';
-import { ingresoEstaCerrado } from '../ingreso/reglasDeIngreso.js';
+import { ingresoEstaCerrado, personaPuedeIngresar } from '../ingreso/reglasDeIngreso.js';
 import { calcularPenalidadPorRechazoDeTurno, resolverParametrosDePuntaje } from '../puntaje/formulaDePuntaje.js';
 import {
   obtenerIntervencionesSinCalificar,
@@ -36,7 +36,9 @@ export function calcularInstruccionesDelParticipante(estado, participantId, pres
     };
   }
 
-  if (!ingresoEstaCerrado(estado)) {
+  // Antes de iniciar, o ya iniciado pero con el moderador admitiendo atrasados y la persona sin entrar:
+  // lo que le toca es completar su ingreso.
+  if (!ingresoEstaCerrado(estado) || (!ingresoConfirmado && personaPuedeIngresar(estado))) {
     return instruccionesDeIngreso(estado, participantId, ingresoConfirmado);
   }
 
@@ -56,12 +58,15 @@ function instruccionesDeIngreso(estado, participantId, ingresoConfirmado) {
     };
   }
 
+  const debateYaEmpezo = ingresoEstaCerrado(estado);
   return {
     ahora: 'Todavía no estás en el debate: falta tu argumento de ingreso.',
     puedes: [],
     tienesQue: {
       texto: 'Elegir tu postura y escribir un argumento que la defienda.',
-      consecuencia: 'Si el debate empieza sin tu argumento, entras como oyente: sin turnos y sin puntaje.',
+      consecuencia: debateYaEmpezo
+        ? 'El moderador admite ingresos con el debate en marcha: entras en cuanto se apruebe tu argumento.'
+        : 'Si el debate empieza sin tu argumento, entras como oyente: sin turnos y sin puntaje.',
       urgencia: URGENCIA.OBLIGATORIO,
     },
   };

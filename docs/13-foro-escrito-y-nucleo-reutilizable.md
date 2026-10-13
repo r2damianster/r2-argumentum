@@ -116,7 +116,8 @@ El informe es **por actividad** pero arma sus secciones con piezas comunes del n
 - **Corrección del tipo de relación** como campo de la revisión: no se implementó. Un aporte ya trae el tipo que su autor eligió y el puntaje no depende de él.
 - **Reloj de los equipos:** la cuenta atrás usa la hora de cada dispositivo (hay un parámetro de desfase listo, pero no se alimenta con la hora del servidor de Ably). Un equipo con la hora mal puesta verá un tiempo distinto.
 - **Canal privado de integridad:** verificado con Ably real **en local** el 4-oct-2026 (`scripts/prueba-e2e/foro-vivo-local.mjs`, 1 host + 6 participantes en Chrome, 23 comprobaciones en verde, incluida la sugerencia real de Groq): el host recibe la marca de pegado, ningún participante ve el panel y el anexo se descarga aparte. Falta repetirlo **en producción** (hito H10).
-- **Proyección del foro:** muestra tiempo, métricas y los 5 hilos más recientes; no incluye el mapa de argumentos.
+- **Proyección del foro:** muestra tiempo, métricas, los 5 hilos más recientes y, desde octubre de 2026, el **mapa de argumentos** (hilos y mapa lado a lado desde 1100 px de ancho; apilados en una ventana más angosta). El mapa no dibuja los aportes ocultos: se proyecta en el aula.
+- **Atrasados en el foro:** por defecto se admite a quien llega con el foro en marcha; el moderador puede cerrar el ingreso con «No permitir atrasados» (el foro queda de solo lectura para quien llegó tarde). Ver `09-modelo-de-eventos.md`.
 - El pegado y borrado completo de un texto reinicia las señales; escribir encima de lo pegado sin borrar todo las conserva.
 
 ## Plan por hitos

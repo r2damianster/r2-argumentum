@@ -30,6 +30,8 @@ Se designan **en la sala de espera, cuando ya ingresó la gente** (`PanelDeDesig
 
 El argumento de ingreso se redacta, se revisa con Groq y se **confirma en la sala de espera, antes de «Iniciar debate»**. Quien no lo confirmó cuando el moderador inicia la sesión pasa a **oyente** de inmediato. (Hubo un temporizador de apertura con semáforo del 17 al 24 de septiembre; se retiró porque con este flujo quien no confirmaba ya era oyente y nunca lo veía: ver `09-modelo-de-eventos.md`.)
 
+**Atrasados (octubre de 2026).** En la consola, junto a «Iniciar» y a la fase activa, el moderador tiene el botón **«Permitir atrasados» / «No permitir atrasados»**, disponible en todas las actividades. Por defecto el debate hablado no admite atrasados (quedan como oyentes) y el foro escrito y el control de lectura sí; el botón cambia cualquiera de los dos valores, las veces que haga falta, y nunca saca a quien ya entró. Detalle en `09-modelo-de-eventos.md`.
+
 ### Podio final en la pantalla del participante
 
 Cuando el moderador cierra el debate (`session.closed`; no antes, porque los ajustes de las exposiciones se aplican justo antes de cerrar) cada participante ve su propio podio, que **se toma su tiempo** (`PodioFinalParaParticipantes.jsx`, guion en `src/player/podio/etapasDelPodio.js`):
