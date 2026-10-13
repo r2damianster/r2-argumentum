@@ -7,6 +7,7 @@ import filosofiaLibreAlbedrioVsDeterminismo from './filosofia-libre-albedrio-vs-
 import filosofiaQueNosHaceHumanos from './filosofia-que-nos-hace-humanos.json';
 import educacionUtilidadDeLaInvestigacion from './educacion-utilidad-de-la-investigacion.json';
 import historiaEcuadorCausasDelPresente from './historia-ecuador-herencia-global-o-decisiones.json';
+import saludAzucarNaturalVsEdulcoranteArtificial from './salud-azucar-natural-vs-edulcorante-artificial.json';
 import foroIaEnLaUniversidad from './foro-ia-en-la-universidad.json';
 import foroFormacionEnInvestigacion from './foro-formacion-en-investigacion.json';
 import foroNaranjaMecanicaLibreAlbedrio from './foro-naranja-mecanica-libre-albedrio.json';
@@ -19,6 +20,7 @@ export const PROGRAMAS_DE_EJEMPLO = [
   filosofiaQueNosHaceHumanos,
   educacionUtilidadDeLaInvestigacion,
   historiaEcuadorCausasDelPresente,
+  saludAzucarNaturalVsEdulcoranteArtificial,
   foroIaEnLaUniversidad,
   foroFormacionEnInvestigacion,
   foroNaranjaMecanicaLibreAlbedrio,

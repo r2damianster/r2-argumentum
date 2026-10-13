@@ -1,0 +1,77 @@
+{
+  "programId": "azucar-natural-vs-edulcorante-artificial-2026",
+  "titulo": "Azúcar «natural» vs. edulcorante «artificial»",
+  "categoria": "Salud y alimentación",
+  "version": "1.0.0",
+  "creadoPor": "arturo.rodriguez@uleam.edu.ec",
+  "fechaCreacion": "2026-10-12",
+
+  "temaCentral": "¿Un endulzante es mejor por ser «natural» (panela, miel, azúcar morena), o la naturalidad es un prejuicio que no cambia el efecto en el cuerpo?",
+  "preguntaGuia": "¿«Natural» es un argumento o un prejuicio?",
+  "objetivoAprendizaje": "Pensamiento crítico: distinguir una razón basada en evidencia (calorías, efecto metabólico, dosis, un caso concreto) de una apelación a lo natural, y justificar la postura con un dato o una situación real.",
+  "instruccionesParaEstudiantes": "Cita un dato, un caso o una situación concreta: una etiqueta, un hábito de tu casa, una dieta, un paciente. «Es más sano porque es natural» no es un argumento, porque repite la tesis; «tiene las mismas calorías porque sigue siendo sacarosa» sí lo es. Aquí se evalúa la calidad de tu razón, no cuál postura elijas.",
+
+  "posturas": [
+    { "id": "natural_mejor", "etiqueta": "Lo natural es mejor", "color": "#2a9d8f" },
+    { "id": "natural_no_cambia", "etiqueta": "«Natural» no cambia el efecto; el artificial no aporta calorías", "color": "#d1495b" },
+    { "id": "depende", "etiqueta": "Depende del uso y de la persona", "color": "#8a8a8a", "esMatizada": true }
+  ],
+  "asignacionPostura": "libre",
+  "permiteCambioPostura": false,
+
+  "fases": [
+    { "tipo": "escritura_argumentos", "ronda": 1, "limiteArgumentos": 3, "duracionMin": 15, "priorizarPosturas": true },
+    { "tipo": "escritura_argumentos", "ronda": 2, "limiteArgumentos": "segun_ronda_1", "duracionMin": 10 },
+    { "tipo": "conexion_sugerida", "disparadoPor": "moderador" },
+    { "tipo": "conexion_libre", "ventanaAbierta": "toda_la_sesion" },
+    { "tipo": "cierre_y_ranking" }
+  ],
+
+  "valoresBasePosicion": [10, 8, 3],
+  "descuentoRonda2": 0.7,
+  "descuentoViaCoModerador": 0.5,
+  "puntajeCoModerador": { "bidAprobado": 5, "bidRechazado": 0 },
+  "visualizacionRanking": "por_postura_con_tiers",
+  "tiers": ["Sólido", "Consistente", "En desarrollo"],
+
+  "mecanismoTurno": "ruleta_ponderada_con_prioridad_a_no_participantes",
+  "timeoutAceptacion": 20,
+  "maxRechazosAntesDeForzar": 3,
+  "tiempoLimiteEvaluacionBid": 20,
+  "duracionMaximaIntervencionPrincipal": 90,
+  "duracionMaximaIntervencionBid": 45,
+
+  "maxConexionesSalientesPorArgumento": 1,
+  "requiereSeleccionDeTipo": true,
+
+  "criterioValidacion": "claim_mas_razon",
+  "ejemplosPorTema": [
+    {
+      "malo": "La panela es mejor porque es natural.",
+      "bueno": "La panela conserva algo de minerales, pero 100 g aportan casi las mismas calorías que el azúcar blanca, porque sigue siendo sacarosa; su ventaja es pequeña.",
+      "porque": "El malo repite la tesis sin dato; el bueno da una comparación concreta y explica por qué la diferencia es pequeña."
+    },
+    {
+      "malo": "Los edulcorantes dan cáncer.",
+      "bueno": "El aspartame está clasificado como posible carcinógeno (grupo 2B de la IARC), pero la OMS mantiene una ingesta diaria aceptable, porque el riesgo depende de la dosis.",
+      "porque": "El malo es una afirmación absoluta sin fuente; el bueno cita una clasificación, la matiza y da una razón."
+    },
+    {
+      "malo": "Depende de cada persona.",
+      "bueno": "Para un paciente con diabetes el edulcorante evita picos de glucosa, mientras que para alguien sano la miel solo suma calorías, porque su efecto metabólico es el mismo que el del azúcar.",
+      "porque": "El malo es una frase abierta sin razón; el bueno compara dos casos y explica qué cambia entre ellos."
+    }
+  ],
+  "promptSistemaFase1": "Evalúa si el argumento del estudiante tiene una afirmación (claim) y una razón o evidencia explícita (un dato, un caso, una situación concreta, 'porque', 'ya que'). Repetir la tesis («es mejor porque es natural») no cuenta como razón. No evalúes si su postura sobre los endulzantes es correcta ni si es favorable a lo natural o a lo artificial. Responde solo si cumple el criterio estructural.",
+  "promptSistemaFase2": "A partir de los argumentos de esta fase, sugiere posibles conexiones (apoyo, contraargumento, dilema, reformulación, concesión) entre pares de argumentos de distinta postura o de la misma postura. No decidas cuál es correcta, solo sugiere candidatos para que el moderador confirme.",
+
+  "formulaCoModeradores": "ceil(n * 0.10)_min_1",
+  "topeMaximoCoModeradores": null,
+  "exclusionMutua": true,
+
+  "exportaJSON": { "eventLogCompleto": true, "mapaArgumental": true, "rankingPorPostura": true, "perfilPorEstudiante": true },
+  "exportaPDF": true,
+
+  "canalAbly": "debate:azucar-natural-vs-edulcorante-artificial-2026:{sessionId}",
+  "duracionTotalEstimada": 45
+}
