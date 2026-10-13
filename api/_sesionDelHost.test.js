@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
+  algunaCuentaDelHostCoincide,
+  cuentasDelHost,
   credencialesDelHostSonValidas,
   firmarSesionDelHost,
   sesionDelHostEsValida,
@@ -19,6 +21,32 @@ describe('credencialesDelHostSonValidas', () => {
     expect(credencialesDelHostSonValidas({ usuario: 'docente@uleam.edu.ec', clave: 'otra' }, esperadas)).toBe(false);
     expect(credencialesDelHostSonValidas({ usuario: 'otro', clave: 'clave-de-prueba' }, esperadas)).toBe(false);
     expect(credencialesDelHostSonValidas({}, esperadas)).toBe(false);
+  });
+});
+
+describe('cuentas del host', () => {
+  const entornoBase = { HOST_USER: 'principal', HOST_PASSWORD: 'clave-principal' };
+
+  it('sin HOST_USERS solo existe la cuenta principal', () => {
+    expect(cuentasDelHost(entornoBase)).toEqual([
+      { usuarioEsperado: 'principal', claveEsperada: 'clave-principal' },
+    ]);
+  });
+
+  it('suma las cuentas adicionales de HOST_USERS', () => {
+    const cuentas = cuentasDelHost({
+      ...entornoBase,
+      HOST_USERS: JSON.stringify([{ usuario: 'segunda', clave: 'clave-segunda' }]),
+    });
+    expect(cuentas).toHaveLength(2);
+    expect(algunaCuentaDelHostCoincide({ usuario: 'segunda', clave: 'clave-segunda' }, cuentas)).toBe(true);
+    expect(algunaCuentaDelHostCoincide({ usuario: 'principal', clave: 'clave-principal' }, cuentas)).toBe(true);
+    expect(algunaCuentaDelHostCoincide({ usuario: 'segunda', clave: 'clave-principal' }, cuentas)).toBe(false);
+  });
+
+  it('un HOST_USERS dañado no bloquea la cuenta principal', () => {
+    const cuentas = cuentasDelHost({ ...entornoBase, HOST_USERS: 'esto no es json' });
+    expect(cuentas).toHaveLength(1);
   });
 });
 

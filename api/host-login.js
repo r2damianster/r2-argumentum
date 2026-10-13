@@ -1,4 +1,4 @@
-import { credencialesDelHostSonValidas, firmarSesionDelHost } from './_sesionDelHost.js';
+import { algunaCuentaDelHostCoincide, cuentasDelHost, firmarSesionDelHost } from './_sesionDelHost.js';
 
 const ESPERA_TRAS_CLAVE_INCORRECTA_MS = 700;
 
@@ -12,20 +12,21 @@ export default async function handler(request, response) {
     return;
   }
 
-  const usuarioEsperado = process.env.HOST_USER;
-  const claveEsperada = process.env.HOST_PASSWORD;
-  if (!usuarioEsperado || !claveEsperada) {
+  // El token siempre se firma con HOST_PASSWORD: así ably-token y el resto de la API siguen
+  // validando con una sola clave, sin importar con qué cuenta se inició sesión.
+  const claveDeFirma = process.env.HOST_PASSWORD;
+  if (!process.env.HOST_USER || !claveDeFirma) {
     response.status(503).json({ error: 'HOST_USER / HOST_PASSWORD no están configuradas en el entorno' });
     return;
   }
 
   const { usuario, clave } = request.body ?? {};
-  if (!credencialesDelHostSonValidas({ usuario, clave }, { usuarioEsperado, claveEsperada })) {
+  if (!algunaCuentaDelHostCoincide({ usuario, clave }, cuentasDelHost(process.env))) {
     // Una pausa corta frena los intentos de adivinar la clave a fuerza bruta.
     await esperar(ESPERA_TRAS_CLAVE_INCORRECTA_MS);
     response.status(401).json({ error: 'Usuario o clave incorrectos' });
     return;
   }
 
-  response.status(200).json(firmarSesionDelHost(claveEsperada));
+  response.status(200).json(firmarSesionDelHost(claveDeFirma));
 }

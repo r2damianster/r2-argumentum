@@ -26,6 +26,38 @@ export function credencialesDelHostSonValidas({ usuario, clave }, { usuarioEsper
   return usuarioCoincide && claveCoincide;
 }
 
+// Cuentas válidas del host: la principal (HOST_USER / HOST_PASSWORD) más las adicionales de
+// HOST_USERS, un JSON `[{"usuario":"...","clave":"..."}]`. Un JSON dañado se ignora: la
+// cuenta principal nunca queda bloqueada por un error en las adicionales.
+export function cuentasDelHost(entorno) {
+  const cuentas = [];
+  if (entorno.HOST_USER && entorno.HOST_PASSWORD) {
+    cuentas.push({ usuarioEsperado: entorno.HOST_USER, claveEsperada: entorno.HOST_PASSWORD });
+  }
+  try {
+    const adicionales = JSON.parse(entorno.HOST_USERS || '[]');
+    for (const cuentaAdicional of Array.isArray(adicionales) ? adicionales : []) {
+      if (cuentaAdicional?.usuario && cuentaAdicional?.clave) {
+        cuentas.push({ usuarioEsperado: cuentaAdicional.usuario, claveEsperada: cuentaAdicional.clave });
+      }
+    }
+  } catch {
+    // HOST_USERS mal formado: se sigue solo con la cuenta principal.
+  }
+  return cuentas;
+}
+
+export function algunaCuentaDelHostCoincide(credenciales, cuentas) {
+  // Se recorren todas sin cortar al primer acierto, para no dar pistas por el tiempo.
+  let coincide = false;
+  for (const cuenta of cuentas) {
+    if (credencialesDelHostSonValidas(credenciales, cuenta)) {
+      coincide = true;
+    }
+  }
+  return coincide;
+}
+
 export function firmarSesionDelHost(claveDelHost, ahora = Date.now()) {
   const expiraEn = ahora + DURACION_DE_LA_SESION_DEL_HOST_MS;
   return { token: `${expiraEn}.${firmar(claveDelHost, expiraEn)}`, expiraEn };
