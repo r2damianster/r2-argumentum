@@ -89,7 +89,16 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
   // Patrón de escritura pedido por el moderador (apagado por defecto): la IA solo sugiere y el argumento pasa igual.
   const patronActivo = patronDeArgumentoActivo(estado.programa ?? programa, resolverIdiomaDelDebate(programa));
   const [sugerenciaDelPatron, setSugerenciaDelPatron] = useState('');
-  const [patronDetectado, setPatronDetectado] = useState(null);
+  // Ref y no estado: en la preparación la publicación ocurre en la misma función que la validación, y el estado aún tendría el valor viejo.
+  const patronDetectadoRef = useRef(null);
+  // En modo práctica, si la IA ve partes faltantes, el argumento ya aprobado espera un «Publicar así» para que la persona pueda mejorarlo.
+  const [esperandoPublicarAsi, setEsperandoPublicarAsi] = useState(false);
+  // Si cambia el texto (o se publica y queda vacío), la sugerencia y lo detectado ya no corresponden.
+  useEffect(() => {
+    setSugerenciaDelPatron('');
+    setEsperandoPublicarAsi(false);
+    patronDetectadoRef.current = null;
+  }, [texto]);
   const [avisoDeCampoFaltante, setAvisoDeCampoFaltante] = useState('');
   const [argumentoRepetido, setArgumentoRepetido] = useState(null);
   // Se queda a la vista después de publicar: avisa que Groq no pudo pre-revisar el último argumento.
@@ -161,7 +170,8 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
     });
 
     setSugerenciaDelPatron(mensajeDeRetroalimentacionDelPatron(patronActivo, respuesta.patron));
-    setPatronDetectado(respuesta.patron ?? null);
+    patronDetectadoRef.current = respuesta.patron ?? null;
+    const mensajeDelPatron = mensajeDeRetroalimentacionDelPatron(patronActivo, respuesta.patron);
     const decision = decidirValidacion({
       resultadoDeGroq: respuesta,
       stanceElegido: stanceId,
@@ -173,7 +183,12 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
     setAvisoSinRevisionDeIA(decision.sinRevisarPorIA ? decision.mensaje : '');
 
     if (decision.decision === DECISIONES.APROBADO) {
-      integridad.intentarEnviar({ alEnviar: publicarArgumentoAprobado });
+      if (mensajeDelPatron) {
+        // La sugerencia solo sirve si se ve antes de publicar: se espera a que la persona decida.
+        setEsperandoPublicarAsi(true);
+      } else {
+        integridad.intentarEnviar({ alEnviar: publicarArgumentoAprobado });
+      }
     }
     setRevisando(false);
   }
@@ -184,7 +199,7 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
   // suelto en la fila raíz del grafo.
   function publicarArgumentoAprobado(argumentId) {
     // En ambos modos el moderador recibe qué partes del patrón detectó la IA (canal privado); quien escribe solo en el modo de práctica.
-    const cargaDelPatron = cargaDelPatronParaElModerador(patronActivo, patronDetectado, argumentId);
+    const cargaDelPatron = cargaDelPatronParaElModerador(patronActivo, patronDetectadoRef.current, argumentId);
     if (cargaDelPatron && publicarIntegridad) {
       publicarIntegridad(cargaDelPatron, NOMBRE_DEL_EVENTO_DEL_PATRON);
     }
@@ -330,6 +345,18 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
 
       <GuiaDelPatronDeArgumento programa={estado.programa ?? programa} />
       {sugerenciaDelPatron && <p className="texto-de-ayuda">💡 {sugerenciaDelPatron}</p>}
+      {esperandoPublicarAsi && (
+        <button
+          type="button"
+          className="boton-exito"
+          onClick={() => {
+            setEsperandoPublicarAsi(false);
+            integridad.intentarEnviar({ alEnviar: publicarArgumentoAprobado });
+          }}
+        >
+          Publicar así
+        </button>
+      )}
       <AvisoDeIntegridad nivel={integridad.nivel} />
       <label>
         Tu argumento

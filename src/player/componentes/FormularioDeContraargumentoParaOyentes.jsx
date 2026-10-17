@@ -6,7 +6,7 @@ import {
   patronParaLaIA,
 } from '../../shared/nucleo/patronesDeEscritura/retroalimentacionDelPatron.js';
 import { GuiaDelPatronDeArgumento } from '../../shared/componentes/GuiaDelPatronDeArgumento.jsx';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
 import { decidirValidacion, DECISIONES } from '../../shared/argumentos/decidirValidacion.js';
 import { buscarArgumentoParecido } from '../../shared/argumentos/buscarArgumentoParecido.js';
@@ -40,7 +40,13 @@ export function FormularioDeContraargumentoParaOyentes({
   // Patrón de escritura pedido por el moderador (apagado por defecto): la IA solo sugiere y el argumento pasa igual.
   const patronActivo = patronDeArgumentoActivo(programa, resolverIdiomaDelDebate(programa));
   const [sugerenciaDelPatron, setSugerenciaDelPatron] = useState('');
-  const [patronDetectado, setPatronDetectado] = useState(null);
+  // Ref y no estado: en la preparación la publicación ocurre en la misma función que la validación, y el estado aún tendría el valor viejo.
+  const patronDetectadoRef = useRef(null);
+  // Si cambia el texto (o se publica y queda vacío), la sugerencia y lo detectado ya no corresponden.
+  useEffect(() => {
+    setSugerenciaDelPatron('');
+    patronDetectadoRef.current = null;
+  }, [texto]);
   const [ultimaRespuestaDeGroq, setUltimaRespuestaDeGroq] = useState(null);
   // Texto exacto que Groq revisó: solo ese texto se puede publicar como aprobado.
   const [textoRevisado, setTextoRevisado] = useState('');
@@ -92,7 +98,7 @@ export function FormularioDeContraargumentoParaOyentes({
     setUltimaRespuestaDeGroq(respuesta);
     setTextoRevisado(texto);
     setSugerenciaDelPatron(mensajeDeRetroalimentacionDelPatron(patronActivo, respuesta.patron));
-    setPatronDetectado(respuesta.patron ?? null);
+    patronDetectadoRef.current = respuesta.patron ?? null;
     const decisionCalculada = decidirValidacion({
       resultadoDeGroq: respuesta,
       stanceElegido: posturaElegidaId,
@@ -115,7 +121,7 @@ export function FormularioDeContraargumentoParaOyentes({
 
   function publicarContraargumento(argumentId) {
     // En ambos modos el moderador recibe qué partes del patrón detectó la IA (canal privado); quien escribe solo en el modo de práctica.
-    const cargaDelPatron = cargaDelPatronParaElModerador(patronActivo, patronDetectado, argumentId);
+    const cargaDelPatron = cargaDelPatronParaElModerador(patronActivo, patronDetectadoRef.current, argumentId);
     if (cargaDelPatron && publicarIntegridad) {
       publicarIntegridad(cargaDelPatron, NOMBRE_DEL_EVENTO_DEL_PATRON);
     }

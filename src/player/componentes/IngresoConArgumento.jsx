@@ -6,7 +6,7 @@ import {
   patronParaLaIA,
 } from '../../shared/nucleo/patronesDeEscritura/retroalimentacionDelPatron.js';
 import { GuiaDelPatronDeArgumento } from '../../shared/componentes/GuiaDelPatronDeArgumento.jsx';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
 import { resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.js';
 import { validarArgumentoConGroq } from '../../shared/argumentos/validarArgumentoConGroq.js';
@@ -59,7 +59,13 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
   // Patrón de escritura pedido por el moderador (apagado por defecto): la IA solo sugiere y el argumento pasa igual.
   const patronActivo = patronDeArgumentoActivo(estado?.programa ?? programa, resolverIdiomaDelDebate(programa));
   const [sugerenciaDelPatron, setSugerenciaDelPatron] = useState('');
-  const [patronDetectado, setPatronDetectado] = useState(null);
+  // Ref y no estado: en la preparación la publicación ocurre en la misma función que la validación, y el estado aún tendría el valor viejo.
+  const patronDetectadoRef = useRef(null);
+  // Si cambia el texto (o se publica y queda vacío), la sugerencia y lo detectado ya no corresponden.
+  useEffect(() => {
+    setSugerenciaDelPatron('');
+    patronDetectadoRef.current = null;
+  }, [texto]);
   const [ultimaRespuestaDeGroq, setUltimaRespuestaDeGroq] = useState(null);
   // La propuesta de postura nueva que este participante le mandó al moderador, con el texto que
   // la motivó, para poder reaccionar cuando el moderador responde.
@@ -144,7 +150,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
 
     setUltimaRespuestaDeGroq(respuesta);
     setSugerenciaDelPatron(mensajeDeRetroalimentacionDelPatron(patronActivo, respuesta.patron));
-    setPatronDetectado(respuesta.patron ?? null);
+    patronDetectadoRef.current = respuesta.patron ?? null;
     const decisionCalculada = decidirValidacion({
       resultadoDeGroq: respuesta,
       stanceElegido,
@@ -184,7 +190,7 @@ export function IngresoConArgumento({ estado, programa, presencia, participantId
 
   function publicarIngreso(argumentId) {
     // En ambos modos el moderador recibe qué partes del patrón detectó la IA (canal privado); quien escribe solo en el modo de práctica.
-    const cargaDelPatron = cargaDelPatronParaElModerador(patronActivo, patronDetectado, argumentId);
+    const cargaDelPatron = cargaDelPatronParaElModerador(patronActivo, patronDetectadoRef.current, argumentId);
     if (cargaDelPatron && publicarIntegridad) {
       publicarIntegridad(cargaDelPatron, NOMBRE_DEL_EVENTO_DEL_PATRON);
     }
