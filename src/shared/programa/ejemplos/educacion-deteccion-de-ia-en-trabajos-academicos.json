@@ -1,0 +1,82 @@
+{
+  "programId": "educacion-deteccion-de-ia-en-trabajos-academicos-2026",
+  "titulo": "Should AI detectors decide if academic work is authentic?",
+  "categoria": "Educación (English debate)",
+  "actividad": "debate_hablado",
+  "idioma": "en",
+  "version": "1.0.0",
+  "creadoPor": "arturo.rodriguez@uleam.edu.ec",
+  "fechaCreacion": "2026-10-16",
+
+  "temaCentral": "Cada vez más universidades usan detectores de IA para revisar trabajos académicos. Debatir si un puntaje de detección puede servir como prueba para juzgar (y sancionar) a un estudiante, o si la evaluación debe cambiar.",
+  "preguntaGuia": "Should a university sanction a student because an AI detector says their work was written by AI?",
+  "objetivoAprendizaje": "Practicar el debate oral en inglés sosteniendo una postura con una razón concreta (un caso, un dato, una consecuencia) y respondiendo a lo que otras personas plantean.",
+  "instruccionesParaEstudiantes": "Write in English and in your own words. Every argument needs a claim and a reason (a case, a fact, a consequence). Use 'because' or 'since' to connect them. Then listen to the others and connect your ideas: reinforce, counter, ask a question or concede a good point.",
+
+  "posturas": [
+    { "id": "detect_and_sanction", "etiqueta": "Detectors are valid evidence and sanctions are fair", "color": "#277da1" },
+    { "id": "do_not_trust", "etiqueta": "Detectors are unreliable and must not be used as proof", "color": "#d1495b" },
+    { "id": "assess_the_process", "etiqueta": "Change the assessment: drafts, oral defense, process", "color": "#8a8a8a", "esMatizada": true }
+  ],
+  "asignacionPostura": "aleatoria",
+  "permiteCambioPostura": false,
+
+  "fases": [
+    { "tipo": "escritura_argumentos", "ronda": 1, "limiteArgumentos": 3, "duracionMin": 12 },
+    { "tipo": "escritura_argumentos", "ronda": 2, "limiteArgumentos": "segun_ronda_1", "duracionMin": 10 },
+    { "tipo": "conexion_sugerida", "disparadoPor": "moderador" },
+    { "tipo": "conexion_libre", "ventanaAbierta": "toda_la_sesion" },
+    { "tipo": "cierre_y_ranking" }
+  ],
+
+  "valoresBasePosicion": [10, 8, 3],
+  "descuentoRonda2": 0.7,
+  "descuentoViaCoModerador": 0.5,
+  "puntajeCoModerador": { "bidAprobado": 5, "bidRechazado": 0 },
+  "visualizacionRanking": "por_postura_con_tiers",
+  "tiers": ["Sólido", "Consistente", "En desarrollo"],
+  "mecanismoTurno": "ruleta_ponderada_con_prioridad_a_no_participantes",
+  "timeoutAceptacion": 20,
+  "maxRechazosAntesDeForzar": 3,
+  "tiempoLimiteEvaluacionBid": 20,
+  "duracionMaximaIntervencionPrincipal": 90,
+  "duracionMaximaIntervencionBid": 45,
+  "maxConexionesSalientesPorArgumento": 1,
+  "requiereSeleccionDeTipo": true,
+
+  "criterioValidacion": "claim_mas_razon",
+  "ejemplosPorTema": [
+    {
+      "malo": "AI detectors are bad.",
+      "bueno": "AI detectors should not be used as proof because they can flag honest students, and a false accusation can damage a student's record without any real evidence.",
+      "porque": "The weak one is an opinion with no reason; the strong one states a claim and explains the concrete harm it causes."
+    },
+    {
+      "malo": "Students always cheat with AI.",
+      "bueno": "Sanctioning with detectors is fair because plagiarism software is already accepted as evidence, and a high detection score gives the university a first reason to ask for an explanation.",
+      "porque": "The weak one is a generalization with no case; the strong one compares with an accepted practice and limits the claim to a first step."
+    },
+    {
+      "malo": "Teachers should just change the exams.",
+      "bueno": "Universities should assess the process because drafts and short oral defenses show how a student thinks, and no detector is needed to see whether the ideas are really theirs.",
+      "porque": "The weak one gives an order without a reason; the strong one names the method and explains why it works."
+    },
+    {
+      "malo": "Non-native speakers have it harder.",
+      "bueno": "Detectors are risky for second-language writers because simple, regular sentences look 'predictable' to the tool, so a student writing carefully in English can be wrongly marked as AI.",
+      "porque": "The weak one is a vague statement; the strong one explains the mechanism and the consequence for a specific group."
+    }
+  ],
+  "promptSistemaFase1": "Evaluate only whether the argument is written in English and has a claim and an explicit reason (a case, a fact, an example, 'because', 'since'). Do not judge whether the position on AI detectors is right or wrong. Only suggest: the decision belongs to the people who moderate.",
+  "promptSistemaFase2": "Suggest possible connections between arguments (reinforcement, counterargument, dilemma, question, concession). The decisions belong to the people who moderate.",
+
+  "formulaCoModeradores": "ceil(n * 0.10)_min_1",
+  "topeMaximoCoModeradores": null,
+  "exclusionMutua": true,
+
+  "exportaJSON": { "eventLogCompleto": true, "mapaArgumental": true, "rankingPorPostura": true, "perfilPorEstudiante": true },
+  "exportaPDF": true,
+
+  "canalAbly": "debate:educacion-deteccion-de-ia-en-trabajos-academicos-2026:{sessionId}",
+  "duracionTotalEstimada": 45
+}
