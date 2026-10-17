@@ -202,3 +202,40 @@ describe('exportarAnexoDeIntegridad', () => {
     expect(exportarAnexoDeIntegridad({ registros: [], estado, programa: PROGRAMA_DEL_FORO, presencia: PRESENCIA }).personas).toEqual([]);
   });
 });
+
+describe('exportarAnexoDeIntegridad con el patrón de escritura', () => {
+  const { estado } = sesionDelForo();
+  const sugerenciasDelPatron = [
+    {
+      idDelMensaje: 'p1',
+      participantId: 'ana',
+      argumentId: 'p1',
+      modo: 'sin_retroalimentacion',
+      estructura: 'cer',
+      nombre: 'CER',
+      partesPresentes: ['Afirmación'],
+      partesFaltantes: ['Evidencia', 'Razonamiento'],
+      enviadoEn: 5,
+    },
+  ];
+
+  it('incluye qué partes del patrón detectó la IA, con el nombre y el texto del aporte', () => {
+    const anexo = exportarAnexoDeIntegridad({ registros: [], sugerenciasDelPatron, estado, programa: PROGRAMA_DEL_FORO, presencia: PRESENCIA });
+    expect(anexo.patronDeEscritura).toHaveLength(1);
+    expect(anexo.patronDeEscritura[0]).toMatchObject({
+      patron: 'CER',
+      modo: 'sin_retroalimentacion',
+      partesPresentes: ['Afirmación'],
+      partesFaltantes: ['Evidencia', 'Razonamiento'],
+    });
+    expect(anexo.patronDeEscritura[0].nombre).toContain('Ana');
+    expect(anexo.confidencial).toBe(true);
+  });
+
+  it('sin sugerencias el campo existe y va vacío; la sesión general no lleva el patrón', () => {
+    const anexo = exportarAnexoDeIntegridad({ registros: [], estado, programa: PROGRAMA_DEL_FORO, presencia: PRESENCIA });
+    expect(anexo.patronDeEscritura).toEqual([]);
+    const sesion = exportarSesion({ eventos: [], estado, programa: PROGRAMA_DEL_FORO, presencia: PRESENCIA });
+    expect(JSON.stringify(sesion)).not.toContain('partesFaltantes');
+  });
+});
