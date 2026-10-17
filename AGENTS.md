@@ -1,6 +1,6 @@
 # AGENTS.md — léelo antes de tocar este repositorio
 
-Argumentum es una plataforma de debate en tiempo real para el aula (ULEAM). Se usa con estudiantes en el celular, en vivo. El repositorio es **público** y **Vercel despliega a producción en cada push a `main`**.
+Argumentum es una plataforma de debate en tiempo real para el aula del profesor Arturo Rodríguez. Se usa con estudiantes en el celular, en vivo. El repositorio es **público** y **Vercel despliega a producción en cada push a `main`**.
 
 Guía completa, con el catálogo de errores ya cometidos y cómo probar: **[`docs/12-guia-para-agentes.md`](docs/12-guia-para-agentes.md)**. Decisiones de arquitectura (no se reabren): **[`CLAUDE.md`](CLAUDE.md)**.
 

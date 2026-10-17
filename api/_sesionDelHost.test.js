@@ -9,16 +9,16 @@ import {
 } from './_sesionDelHost.js';
 
 describe('credencialesDelHostSonValidas', () => {
-  const esperadas = { usuarioEsperado: 'docente@uleam.edu.ec', claveEsperada: 'clave-de-prueba' };
+  const esperadas = { usuarioEsperado: 'docente', claveEsperada: 'clave-de-prueba' };
 
   it('acepta usuario y clave correctos', () => {
     expect(
-      credencialesDelHostSonValidas({ usuario: 'docente@uleam.edu.ec', clave: 'clave-de-prueba' }, esperadas)
+      credencialesDelHostSonValidas({ usuario: 'docente', clave: 'clave-de-prueba' }, esperadas)
     ).toBe(true);
   });
 
   it('rechaza si falla cualquiera de los dos, o si faltan', () => {
-    expect(credencialesDelHostSonValidas({ usuario: 'docente@uleam.edu.ec', clave: 'otra' }, esperadas)).toBe(false);
+    expect(credencialesDelHostSonValidas({ usuario: 'docente', clave: 'otra' }, esperadas)).toBe(false);
     expect(credencialesDelHostSonValidas({ usuario: 'otro', clave: 'clave-de-prueba' }, esperadas)).toBe(false);
     expect(credencialesDelHostSonValidas({}, esperadas)).toBe(false);
   });

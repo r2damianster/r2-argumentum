@@ -4,7 +4,7 @@ Contexto para cualquier sesión de Claude Code que trabaje en este repositorio. 
 
 ## Qué es esto
 
-Plataforma de debate argumental en tiempo real para uso en aula (ULEAM). No es un simple debate lineal: registra relaciones entre argumentos (refuerzo, contraargumento, dilema, pregunta, concesión, conexión) como un grafo que evoluciona en vivo.
+Plataforma de debate argumental en tiempo real para uso en el aula del profesor Arturo Rodríguez. No es un simple debate lineal: registra relaciones entre argumentos (refuerzo, contraargumento, dilema, pregunta, concesión, conexión) como un grafo que evoluciona en vivo.
 
 ## Decisiones de arquitectura ya tomadas — no reabrir sin motivo nuevo
 
@@ -21,7 +21,7 @@ Plataforma de debate argumental en tiempo real para uso en aula (ULEAM). No es u
 - **Todo el puntaje sigue una fórmula única** (ver `docs/05-reglas-de-puntaje.md`). Si se ajusta un valor, se ajusta la fórmula — no se parchean casos sueltos con números mágicos.
 - **Reconocimiento de voz en vivo (Web Speech API) descartado para v1** — depende de Chrome/Edge y de red estable; riesgo de fallo alto en aula real. No reintroducir sin decisión explícita del usuario.
 - **Idioma: la interfaz es siempre español latinoamericano neutro.** Este proyecto no tiene i18n dual ES/EN (a diferencia de otros proyectos educativos del usuario como DataViz Lab). No añadir una capa `t('clave')`/`translations.js` ni textos de interfaz en inglés sin confirmar antes con el usuario. **Excepción confirmada (octubre de 2026):** un Programa puede declarar `idioma: "en"`; entonces lo que escriben y leen los estudiantes (consigna, posturas, ejemplos, prompts del Programa) va en inglés y Groq valida en inglés, pero botones, avisos e instrucciones de la plataforma siguen en español (`src/shared/programa/idiomaDelDebate.js`).
-- **Nada de voseo rioplatense.** El público es ecuatoriano (ULEAM). Usar formas de "tú", no de "vos": `Escribe` (no `Escribí`), `Elige` (no `Elegí`), `puedes` (no `podés`), `tienes` (no `tenés`), `aquí` (no `acá`), `Pídele` (no `Pedile`), `Acepta`/`Rechaza` (no `Aceptá`/`Rechazá`). Aplica a todo el texto visible por el estudiante o el docente, a los `instruccionesParaEstudiantes` de los Programas de ejemplo, a los comentarios del código y a la documentación.
+- **Nada de voseo rioplatense.** El público es ecuatoriano. Usar formas de "tú", no de "vos": `Escribe` (no `Escribí`), `Elige` (no `Elegí`), `puedes` (no `podés`), `tienes` (no `tenés`), `aquí` (no `acá`), `Pídele` (no `Pedile`), `Acepta`/`Rechaza` (no `Aceptá`/`Rechazá`). Aplica a todo el texto visible por el estudiante o el docente, a los `instruccionesParaEstudiantes` de los Programas de ejemplo, a los comentarios del código y a la documentación.
 
 ## Actividades y núcleo reutilizable (octubre de 2026)
 
