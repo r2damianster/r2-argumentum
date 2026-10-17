@@ -10,7 +10,7 @@ Guía completa, con el catálogo de errores ya cometidos y cómo probar: **[`doc
 2. **Móvil de 320 px:** sin scroll horizontal, controles ≥ 44 px, botoneras con `flex-wrap`.
 3. **`npm run verificar` antes de cada push** (`npm run instalar-hooks` lo automatiza). Nunca `--no-verify` ni `--force` en `main`.
 4. **Revisa tu diff buscando restos de fusión** (líneas/botones/imports duplicados, JSX sin cerrar). Ya rompió producción dos veces.
-5. **La documentación describe código que existe:** verifica con `grep` antes de citar una función, evento o umbral; actualiza los docs en el mismo commit.
+5. **La documentación describe código que existe:** verifica con `grep` antes de citar una función, evento, campo o umbral; actualiza los docs en el mismo commit. Un campo de un Programa que ningún código lee **no** se documenta como si mandara (mira la tabla «Qué campos lee el código» de `docs/03`). `src/guardias/documentacion.test.js` vigila rutas, variables de entorno, eventos y Programas de ejemplo.
 6. **Cero secretos en el repo** (código, docs, scripts, capturas). Variables de entorno de Vercel; créalas **antes** de commitear.
 7. **Nada de funciones inalcanzables:** recórrelas en un navegador con un Programa de ejemplo real.
 8. **Español neutro, sin voseo, sin i18n, sin reconocimiento de voz.**
@@ -32,6 +32,10 @@ npm run verificar           # pruebas + build (lo que exige el hook pre-push y G
 npm run instalar-hooks      # activa el hook pre-push (una vez por clon)
 python scripts/prueba-e2e/moviles.py     # 8 modelos de móvil emulados
 python scripts/prueba-e2e/e2e_flujo.py   # flujo central contra producción
+python -X utf8 scripts/prueba-e2e/patron_vivo_local.py          # patrón de escritura, EN LOCAL (MODO=con|sin|off)
+python -X utf8 scripts/prueba-e2e/patron_turnos_vivo_local.py   # patrón: oyente, preparación en turnos y anexo, EN LOCAL
+node scripts/prueba-e2e/servidor-api-local.mjs   # (otra terminal) emula /api en :3001 con las claves de .env.local
+npx vite --config scripts/prueba-e2e/vite.local.config.js   # (otra terminal) :5173 con proxy a /api
 node scripts/prueba-e2e/foro-vivo-local.mjs      # foro, EN LOCAL con Ably y Groq reales (ver su encabezado)
 node scripts/prueba-e2e/lectura-vivo-local.mjs   # control de lectura, EN LOCAL con Ably y Groq reales
 ```

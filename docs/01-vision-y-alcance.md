@@ -14,6 +14,7 @@ No registrar solo intervenciones; registrar relaciones entre argumentos: apoyo, 
 
 Incluye:
 
+- Varias **actividades** que el moderador elige antes del Programa: debate hablado (el centro de este documento), foro escrito y control de lectura (ver `13-foro-escrito-y-nucleo-reutilizable.md` y `14-control-de-lectura.md`).
 - 3 roles: **Moderador** (profesor), **Co-moderador** (sorteado entre participantes), **Participante** (estudiante).
 - Autenticación simple sin login: código de sala + nombre + emoji. **El argumento es requisito para entrar**: quien no lo confirma antes de que el moderador inicie la sesión queda como oyente.
 - Turnos por ruleta ponderada (favorece a quien ha hablado menos) **solo para quien ya tiene un argumento publicado pendiente de exponer**: el argumento entra al mapa y puntúa apenas Groq lo aprueba, y el turno sirve para exponerlo en voz alta, no para escribirlo contra reloj. Se puede **aceptar o rechazar** (rechazar resta puntos de los que ya ganó); al exponerlo, los co-moderadores lo califican y el moderador puede evaluarlo, con los ajustes aplicados al cerrar. Si nadie tiene nada preparado y alguien aún no habló, se ofrece un turno hablado de respaldo.
@@ -34,4 +35,4 @@ No incluye en v1 (mecánicas de fases futuras, no descartadas, solo pospuestas):
 
 ## Nombre del proyecto
 
-Provisional: **Argumentum**. Pendiente de confirmación definitiva por el usuario antes de fijarlo en código/branding.
+**Argumentum** (marca «R2 Argumentum», repositorio `r2-argumentum`). Es el nombre en uso en la plataforma, el repositorio y el dominio de producción; si el autor decide cambiarlo, hay que tocar el título de las páginas, los créditos (`src/shared/creditos.js`) y el dominio.

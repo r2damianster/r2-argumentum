@@ -48,7 +48,7 @@ Antigravity dejó, mezcladas, líneas viejas y nuevas: imports duplicados, `<h3>
 - Cuando quites una función, quítala también de la documentación viva (el historial va en `docs/06` y `docs/11`).
 
 ### Regla 6 — Los secretos no van en el repositorio (es público)
-- Ninguna clave, token ni contraseña en código, docs, scripts ni capturas. Viven en variables de entorno de Vercel (`ABLY_API_KEY`, `GROQ_API_KEY`, `HOST_USER`, `HOST_PASSWORD`).
+- Ninguna clave, token ni contraseña en código, docs, scripts ni capturas. Viven en variables de entorno de Vercel (`ABLY_API_KEY`, `GROQ_API_KEY`, `HOST_USER`, `HOST_PASSWORD` y, opcional, `HOST_USERS`; `.env.example` las lista y una guardia exige que coincidan con lo que lee `api/`).
 - La clave del host estuvo en `src/host/App.jsx` **y** en `docs/10`, en un repositorio público. Hoy el login se verifica en el servidor (`api/host-login.js`).
 - Si tu cambio necesita una variable de entorno nueva, **créala en Vercel antes de commitear**: el auto-push despliega enseguida y sin ella el sitio responde 503.
 
@@ -57,12 +57,12 @@ La «apertura simultánea» (temporizador con semáforo y selector de tiempo) se
 
 ### Regla 8 — Convenciones de texto y código
 - Español latinoamericano neutro; **nada de voseo** (`Escribe`, no `Escribí`; `aquí`, no `acá`). Aplica a interfaz, comentarios y docs.
-- Sin i18n ni textos en inglés (no hay `t('clave')` en este proyecto).
+- Sin i18n: la interfaz (botones, avisos) va **siempre en español** y no hay `t('clave')` en este proyecto. La única excepción es lo que escriben y leen los estudiantes en un Programa con `idioma: "en"` (consigna, posturas, ejemplos y prompts de ese Programa en inglés); ver `docs/03`.
 - Nombres descriptivos completos (`studentArgument`, no `arg`).
 - Sin reconocimiento de voz (Web Speech API): descartado para la v1.
 
 ### Regla 9 — Las decisiones de arquitectura no se reabren
-Sin base de datos para el estado en vivo (Ably). La proyección usa `BroadcastChannel`, no otro cliente de Ably. Groq **nunca** es juez: valida la forma al escribir y **sugiere** (conexiones en lote, evaluación del foro, calificación de la lectura); decide quien modera. Un solo esquema de puntaje. Detalle y motivos en `CLAUDE.md`.
+Sin base de datos para el estado en vivo (Ably). La proyección usa `BroadcastChannel`, no otro cliente de Ably. Groq **nunca** es juez: valida la forma al escribir y **sugiere** (conexiones en lote, evaluación del foro, calificación de la lectura, partes de un patrón de escritura); decide quien modera. Un solo esquema de puntaje. Detalle y motivos en `CLAUDE.md`.
 
 ### Regla 9d — Las salas grandes tienen límites de tasa (4-oct-2026)
 Ably rechaza lo que pasa de 50 mensajes/s en un canal y de 600/s en toda la cuenta, y **un mensaje rechazado es un mensaje perdido**. Cada publicación a la sala se entrega a todos: N personas publicando a la vez son N × N entregas.
@@ -83,10 +83,11 @@ Si Groq falla (cuota 429, 5xx, sin clave, sin red, JSON ilegible), **la activida
 ### Regla 9a — Actividades y núcleo (octubre de 2026)
 - Lo que sirve para más de una actividad vive en `src/shared/nucleo/` como **función pura**, sin importar nada de una actividad concreta. Lo propio de una actividad vive en `src/actividades/<actividad>/` y se declara con `definirActividad`.
 - El motor base (`src/host/motorDeSesion.js`) no debe conocer ninguna actividad por su nombre: llama a los procesos que la actividad aporta. Si necesitas un `if (actividad === ...)` en el motor, falta un gancho en el contrato.
+- Lo que sirve en varias actividades y es **dato de escritura** (estructuras PEEL, SPRE, PREP, CER, Toulmin y el patrón que pide el moderador) vive en `src/shared/nucleo/patronesDeEscritura/`; el control de lectura y el debate hablado lo comparten.
 - Los eventos de moderación, revisión y reacción solo valen si los publicó quien dice ser: el reducer compara el `clientId` real. `useEstadoDeSesion` tiene que pasárselo; sin eso la protección no existe.
-- Las señales de integridad **nunca** van por el canal de la sesión: solo por `debate:integridad:*`, que los participantes no pueden leer. Y nunca se imprimen en el informe general.
+- Las señales de integridad **y las sugerencias del patrón de escritura** (`patron.sugerencia`) **nunca** van por el canal de la sesión: solo por `debate:integridad:*`, que los participantes no pueden leer. Y nunca se imprimen en el informe general (van en el anexo confidencial).
 - Groq solo **sugiere**. En el foro no puntúa ni de forma provisional. En el control de lectura sugiere una calificación que solo ve el docente (anónima); el estudiante nunca la ve.
-- **Control de lectura (`docs/14`):** nada que sea texto, comentario, nivel o nota de un estudiante puede ir por el canal de la sala (lo lee cualquier participante). Va por `debate:entrega`, `debate:docente` o `debate:devolucion:{id}`; el estado público (`lectura.*`) solo lleva conteos y estados, y hay pruebas que lo vigilan (`sesionCompletaDeLectura.test.js`). Los campos solo del host (`clavesDeLaLectura`, `textoDeReferencia`) se retiran con `programaPublicable` antes de publicar.
+- **Control de lectura (`docs/14`):** nada que sea texto, comentario, nivel o nota de un estudiante puede ir por el canal de la sala (lo lee cualquier participante). Va por `debate:entrega`, `debate:docente` o `debate:devolucion:{id}`; el estado público (`lectura.*`) solo lleva conteos y estados, y hay pruebas que lo vigilan (`src/actividades/controlDeLectura/sesionCompletaDeLectura.test.js`). Los campos solo del host (`clavesDeLaLectura`, `textoDeReferencia`) se retiran con `programaPublicable` antes de publicar.
 
 ### Regla 9b — Créditos y podio final
 - Los créditos (nombre, ORCID, herramientas de IA, foto) salen **solo** de `src/shared/creditos.js` y del componente `Creditos`; no copies el ORCID ni el nombre a mano. Se muestran **solo al ingresar y en el podio final**, nunca durante el debate.
@@ -139,9 +140,10 @@ El hook global `auto-commit` de Claude Code ignora este repositorio (existe `.no
 | Foro escrito | `python scripts/prueba-e2e/foro.py` | actividad, moderación, integridad, IA, revisión, cierre e informe (sin ejecutar aún en producción) |
 | Foro escrito **en local**, Ably y Groq reales | `node scripts/prueba-e2e/foro-vivo-local.mjs` | 1 host + 6 participantes en Chrome: co-moderador, posts con la sugerencia de Groq, réplica, reacción, pegado con aviso, canal privado de integridad, informe |
 | Revisión entre pares **en local** por modo de ahorro | `MODO_DE_AHORRO=ahorro node scripts/prueba-e2e/revision-vivo-local.mjs` | 3 participantes, 6 revisiones, avisos sueltos o en lote |
+| Patrón de escritura **en local** (debate hablado), Ably y Groq reales | `python -X utf8 scripts/prueba-e2e/patron_vivo_local.py` (`MODO=con|sin|off`) y `patron_turnos_vivo_local.py` | apagado por defecto, guía, retroalimentación coherente con el panel del host, oyente, preparación en los turnos («Publicar así»), anexo descargado |
 | Control de lectura **en local**, Ably y Groq reales | `node scripts/prueba-e2e/lectura-vivo-local.mjs` (con `MODO_DE_AHORRO=pequena|moderada|ahorro|masivo`) | 1 host + 3 participantes: muestra pedagógica, entrega, sugerencias de Groq en cola (anónimas, el estudiante no las ve), lote que solo ofrece lo claro |
 
-Los scripts manejan **producción** (Ably y Groq solo existen en Vercel) y consumen unas pocas llamadas reales. El login del host lo escribe el docente (o `login_host.py` con la clave que él entregue); ver `scripts/prueba-e2e/README.md`.
+Los scripts sin sufijo `-local` manejan **producción** y consumen unas pocas llamadas reales; los `*-vivo-local` y `patron_*_vivo_local` corren en tu máquina con Ably y Groq reales (necesitan `.env.local`, `servidor-api-local.mjs` y `vite.local.config.js`, ver su `README.md`). El login del host lo escribe el docente (o `login_host.py` con la clave que él entregue); ver `scripts/prueba-e2e/README.md`.
 
 ## 5. Proceso de un cambio
 
@@ -156,7 +158,9 @@ Los scripts manejan **producción** (Ably y Groq solo existen en Vercel) y consu
 
 | Dónde | Qué vive ahí |
 |---|---|
-| `src/host/motorDeSesion.js` | Autoridad del debate: turnos, puntaje, fases (solo corre en la consola del host) |
+| `src/host/motorDeSesion.js` | Motor base de la sesión: fases, ingreso, cierre; delega en la actividad (solo corre en la consola del host) |
+| `src/actividades/debateHablado/motorDelDebateHablado.js` | Turnos (ruleta, rechazos, cortacircuitos), bids, puntaje y ajustes del debate hablado |
+| `src/host/programaDeLaSesion.js` | Fusiona la configuración de la sala (posturas, perfil, idioma, moderación, integridad, patrón…) sobre el Programa que se publica |
 | `src/actividades/` | Contrato y registro de actividades; `debateHablado/`, `foroEscrito/` y `controlDeLectura/` |
 | `src/shared/nucleo/` | Piezas puras reutilizables: co-moderación, revisión, temporizador, conciencia, reacciones, IA, integridad, informe |
 | `src/shared/estado/reducirEventos.js` | Estado derivado del log de eventos (event sourcing) |
@@ -168,8 +172,9 @@ Los scripts manejan **producción** (Ably y Groq solo existen en Vercel) y consu
 | `api/` | Funciones de Vercel: token de Ably (con la comprobación de identidad), login del host, Groq (validar argumento, sugerir conexiones, sugerir evaluación del foro, sugerir calificación de la lectura) |
 | `src/shared/argumentos/validarArgumentoConGroq.js` | Cliente de la validación de Groq que **nunca bloquea** (regla 9c) |
 | `src/shared/ably/identidadDelParticipante.js` | Genera y guarda el secreto del que se deriva el `clientId` del participante |
-| `scripts/prueba-e2e/` | Pruebas en navegador contra producción |
+| `scripts/prueba-e2e/` | Pruebas en navegador: contra producción y, con sufijo `-local`, en local con Ably y Groq reales |
 | `src/guardias/guardias.test.js` | Guardias de este documento |
+| `src/guardias/documentacion.test.js` | Guardias de la documentación: rutas citadas que existen, variables de entorno, eventos y Programas de ejemplo registrados |
 
 ## 7. Si una guardia falla
 

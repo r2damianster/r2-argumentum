@@ -1,6 +1,6 @@
 # Foro escrito y núcleo reutilizable
 
-> **Estado (4-oct-2026):** plan aprobado por el docente y **H1–H9 construidos y probados en local** (613 pruebas, build correcto). **H10 queda por hacer en producción**: la prueba de punta a punta (`scripts/prueba-e2e/foro.py`), el celular físico y la verificación del canal privado de integridad con Ably real, que desde local no se pueden comprobar. Detalle en `docs/06-pendientes.md`. Este documento es la fuente de verdad de la decisión.
+> **Estado (17-oct-2026):** plan aprobado por el docente; **H1–H9 construidos**, probados en local (la suite completa hoy tiene 1.009 pruebas) y recorridos **en local con Ably y Groq reales** (`foro-vivo-local.mjs`). El código **ya está desplegado en producción** (`main` se despliega en cada push). **H10 sigue pendiente**: la prueba de punta a punta contra producción (`scripts/prueba-e2e/foro.py`, que se escribió sin poder ejecutarla), el celular físico y repetir en producción la verificación del canal privado de integridad. Detalle en `docs/06-pendientes.md`. Este documento es la fuente de verdad de la decisión.
 
 ## Qué se agrega
 
@@ -39,7 +39,11 @@ Sin moderador que evalúe, los co-moderadores igual puntúan, por consenso entre
 
 ```
 src/shared/nucleo/
+  capacidad/            modos de ahorro (sala pequeña, moderada, ahorro, masivo)
   coModeracion/    cuántos co-moderadores, sorteo, validación de designación manual
+  criteriosAdicionales/ exigencias extra que el moderador activa (foro)
+  patronesDeEscritura/  PEEL, SPRE, PREP, CER, Toulmin y el patrón de los argumentos (debate hablado y lectura)
+  entregas/, escritura/, podio/, revisionEntrePares/, rubrica/   piezas del control de lectura (ver `14`)
   revision/        referencia, cercanía, puntaje de revisores, asignación de revisores
   sugerenciaDeIA/  adaptador de Groq: { completitud, falacias, confianza } (la IA propone)
   integridad/      señales de redacción, niveles, canal privado
@@ -54,11 +58,11 @@ src/actividades/
   foroEscrito/
 ```
 
-**Contrato de actividad:** `definirActividad({ id, etiqueta, descripcion, modulosQueUsa, reductor, motor: { alIniciar, alSincronizar, alCerrar }, vistaDelParticipante, vistaDelModerador, camposDelPrograma })`.
+**Contrato de actividad** (`src/actividades/definirActividad.js`, que documenta cada campo): `definirActividad({ id, etiqueta, descripcion, icono, descripcionDelPrograma, modulosQueUsa, tiposDeFase, tiposDeFaseConTiempoTotal, crearProcesosDelMotor, reductorDeEventos, habilitada })`. Obligatorios: `id`, `etiqueta`, `descripcion` y `crearProcesosDelMotor` (una función `(servicios) => { alSincronizarAntesDelPuntaje?, alSincronizarDespuesDelPuntaje?, calcularPuntajeProvisional, calcularAjustesAlCierre, antesDeCerrarLaSesion?, acciones?, destruir? }`). Las pantallas **no** están en el contrato: cada app (host y player) asocia el id de la actividad con sus componentes.
 
 **Reglas de migración:**
 - Funciones puras, sin conocer ninguna actividad: reciben datos y parámetros, devuelven resultados.
-- El debate hablado se envuelve con paridad exacta: `sesionCompleta.test.js` y el resto de la suite siguen verdes sin editarse (salvo los de puntaje de revisores, que cambian a propósito).
+- El debate hablado se envuelve con paridad exacta: `src/shared/estado/sesionCompleta.test.js` y el resto de la suite siguen verdes sin editarse (salvo los de puntaje de revisores, que cambian a propósito).
 - Los eventos antiguos (`exposicion.calificada`, `exposicion.evaluada_moderador`…) siguen entendiéndose: los logs de sesiones previas no se rompen.
 - Eventos nuevos en español con prefijo de módulo: `revision.*`, `reaccion.*`, `integridad.*`, `aporte.ocultado`, `fase.extendida`.
 
@@ -137,7 +141,7 @@ El informe es **por actividad** pero arma sus secciones con piezas comunes del n
 
 ## Riesgos conocidos
 
-- Refactor de `motorDeSesion.js` (887 líneas) y del reducer (708): se migra por paridad, con las pruebas actuales.
+- Refactor del motor (`motorDeSesion.js` más `motorDelDebateHablado.js`) y del reducer (`reducirEventos.js`, cerca de 900 líneas): se migró por paridad, con las pruebas actuales.
 - Reloj de los equipos: la cuenta atrás usa `terminaEn` absoluto; conviene corregir con la hora del servidor de Ably.
 - Ráfaga a Groq: ~25 personas en 20 minutos son unas 200 llamadas; revisar la cuota antes de una sala grande.
 - Un commit despliega solo (hook de auto-push): el cambio de capacidades del token se prueba antes de commitear.

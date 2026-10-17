@@ -326,6 +326,10 @@ El host descarta cualquier mensaje cuyo `clientId` no coincida con `participantI
 
 `debate:integridad:{sala}`, evento `integridad.senal`: `{ participantId, argumentId, contexto, senales: [{ tipo, gravedad, detalle }], gravedadMaxima, estadisticas, advertenciaMostrada, enviadoEn }`. **No pasa por el reducer ni por el canal de la sesión.** Los participantes publican por REST; solo el host lo lee, y descarta cualquier mensaje cuyo `clientId` no coincida con `participantId`.
 
+### Sugerencia del patrón de escritura (mismo canal privado)
+
+Con el patrón de escritura activo en el debate hablado (`patronDeArgumento.modo` distinto de `ninguno`, ver `03`), cada argumento aprobado publica además, por el mismo canal `debate:integridad:{sala}`, el evento `patron.sugerencia`: `{ participantId, argumentId, modo, estructura, nombre, partesPresentes: [..], partesFaltantes: [..], enviadoEn }`. Lo publica la persona que escribió el argumento (por REST, desde el ingreso, la preparación o el contraargumento de oyente) y **solo el host lo lee**: `procesarMensajeDelPatron` (`src/shared/nucleo/integridad/canalPrivado.js`) descarta lo que no publicó quien dice ser, lo que no trae `argumentId` ni al menos una parte, y acota a 8 partes de 80 caracteres. No pasa por el reducer ni por el canal de la sesión; el host lo muestra en el panel «Patrón de escritura» y lo exporta en el anexo confidencial (`patronDeEscritura`). Es una sugerencia de la IA: no puntúa.
+
 ## Cierre de sesión
 
 ```

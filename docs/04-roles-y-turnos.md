@@ -59,7 +59,7 @@ Solo con `asignacionPostura: "aleatoria"` (modo Rolplay) el reparto de posturas 
 
 ### Priorización de posturas en la primera fase (Ronda 1)
 
-Para garantizar la pluralidad del debate desde el inicio, el algoritmo de la ruleta de turnos (`elegirCandidatoParaTurno` en `motorDeSesion.js`) aplica una regla de **cobertura por postura en Ronda 1**:
+Para garantizar la pluralidad del debate desde el inicio, el algoritmo de la ruleta de turnos (`elegirCandidatoParaTurno` en `src/actividades/debateHablado/motorDelDebateHablado.js`) aplica una regla de **cobertura por postura en Ronda 1**:
 1. Antes de ofrecer un segundo turno a una postura ya expuesta, el sistema prioriza a aquellos participantes con argumentos preparados en posturas que **aún no han tenido ninguna exposición oral** en la sala.
 2. Una vez que todas las posturas representadas han expuesto al menos un argumento en voz alta, la ruleta retoma su ponderación habitual (prioridad a no participantes y menor tiempo de palabra).
 
@@ -221,7 +221,7 @@ Una vez resueltos todos los bids del cierre, se sortea el siguiente turno princi
 ### Temporizadores de facilitación (no forzados técnicamente)
 
 - `tiempoLimiteEvaluacionBid`: ventana para que los co-moderadores voten un bid antes de que expire sin quórum.
-- `duracionMaximaIntervencionPrincipal` / `duracionMaximaIntervencionBid`: cuenta regresiva mostrada en la consola del host/proyección para pautar cuánto puede hablar en voz alta quien tiene el turno principal o un bid aprobado. Es una ayuda de ritmo para el moderador, no algo que el sistema pueda forzar (no hay reconocimiento de voz, ver `02-arquitectura.md`).
+- `duracionMaximaIntervencionPrincipal` / `duracionMaximaIntervencionBid`: **no implementados hoy.** Los JSON de ejemplo los traen (90 s y 45 s) pero ningún código los lee: no hay cuenta regresiva de intervención en la consola ni en la proyección. La idea original era una ayuda de ritmo para el moderador, no algo forzado (no hay reconocimiento de voz, ver `02-arquitectura.md`). Queda como mejora posible.
 
 ### Nota de anonimidad del voto de co-moderadores
 

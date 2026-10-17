@@ -2,7 +2,7 @@
 
 ## Qué es
 
-La plantilla que el moderador (profesor) llena **antes** de abrir una sesión en vivo. Es reutilizable entre cursos o paralelos (mismo tema, distinto grupo de estudiantes). Todo lo que hace el motor de tiempo real (Ably + Groq) durante el debate lee sus reglas desde aquí — nada de valores hardcodeados en el código de la aplicación.
+La plantilla que el moderador (profesor) llena **antes** de abrir una sesión en vivo. Es reutilizable entre cursos o paralelos (mismo tema, distinto grupo de estudiantes). El motor de tiempo real (Ably + Groq) lee de aquí buena parte de sus reglas, **pero no todos los campos de este documento los lee el código**: al final hay una tabla (§ «Qué campos lee el código») que separa los que mandan de los que son solo informativos. Antes de apoyarte en un campo, mira esa tabla.
 
 En v1, un Programa se guarda y se carga como un **archivo JSON exportable/importable** — sin necesidad de backend ni base de datos. El profesor puede guardar su "plan de debate" igual que guardaría un plan de clase, y reutilizarlo en otro paralelo.
 
@@ -12,10 +12,10 @@ En v1, un Programa se guarda y se carga como un **archivo JSON exportable/import
 
 ```
 programId, titulo, version, creadoPor, fechaCreacion
-actividad: "debate_hablado" | "foro_escrito"   // por defecto "debate_hablado"
+actividad: "debate_hablado" | "foro_escrito" | "control_de_lectura"   // por defecto "debate_hablado"
 ```
 
-El **control de lectura** (`"actividad": "control_de_lectura"`) no tiene posturas y trae campos propios (`consigna`, `estructura`, `rubrica`, `revisionDePares`…): ver `14-control-de-lectura.md`.
+El **control de lectura** no tiene posturas y trae campos propios (`consigna`, `estructura`, `rubrica`, `revisionDePares`…): ver `14-control-de-lectura.md`.
 
 La **actividad** decide cómo participa la clase y qué motor la ejecuta (ver `13-foro-escrito-y-nucleo-reutilizable.md`). El moderador la elige antes de elegir el Programa, y un Programa de otra actividad no se puede abrir con la elegida.
 
@@ -121,7 +121,7 @@ valoresBasePosicion: [10, 8, 3]        // 1er, 2do, 3er argumento (escala Livian
                                         // escala manteniendo la proporción 10:8:3)
 descuentoRonda2: 0.7
 descuentoViaCoModerador: 0.5
-maxIntentosGroqPorArgumento: 2
+maxIntentosGroqPorArgumento: 2            // INFORMATIVO: no hay tope de intentos (decisión del 11-oct-2026)
 puntajeCoModerador: { ... }            // ver 05-reglas-de-puntaje.md
 visualizacionRanking: "por_postura_con_tiers" | "numerico_global" | "sin_ranking"
 tiers: ["Sólido", "Consistente", "En desarrollo"]
@@ -193,12 +193,16 @@ duracionTotalEstimada
 
 ## Programas de ejemplo incluidos
 
-Están en `src/shared/programa/ejemplos/` y se registran en `index.js`:
+Están en `src/shared/programa/ejemplos/` y se registran en `index.js` (12 en total, agrupados por la `categoria` de cada JSON):
 
 - Política: izquierda vs. derecha (3 posturas, asignación aleatoria).
 - Filosofía: libre albedrío vs. determinismo, y «¿qué nos hace humanos?» (12 posturas, asignación libre).
 - Educación: «¿Ha sido útil la formación en investigación?» (3 posturas: sí, no, depende/matizada; asignación libre, porque cada estudiante opina desde su experiencia real). Pensado para grupos que han cursado varios semestres de asignaturas de investigación.
 - Historia: «¿Qué explica más el Ecuador de hoy?» (4 posturas causales: herencia colonial, dependencia global, decisiones internas y luchas sociales, más una matizada; asignación aleatoria). La cultura es evidencia transversal, no una postura.
+- Salud y alimentación: «Azúcar natural vs. edulcorante artificial» (3 posturas; asignación libre).
+- Educación (**debate en inglés**): «Should AI detectors decide if academic work is authentic?» (`idioma: "en"`, 3 posturas: los detectores son prueba válida, no son confiables, hay que evaluar el proceso; asignación aleatoria). Es el ejemplo para probar el patrón de escritura (CER por defecto).
+- **Foro escrito** (3): «¿Ha sido útil la formación en investigación?», «¿Debe usarse la inteligencia artificial en la universidad?» y «La naranja mecánica» (este último con criterios adicionales).
+- **Control de lectura** (2): «¿Para qué sirve investigar?» (en español) y «Writing task: Rebuild the Results Section» (en inglés, con estructura de sección de resultados). Ver `14-control-de-lectura.md`.
 
 ## Flujo de creación (wizard para el profesor)
 
@@ -211,4 +215,22 @@ Están en `src/shared/programa/ejemplos/` y se registran en `index.js`:
 
 ## Cómo el runtime lee el Programa
 
-Cada evento del motor (`turn.offered`, `argument.submitted`, `link.created`, `argument.validated`) consulta el Programa activo antes de aplicar la regla correspondiente. El motor de eventos es genérico; el Programa es el dato que lo parametriza. Así, un mismo motor sirve para cualquier tema o curso sin tocar el código de la aplicación.
+El motor de cada actividad (`src/actividades/*/motorDelDebateHablado.js`, `motorDelForo.js`, `motorDelControlDeLectura.js`) consulta el Programa activo antes de aplicar la regla correspondiente. El motor de eventos es genérico; el Programa es el dato que lo parametriza. Así, un mismo motor sirve para cualquier tema o curso sin tocar el código de la aplicación. Lo que el moderador cambia en la configuración de la sala (posturas tildadas, perfil de puntaje, idioma, moderación, integridad, criterios, patrón, modo de ahorro) **se fusiona sobre el Programa** en `src/host/programaDeLaSesion.js` y esa versión es la que se publica a la sala.
+
+## Qué campos lee el código
+
+Comprobado con `grep` sobre `src/` y `api/` (17-oct-2026). **Leídos** = alguna parte del código los usa para decidir algo. **Informativos** = están en los JSON de ejemplo y en este esquema, pero ningún código los lee: cambiarlos no cambia el comportamiento.
+
+| Leídos por el código | Informativos (no cambian nada hoy) |
+|---|---|
+| `actividad`, `idioma`, `titulo`, `categoria`, `temaCentral`, `preguntaGuia`, `instruccionesParaEstudiantes`, `ejemplosPorTema`, `version`, `programId` | `creadoPor`, `fechaCreacion`, `objetivoAprendizaje`, `duracionTotalEstimada`, `canalAbly` (el canal sale del código de sala) |
+| `posturas` (incl. `esMatizada`), `asignacionPostura` | `permiteCambioPostura` (el cambio se decide por `asignacionPostura === "libre"`) |
+| `fases` (se leen `tipo`, `ronda` y `duracionMin`) | `limiteArgumentos`, `priorizarPosturas`, `disparadoPor`, `ventanaAbierta` (el límite lo da el perfil de puntaje; la priorización de Ronda 1 siempre está activa; el moderador siempre dispara las sugerencias) |
+| `perfilDePuntaje`, `valoresBasePosicion`, `descuentoRonda2`, `descuentoViaCoModerador` (los tres sueltos solo si no hay perfil) | `puntajeCoModerador`, `visualizacionRanking`, `tiers` (los tiers salen de cortes por percentil, `calcularTierPorPercentil`), `maxIntentosGroqPorArgumento` |
+| `timeoutAceptacion`, `maxRechazosAntesDeForzar`, `tiempoLimiteEvaluacionBid` | `mecanismoTurno`, `duracionMaximaIntervencionPrincipal`, `duracionMaximaIntervencionBid` (no hay cuenta regresiva de intervención en la consola), `maxConexionesSalientesPorArgumento`, `requiereSeleccionDeTipo` (la regla de 1 conexión saliente por argumento está fija en el código) |
+| `moderacion` (`modo`, `numeroFijo`, `minimoParaCoModerar`), `topeMaximoCoModeradores` | `formulaCoModeradores`, `exclusionMutua` |
+| `limitesDePuntaje`, `integridad`, `criteriosAdicionales`, `patronDeArgumento`, `modoDeAhorro` | `criterioValidacion`, `promptSistemaFase1`, `promptSistemaFase2` (los prompts viven en `api/`) |
+| | `exportaJSON`, `exportaPDF` (solo aparecen en comentarios: lo que se exporta lo decide `exportarSesion.js`, siempre igual) |
+| Control de lectura: `consigna`, `estructura`, `distribucion`, `numeroDeParrafos`, `rubrica`, `revisionDePares`, `ventanaDeConfirmacionMin`, `clavesDeLaLectura` | |
+
+Si algún día un campo informativo pasa a leerse, se mueve de columna y se documenta su efecto aquí.

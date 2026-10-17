@@ -11,7 +11,7 @@ Guía para un agente de Claude con control de Chrome. Objetivo: correr un debate
   - Participante: `/player.html`, o el link corto `/?sala=XXXX` — es el que generan el QR y el botón "Copiar link".
 - **Antes de empezar, revisa el zoom del navegador y déjalo al 100 % (`Ctrl+0`).** El zoom de Chrome se guarda **por sitio**: host y participantes comparten origen (`r2-argumentum.vercel.app`), así que si una pestaña quedó en 33 % (`window.devicePixelRatio` ≈ 0,31–0,33) todas las demás abren igual de diminutas. En la ronda anterior pasó justo eso: los clics y el scroll por coordenadas no funcionaban y hubo que manejar la interfaz por el DOM, lo que limitó lo que se pudo comprobar visualmente. La app **detecta** el zoom por debajo de ~80 % y **se amplía sola** en proporción inversa (propiedad CSS `zoom` sobre `<html>`, tope ×4) para que la interfaz salga a tamaño normal desde el primer momento, y muestra arriba una barra ámbar («El zoom del navegador está en X %, así que ampliamos la página… pulsa Ctrl + 0»). Aun así **deja el zoom al 100 % antes de empezar**: es lo que se prueba de verdad. Con la ampliación automática, comprueba que nada quede desbordado ni cortado (barra ámbar, capa instruccional fija, mapa, ventana de argumento destacado) y que al pulsar Ctrl+0 la página vuelva sola a su tamaño y desaparezca la barra. Si el zoom está bajo, **no** aparece la barra y todo se ve diminuto, anótalo como fallo. En celulares y tabletas (puntero táctil) no se aplica ninguna ampliación.
 - **No cierres la sesión del host ni escribas su clave.** Si la pestaña del host ya tiene la sesión iniciada, no hace falta la clave; y para empezar otro debate ya no hay que cerrar sesión: el ranking final tiene «➕ Elegir otra actividad». Si por algún motivo el host te pide la clave, **no la teclees tú**: pídele al usuario que la escriba y espera. (En la ronda anterior se tecleó la clave para volver a entrar tras un «Cerrar sesión»; ese desvío ya no debería hacer falta.)
-- **No probar contra local** (`npm run dev`): `ABLY_API_KEY` y `GROQ_API_KEY` son variables "Sensitive" en Vercel, no se pueden recuperar vía CLI. Local no puede ejercitar Groq ni Ably.
+- **No probar contra `npm run dev` a secas:** `ABLY_API_KEY` y `GROQ_API_KEY` son variables "Sensitive" en Vercel y `vite` no sirve la carpeta `api/`. Para ejercitar Groq y Ably reales **en local** hay un montaje listo (`scripts/prueba-e2e/servidor-api-local.mjs` + `vite.local.config.js`, con las claves en `.env.local`): ver la última sección de esta guía. En producción se prueba con esta guía.
 
 ## 1. Restricciones operativas — leer antes de empezar
 
@@ -353,7 +353,7 @@ Resumen de máximo 4 líneas: fallos por severidad, si hubo regresiones, y si el
 
 ## Foro escrito (prueba manual y automática)
 
-Lo que no se puede probar en local y hay que ver en producción: que el canal privado de integridad llegue al host, que un participante **no** pueda leerlo, y el flujo completo con Groq y Ably reales. Automática: `python scripts/prueba-e2e/foro.py` (1 host + 6 participantes, unos 6 minutos; **se escribió sin poder ejecutarla**, la primera corrida puede pedir ajustes). A mano, con 1 host y 6 pestañas:
+Con el montaje local (última sección) el canal privado de integridad y el flujo con Groq y Ably reales **ya se recorrieron** (4-oct-2026); lo que sigue pendiente es repetirlo en producción: que el canal privado llegue al host, que un participante **no** pueda leerlo, y el flujo completo. Automática: `python scripts/prueba-e2e/foro.py` (1 host + 6 participantes, unos 6 minutos; **se escribió sin poder ejecutarla**, la primera corrida puede pedir ajustes). A mano, con 1 host y 6 pestañas:
 
 1. **Host:** elige «Foro escrito» → el Programa de foro → en la configuración marca «Con advertencias» → «Confirmar configuración y abrir sala».
 2. **Participantes (6):** entran con nombre y avatar y eligen postura. Debe verse el aviso de integridad, y **no** debe pedirse ningún argumento.
@@ -368,7 +368,7 @@ Lo que no se puede probar en local y hay que ver en producción: que el canal pr
 
 ## Control de lectura (prueba manual en producción)
 
-Lo que no se puede probar en local: que los **canales privados** funcionen con Ably real, y la sugerencia de Groq. A mano, con 1 host y 5 pestañas de participante (3 mínimo para la revisión entre pares):
+Los **canales privados** y la sugerencia de Groq ya se recorrieron en local con Ably y Groq reales (4-oct-2026); falta repetirlos en producción. A mano, con 1 host y 5 pestañas de participante (3 mínimo para la revisión entre pares):
 
 1. **Host:** elige «Control de lectura» → el Programa de ejemplo → en la configuración activa la **revisión entre pares** (2 textos, 3 min), deja la integridad «Con advertencias» y una ventana de confirmación de 3 min → «Confirmar configuración y abrir sala».
 2. **Participantes (5):** entran con nombre y avatar. Debe verse la consigna y el aviso de integridad, y **no** debe pedirse postura ni argumento. Pulsa «Iniciar control de lectura»: aparece la cuenta atrás.
@@ -387,7 +387,7 @@ Lo que no se puede probar en local: que los **canales privados** funcionen con A
 Para ver el foro y el control de lectura de punta a punta **antes de desplegar**, sin tocar producción:
 
 1. `.env.local` (ignorado por git) con `ABLY_API_KEY`, `GROQ_API_KEY`, `HOST_USER` y `HOST_PASSWORD` (valores solo locales).
-2. Un servidor `/api` local en el puerto 3001 que ejecute las funciones de `api/` y `vite` en el 5173 con proxy de `/api` (ver el encabezado de `scripts/prueba-e2e/foro-vivo-local.mjs`).
-3. `node scripts/prueba-e2e/foro-vivo-local.mjs` (1 host + 6 participantes) y `node scripts/prueba-e2e/lectura-vivo-local.mjs` (1 host + 3). Usan `playwright-core` con el Chrome instalado, sin ventana.
+2. En dos terminales, desde la raíz del repo: `node scripts/prueba-e2e/servidor-api-local.mjs` (emula `/api` de Vercel en el puerto 3001 con las claves de `.env.local`, sin imprimirlas) y `npx vite --config scripts/prueba-e2e/vite.local.config.js` (puerto 5173, con proxy de `/api`).
+3. `node scripts/prueba-e2e/foro-vivo-local.mjs` (1 host + 6 participantes) y `node scripts/prueba-e2e/lectura-vivo-local.mjs` (1 host + 3). Usan `playwright-core` con el Chrome instalado, sin ventana. Para el **patrón de escritura del debate hablado**: `python -X utf8 scripts/prueba-e2e/patron_vivo_local.py` (`MODO=con|sin|off`) y `patron_turnos_vivo_local.py` (oyente, preparación en los turnos y descarga del anexo); usan Python con Playwright y el Chrome instalado.
 
 Cada script imprime `OK` / `FALLO` por comprobación y termina con `TODO OK`. **Probar «Groq caído»:** apunta `GROQ_API_KEY` a un valor inválido (o agota la cuota) y repite el ingreso: el argumento debe pasar con «no fue pre-revisado por límites de la IA», y con asignación «por argumento» deben aparecer los botones para elegir la postura.
