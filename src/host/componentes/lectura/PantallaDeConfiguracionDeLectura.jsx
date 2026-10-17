@@ -7,7 +7,7 @@ import {
   resolverDistribucion,
   resolverEstructuraDelPrograma,
   resolverNumeroDeParrafos,
-} from '../../../shared/nucleo/escritura/estructurasDeEscritura.js';
+} from '../../../shared/nucleo/patronesDeEscritura/estructurasDeEscritura.js';
 import { integridadEstaActiva, normalizarIntegridad } from '../../../shared/nucleo/integridad/nivelesDeIntegridad.js';
 import { resolverUmbralesDeSimilitud } from '../../../shared/nucleo/integridad/similitudDeTextos.js';
 import { normalizarPenalizacionPorPegado } from '../../../shared/nucleo/integridad/penalizacionPorPegado.js';

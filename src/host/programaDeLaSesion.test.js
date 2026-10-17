@@ -156,4 +156,19 @@ describe('armarProgramaDeLaSesion: integridad', () => {
       expect('criteriosAdicionales' in armarProgramaDeLaSesion(base)).toBe(false);
     });
   });
+  describe('patrón de escritura de los argumentos', () => {
+    it('sin elegir nada no agrega el campo: queda apagado', () => {
+      expect('patronDeArgumento' in armarProgramaDeLaSesion(base)).toBe(false);
+    });
+
+    it('publica el patrón y el modo que eligió el moderador', () => {
+      const programa = armarProgramaDeLaSesion({ ...base, patronDeArgumento: { modo: 'sin_retroalimentacion', estructura: 'toulmin' } });
+      expect(programa.patronDeArgumento).toEqual({ modo: 'sin_retroalimentacion', estructura: 'toulmin' });
+    });
+
+    it('un valor inválido queda apagado', () => {
+      const programa = armarProgramaDeLaSesion({ ...base, patronDeArgumento: { modo: 'inventado', estructura: 'inventada' } });
+      expect(programa.patronDeArgumento.modo).toBe('ninguno');
+    });
+  });
 });

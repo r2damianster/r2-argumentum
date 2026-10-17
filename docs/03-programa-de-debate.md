@@ -97,6 +97,14 @@ criteriosAdicionales: [
 
 Son una **ayuda, no puntaje**: quien escribe los ve como recordatorio, la IA solo **sugiere** si se cumplen (misma llamada de siempre, con confianza mínima 0,6; ante la duda no señala nada) y co-moderadores y moderador los ven como guía al decidir los tres niveles de siempre. No suman ni restan puntos por sí mismos: la fórmula sigue siendo única (`05`). Código: `src/shared/nucleo/criteriosAdicionales/`. Los campos `promptSistemaFase1/2` y `criterioValidacion` de los Programas **no los lee ningún código**; para pedir algo más, usa criterios adicionales.
 
+**Patrón de escritura** (debate hablado): el moderador puede pedir que los argumentos sigan un patrón (PEEL, SPRE, PREP, CER o Toulmin, de `src/shared/nucleo/patronesDeEscritura/`). **Apagado por defecto.** Se elige en la configuración de la sesión y queda fijo al iniciar. Dos modos: *con retroalimentación* (práctica: la IA le sugiere a quien escribe qué parte falta) y *sin retroalimentación* (evaluación: la IA no le dice nada a quien escribe y solo el moderador ve las partes detectadas). En ambos el argumento pasa igual: es una ayuda, no un requisito ni puntaje.
+
+```
+patronDeArgumento: { modo: "ninguno" | "con_retroalimentacion" | "sin_retroalimentacion", estructura: "peel" | "spre" | "prep" | "cer" | "toulmin" }
+```
+
+Quien escribe ve la guía del patrón junto al campo de texto (`GuiaDelPatronDeArgumento`). PEEL y SPRE son patrones de párrafo, y Toulmin tiene seis partes: la configuración avisa que piden más texto que un argumento corto. La IA detecta las partes en la **misma llamada** de validación (`patron` en `api/groq-validar-argumento.js`; sin patrón, la llamada es idéntica a la de siempre) y solo cuenta las partes que existen en el patrón, con confianza mínima 0,6 (ante la duda no señala nada). Nunca cambia `aprobado`. Con *retroalimentación* quien escribe ve «te falta: …» y puede enviar igual; en ambos modos **el moderador** recibe, por el canal privado de integridad (evento `patron.sugerencia`, solo lo lee el host), qué partes se detectaron: panel «Patrón de escritura» en la consola y anexo confidencial (PDF opcional y `patronDeEscritura` en el JSON del anexo). Código: `src/shared/nucleo/patronesDeEscritura/`.
+
 No hay tiempos por respuesta. `duracionMin` solo lo consumen las fases con tiempo total (la del foro); en el debate hablado se conserva por compatibilidad pero no se aplica. El moderador puede extender el tiempo (+5 min) o cerrar antes. Detalle en `13-foro-escrito-y-nucleo-reutilizable.md`.
 
 En la **Ronda 1** (primera fase de intervenciones), el motor prioriza que al menos una persona que haya preparado su argumento dentro de cada postura activa reciba el turno de exposición en la ruleta antes de repetir posturas.

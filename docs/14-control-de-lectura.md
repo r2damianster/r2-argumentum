@@ -69,7 +69,7 @@ El docente ve «Entrega K7F2», un **código derivado de un hash** de quien la e
 |---|---|
 | `actividad` | `control_de_lectura` |
 | `consigna` | Lo que deben escribir |
-| `estructura` | `"peel"`, `"spre"`, `"prep"`, `"cer"`, `"libre"` o una propia `{ nombre, partes: [{ nombre, descripcion }] }` (textos simples o `{ es, en }`) |
+| `estructura` | `"peel"`, `"spre"`, `"prep"`, `"cer"`, `"toulmin"`, `"libre"` o una propia `{ nombre, partes: [{ nombre, descripcion }] }` (textos simples o `{ es, en }`) |
 | `distribucion` | `compacta` (la estructura completa dentro de cada párrafo, una parte por oración) o `desarrollada` (una parte por párrafo) |
 | `numeroDeParrafos` | Se fija de antemano. En `desarrollada` se ajusta al múltiplo del número de partes. |
 | `rubrica` | Criterios `{ id, nombre, descripcion, peso }`; sin ella rige la base de serie. Se complementa con `criteriosDeLaConsigna` (texto o `{ nombre, peso }`) |
@@ -91,6 +91,7 @@ No hay `posturas`: el Programa las trae vacías (`cargarPrograma` no las exige p
 | `spre` | Situación, Problema, Respuesta, Evaluación | Situation, Problem, Response, Evaluation |
 | `prep` | Punto, Razón, Ejemplo, Punto | Point, Reason, Example, Point |
 | `cer` | Afirmación, Evidencia, Razonamiento | Claim, Evidence, Reasoning |
+| `toulmin` | Afirmación, Datos, Garantía, Respaldo, Calificador, Refutación | Claim, Grounds, Warrant, Backing, Qualifier, Rebuttal |
 | `libre` | — | — |
 
 La app **no restringe** lo que se escribe: solo cuenta palabras y párrafos y muestra la guía de la estructura. Que el texto la siga lo sugiere Groq y lo decide el docente. (Los nombres en inglés son los de la estructura cuando el ejercicio se hace en inglés; el resto de la interfaz sigue en español.)
@@ -188,7 +189,7 @@ Sin nombres ni textos ni notas: consigna y estructura, cuenta atrás y contadore
 
 ## Cómo quedó construido
 
-- `src/shared/nucleo/escritura/` (conteos y estructuras), `rubrica/`, `podio/`, `revisionEntrePares/` (reparto, puntos), `entregas/` (estado público y privado, canales, revisiones de pares, integridad de las entregas), `integridad/similitudDeTextos.js`, `sugerenciaDeIA/` (cliente y cola de consultas).
+- `src/shared/nucleo/escritura/` (conteos) y `src/shared/nucleo/patronesDeEscritura/` (estructuras PEEL, SPRE, PREP, CER, Toulmin: núcleo reutilizable por las demás actividades), `rubrica/`, `podio/`, `revisionEntrePares/` (reparto, puntos), `entregas/` (estado público y privado, canales, revisiones de pares, integridad de las entregas), `integridad/similitudDeTextos.js`, `sugerenciaDeIA/` (cliente y cola de consultas).
 - `src/actividades/controlDeLectura/`: definición, Programa, motor (tiempo de fases, confirmación automática, podio al cerrar), informe.
 - Contrato de actividad: se agregó el gancho `antesDeCerrarLaSesion` (publica el podio justo antes de `session.closed`) y el motor base acepta `estadoPrivado`.
 - Pantallas: `src/player/componentes/lectura/` y `src/host/componentes/lectura/`; hooks `useEstadoPrivadoDelHost`, `useSugerenciasDeCalificacion`, `useAsignacionDePares` y `useMensajesPrivadosDelEstudiante`.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { agruparSenalesPorParticipante, procesarMensajeDeIntegridad } from './canalPrivado.js';
+import { agruparSenalesPorParticipante, procesarMensajeDeIntegridad, procesarMensajeDelPatron } from './canalPrivado.js';
 
 const CARGA = {
   participantId: 'ana',
@@ -105,5 +105,40 @@ describe('proporción penalizada del mensaje de integridad', () => {
   it('sin el dato o con basura vale 0', () => {
     expect(procesarMensajeDeIntegridad(base).proporcionPenalizada).toBe(0);
     expect(procesarMensajeDeIntegridad({ ...base, data: { ...base.data, estadisticas: { proporcionPenalizada: 'mucho' } } }).proporcionPenalizada).toBe(0);
+  });
+});
+
+describe('procesarMensajeDelPatron', () => {
+  const carga = {
+    participantId: 'ana',
+    argumentId: 'arg-1',
+    modo: 'sin_retroalimentacion',
+    estructura: 'cer',
+    nombre: 'CER',
+    partesPresentes: ['Afirmación'],
+    partesFaltantes: ['Evidencia', 'Razonamiento'],
+  };
+
+  it('acepta la sugerencia publicada por quien dice ser', () => {
+    const registro = procesarMensajeDelPatron({ id: 'm1', clientId: 'ana', timestamp: 10, data: carga });
+    expect(registro.partesPresentes).toEqual(['Afirmación']);
+    expect(registro.partesFaltantes).toEqual(['Evidencia', 'Razonamiento']);
+    expect(registro.argumentId).toBe('arg-1');
+  });
+
+  it('descarta la sugerencia si la publicó otra persona', () => {
+    expect(procesarMensajeDelPatron({ id: 'm1', clientId: 'beto', data: carga })).toBeNull();
+  });
+
+  it('descarta mensajes sin argumento o sin partes', () => {
+    expect(procesarMensajeDelPatron({ clientId: 'ana', data: { ...carga, argumentId: '' } })).toBeNull();
+    expect(procesarMensajeDelPatron({ clientId: 'ana', data: { ...carga, partesPresentes: [], partesFaltantes: [] } })).toBeNull();
+  });
+
+  it('acota la cantidad y el largo de las partes', () => {
+    const muchas = Array.from({ length: 20 }, (_, indice) => `Parte ${indice} ${'x'.repeat(200)}`);
+    const registro = procesarMensajeDelPatron({ clientId: 'ana', data: { ...carga, partesFaltantes: muchas } });
+    expect(registro.partesFaltantes).toHaveLength(8);
+    expect(registro.partesFaltantes[0].length).toBeLessThanOrEqual(80);
   });
 });

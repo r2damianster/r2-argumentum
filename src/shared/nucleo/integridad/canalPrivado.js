@@ -8,6 +8,8 @@
 import { GRAVEDADES } from './recolectorDeSenales.js';
 
 export const NOMBRE_DEL_EVENTO_DE_INTEGRIDAD = 'integridad.senal';
+// Va por el mismo canal privado (solo el host lo lee): la sugerencia de la IA sobre el patrón de escritura.
+export const NOMBRE_DEL_EVENTO_DEL_PATRON = 'patron.sugerencia';
 
 export const CONTEXTOS_DE_REDACCION = {
   FORO: 'foro',
@@ -62,6 +64,39 @@ export function procesarMensajeDeIntegridad(mensaje) {
     advertenciaMostrada: Boolean(carga.advertenciaMostrada),
     // Qué parte del texto se pegó (0 a 1): el host la usa para el descuento automático del control de lectura.
     proporcionPenalizada: Math.min(1, Math.max(0, Number(carga.estadisticas?.proporcionPenalizada ?? carga.proporcionPenalizada) || 0)),
+    enviadoEn: Number(mensaje.timestamp ?? carga.enviadoEn ?? 0),
+  };
+}
+
+const MAXIMO_DE_PARTES_DEL_PATRON = 8;
+
+function listaDeNombresDePartes(valor) {
+  return Array.isArray(valor)
+    ? valor.slice(0, MAXIMO_DE_PARTES_DEL_PATRON).map((nombre) => acotarTexto(nombre, 80)).filter(Boolean)
+    : [];
+}
+
+// Sugerencia de la IA sobre el patrón de escritura de un argumento. Misma regla de confianza que la integridad:
+// vale solo si la publicó quien dice ser. Devuelve el registro limpio o null.
+export function procesarMensajeDelPatron(mensaje) {
+  const carga = mensaje?.data;
+  if (!carga || typeof carga !== 'object' || !mensaje.clientId || mensaje.clientId !== carga.participantId) {
+    return null;
+  }
+  const partesPresentes = listaDeNombresDePartes(carga.partesPresentes);
+  const partesFaltantes = listaDeNombresDePartes(carga.partesFaltantes);
+  if (!carga.argumentId || partesPresentes.length + partesFaltantes.length === 0) {
+    return null;
+  }
+  return {
+    idDelMensaje: mensaje.id ?? `${mensaje.clientId}-${mensaje.timestamp}-${carga.argumentId}`,
+    participantId: carga.participantId,
+    argumentId: acotarTexto(carga.argumentId, 80),
+    modo: acotarTexto(carga.modo, 40),
+    estructura: acotarTexto(carga.estructura, 40),
+    nombre: acotarTexto(carga.nombre, 80),
+    partesPresentes,
+    partesFaltantes,
     enviadoEn: Number(mensaje.timestamp ?? carga.enviadoEn ?? 0),
   };
 }

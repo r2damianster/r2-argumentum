@@ -17,6 +17,7 @@ import { ID_FORO_ESCRITO } from '../../actividades/foroEscrito/definicion.js';
 import { construirResumenDelForo } from '../../actividades/foroEscrito/informeDelForo.js';
 import {
   AnexoDeIntegridad,
+  AnexoDelPatron,
   SeccionDeCoModeradores,
   SeccionDeDesgloseDelPuntaje,
   SeccionesDelForo,
@@ -46,6 +47,7 @@ export function InformeDelDebate({
   eventos,
   // Confidencial: las señales de integridad no se imprimen salvo que el moderador lo pida.
   registrosDeIntegridad = [],
+  sugerenciasDelPatron = [],
   incluirAnexoDeIntegridad = false,
 }) {
   const podioIndividual = calcularPodioIndividual(estado, presencia);
@@ -248,6 +250,9 @@ export function InformeDelDebate({
 
         {incluirAnexoDeIntegridad && (
           <AnexoDeIntegridad registros={registrosDeIntegridad} estado={estado} presencia={presencia} />
+        )}
+        {incluirAnexoDeIntegridad && sugerenciasDelPatron.length > 0 && (
+          <AnexoDelPatron sugerencias={sugerenciasDelPatron} estado={estado} presencia={presencia} />
         )}
 
         <footer>

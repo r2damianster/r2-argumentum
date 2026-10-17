@@ -1,5 +1,5 @@
-import { resolverDistribucion, resolverEstructuraDelPrograma } from '../../nucleo/escritura/estructurasDeEscritura.js';
-import { DISTRIBUCIONES_DE_ESTRUCTURA } from '../../nucleo/escritura/estructurasDeEscritura.js';
+import { resolverDistribucion, resolverEstructuraDelPrograma } from '../../nucleo/patronesDeEscritura/estructurasDeEscritura.js';
+import { DISTRIBUCIONES_DE_ESTRUCTURA } from '../../nucleo/patronesDeEscritura/estructurasDeEscritura.js';
 
 // Una muestra pedagógica de la estructura de escritura: en qué consiste, sus partes y un ejemplo resuelto
 // parte por parte (con otro tema, para no dar la respuesta de la consigna). La ve el docente al configurar y

@@ -224,3 +224,33 @@ export function AnexoDeIntegridad({ registros, estado, presencia }) {
     </>
   );
 }
+
+// Confidencial, igual que el anexo de integridad: qué partes del patrón de escritura reconoció la IA en cada
+// argumento. Es una sugerencia, no una nota.
+export function AnexoDelPatron({ sugerencias, estado, presencia }) {
+  return (
+    <>
+      <h2>Anexo del patrón de escritura (confidencial)</h2>
+      <p className="texto-de-ayuda">
+        Partes del patrón que la IA reconoció en cada argumento. Es una sugerencia: no suma ni resta puntos.
+      </p>
+      <ul className="lista-del-informe">
+        {sugerencias.map((sugerencia) => {
+          const total = sugerencia.partesPresentes.length + sugerencia.partesFaltantes.length;
+          const argumento = estado.argumentos[sugerencia.argumentId];
+          return (
+            <li key={sugerencia.idDelMensaje}>
+              <strong>
+                {nombreDeParticipante(presencia, sugerencia.participantId)} — {sugerencia.nombre}: {sugerencia.partesPresentes.length} de {total} partes
+              </strong>
+              {argumento ? ` — «${argumento.texto.slice(0, 80)}…»` : ''}
+              <br />
+              Presentes: {sugerencia.partesPresentes.join(', ') || '—'}
+              {sugerencia.partesFaltantes.length > 0 ? ` · Faltan: ${sugerencia.partesFaltantes.join(', ')}` : ''}
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  );
+}

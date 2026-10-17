@@ -4,7 +4,7 @@
 // La nota aparece AQUÍ y solo aquí: nunca viaja a la sala ni a los estudiantes. Funciones puras.
 
 import { DECISIONES_DE_CONFIRMACION } from '../../shared/eventos/nombresDeEventos.js';
-import { resolverEstructuraDelPrograma, resolverNumeroDeParrafos } from '../../shared/nucleo/escritura/estructurasDeEscritura.js';
+import { resolverEstructuraDelPrograma, resolverNumeroDeParrafos } from '../../shared/nucleo/patronesDeEscritura/estructurasDeEscritura.js';
 import { resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.js';
 import { ESTADOS_DE_CALIFICACION, construirColaDelDocente } from '../../shared/nucleo/entregas/estadoPrivadoDelDocente.js';
 import { etiquetaDelNivel, resolverRubricaDelPrograma } from '../../shared/nucleo/rubrica/rubrica.js';

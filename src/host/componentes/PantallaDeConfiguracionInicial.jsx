@@ -10,8 +10,11 @@ import { SelectorDeModeracion } from './SelectorDeModeracion.jsx';
 import { SelectorDeIntegridad } from './SelectorDeIntegridad.jsx';
 import { SelectorDeCriteriosAdicionales } from './SelectorDeCriteriosAdicionales.jsx';
 import { normalizarCriteriosAdicionales } from '../../shared/nucleo/criteriosAdicionales/criteriosAdicionales.js';
+import { SelectorDePatronDeArgumento } from './SelectorDePatronDeArgumento.jsx';
+import { normalizarPatronDeArgumento } from '../../shared/nucleo/patronesDeEscritura/patronDeArgumento.js';
 import { SelectorDeModoDeAhorro } from './SelectorDeModoDeAhorro.jsx';
 import { normalizarModoDeAhorro } from '../../shared/nucleo/capacidad/modosDeAhorro.js';
+import { ID_DEBATE_HABLADO } from '../../actividades/debateHablado/definicion.js';
 import { ID_FORO_ESCRITO } from '../../actividades/foroEscrito/definicion.js';
 import { resolverActividadDelPrograma } from '../../actividades/registroDeActividades.js';
 import { normalizarIntegridad } from '../../shared/nucleo/integridad/nivelesDeIntegridad.js';
@@ -38,6 +41,9 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
   );
   // El modo de ahorro solo importa donde muchas personas escriben a la vez (foro); el debate hablado no lo usa.
   const esForo = resolverActividadDelPrograma(programaBase).id === ID_FORO_ESCRITO;
+  // El patrón de escritura lo pide el debate hablado (el foro tiene criterios adicionales y la lectura su estructura).
+  const esDebateHablado = resolverActividadDelPrograma(programaBase).id === ID_DEBATE_HABLADO;
+  const [patronDeArgumento, setPatronDeArgumento] = useState(() => normalizarPatronDeArgumento(programaBase.patronDeArgumento));
   const [modoDeAhorro, setModoDeAhorro] = useState(() => normalizarModoDeAhorro(programaBase.modoDeAhorro));
 
   function alternarPostura(posturaId) {
@@ -64,6 +70,7 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
       moderacion,
       integridad,
       idsDeCriteriosActivos,
+      patronDeArgumento: esDebateHablado ? patronDeArgumento : undefined,
       // El modo masivo es del control de lectura: un Programa de foro que lo trajera usa el de ahorro.
       modoDeAhorro: esForo ? (modoDeAhorro === 'masivo' ? 'ahorro' : modoDeAhorro) : undefined,
     });
@@ -217,6 +224,13 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
           criterios={criteriosDelPrograma}
           idsDeCriteriosActivos={idsDeCriteriosActivos}
           onCambiarCriteriosActivos={setIdsDeCriteriosActivos}
+        />
+      )}
+      {esDebateHablado && (
+        <SelectorDePatronDeArgumento
+          patronDeArgumento={patronDeArgumento}
+          idioma={idiomaDelDebate}
+          onCambiarPatronDeArgumento={setPatronDeArgumento}
         />
       )}
       {esForo && <SelectorDeModoDeAhorro modoDeAhorro={modoDeAhorro} onCambiarModoDeAhorro={setModoDeAhorro} />}

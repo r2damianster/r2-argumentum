@@ -36,6 +36,19 @@ describe('resolverEstructuraDelPrograma', () => {
     expect(resolverEstructuraDelPrograma({ estructura: 'spre' }).partes).toHaveLength(4);
     expect(resolverEstructuraDelPrograma({ estructura: 'cer' }).partes).toHaveLength(3);
   });
+
+  it('Toulmin tiene las seis partes, con Calificador, en español y en inglés', () => {
+    const toulminEnEspanol = resolverEstructuraDelPrograma({ estructura: 'toulmin' }, 'es');
+    expect(toulminEnEspanol.partes.map((parte) => parte.nombre)).toEqual([
+      'Afirmación', 'Datos', 'Garantía', 'Respaldo', 'Calificador', 'Refutación',
+    ]);
+    const toulminEnIngles = resolverEstructuraDelPrograma({ estructura: 'toulmin' }, 'en');
+    expect(toulminEnIngles.partes.map((parte) => parte.nombre)).toEqual([
+      'Claim', 'Grounds', 'Warrant', 'Backing', 'Qualifier', 'Rebuttal',
+    ]);
+    expect(toulminEnEspanol.ejemplo).toHaveLength(6);
+    expect(toulminEnIngles.ejemplo).toHaveLength(6);
+  });
 });
 
 describe('distribución y número de párrafos', () => {

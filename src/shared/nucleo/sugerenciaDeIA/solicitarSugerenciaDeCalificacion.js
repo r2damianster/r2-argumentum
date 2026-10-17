@@ -5,7 +5,7 @@
 // Nunca lanza: sin sugerencia el docente califica a mano y la cola sigue.
 
 import { leerSesionDelHost } from '../../ably/sesionDelHost.js';
-import { resolverEstructuraDelPrograma, resolverDistribucion, resolverNumeroDeParrafos } from '../escritura/estructurasDeEscritura.js';
+import { resolverEstructuraDelPrograma, resolverDistribucion, resolverNumeroDeParrafos } from '../patronesDeEscritura/estructurasDeEscritura.js';
 import { resolverIdiomaDelDebate } from '../../programa/idiomaDelDebate.js';
 
 // `programa` debe ser el Programa COMPLETO del host: las claves de la lectura no viajan en el publicado.

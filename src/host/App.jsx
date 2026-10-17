@@ -19,6 +19,8 @@ import { PanelDelForoParaElModerador } from './componentes/PanelDelForoParaElMod
 import { PanelDeRevisionDelModerador } from './componentes/PanelDeRevisionDelModerador.jsx';
 import { PanelDeIntegridadDelModerador } from './componentes/PanelDeIntegridadDelModerador.jsx';
 import { useSenalesDeIntegridadDelHost } from './useSenalesDeIntegridadDelHost.js';
+import { PanelDelPatronDelModerador } from './componentes/PanelDelPatronDelModerador.jsx';
+import { patronDeArgumentoActivo } from '../shared/nucleo/patronesDeEscritura/patronDeArgumento.js';
 import { calcularDescuentosAutomaticosPorPegado } from '../shared/nucleo/integridad/penalizacionPorPegado.js';
 import { PanelDeGuiaPedagogica } from './componentes/PanelDeGuiaPedagogica.jsx';
 import { ControlDeFases } from './componentes/ControlDeFases.jsx';
@@ -424,9 +426,11 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
   useAnunciosEnLote({ activo: esLectura, estado, estadoPrivado, publicar, perfil: perfilDeLaSesion });
   // Señales de integridad: solo el host lee el canal privado. Con la integridad apagada no se conecta.
   const integridadActiva = integridadEstaActiva(estado.programa ?? programa);
-  const { registros: registrosDeIntegridad } = useSenalesDeIntegridadDelHost({
+  // El patrón de escritura (si el moderador lo pidió) usa el mismo canal privado para las sugerencias de la IA.
+  const patronActivo = patronDeArgumentoActivo(estado.programa ?? programa);
+  const { registros: registrosDeIntegridad, sugerenciasDelPatron } = useSenalesDeIntegridadDelHost({
     sessionId: codigoDeSala,
-    activo: integridadActiva,
+    activo: integridadActiva || Boolean(patronActivo),
   });
   // El descuento automático por texto pegado (lo calcula el host con lo que publicó cada estudiante) viaja
   // junto al estado privado: la cola, el podio y el informe usan el mismo número, y el docente lo puede revertir.
@@ -692,6 +696,15 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
         // Debate en vivo (Etapa 3)
         <>
           <PanelDeAvisos estado={estado} presencia={presencia} motor={motor} />
+          {patronActivo && (
+            <PanelDelPatronDelModerador
+              estado={estado}
+              presencia={presencia}
+              sugerencias={sugerenciasDelPatron}
+              modo={patronActivo.modo}
+              nombreDelPatron={patronActivo.estructura.nombre}
+            />
+          )}
           {integridadActiva && (
             <PanelDeIntegridadDelModerador
               estado={estado}
@@ -754,6 +767,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
               presencia={presencia}
               eventos={eventos}
               registrosDeIntegridad={registrosDeIntegridad}
+              sugerenciasDelPatron={sugerenciasDelPatron}
               incluirAnexoDeIntegridad={incluirAnexoDeIntegridad}
             />
           )}
@@ -765,8 +779,9 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
               presencia={presencia}
               motor={motor}
               onNuevoDebate={onElegirOtraActividad}
-              integridadActiva={integridadActiva}
+              integridadActiva={integridadActiva || Boolean(patronActivo)}
               registrosDeIntegridad={registrosDeIntegridad}
+              sugerenciasDelPatron={sugerenciasDelPatron}
               incluirAnexoDeIntegridad={incluirAnexoDeIntegridad}
               onAlternarAnexoDeIntegridad={() => setIncluirAnexoDeIntegridad((incluir) => !incluir)}
             />

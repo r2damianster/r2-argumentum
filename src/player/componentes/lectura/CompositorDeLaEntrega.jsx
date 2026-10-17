@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { EVENTOS_PRIVADOS } from '../../../shared/nucleo/entregas/canalesPrivados.js';
 import { contarPalabras, contarParrafos } from '../../../shared/nucleo/escritura/contarTexto.js';
 import { esperaAleatoriaDelEnvioMs } from '../../../shared/nucleo/entregas/escalonadoDelEnvio.js';
-import { resolverNumeroDeParrafos } from '../../../shared/nucleo/escritura/estructurasDeEscritura.js';
+import { resolverNumeroDeParrafos } from '../../../shared/nucleo/patronesDeEscritura/estructurasDeEscritura.js';
 import { resolverIdiomaDelDebate } from '../../../shared/programa/idiomaDelDebate.js';
 import { useControlDeIntegridad } from '../../../shared/nucleo/integridad/useControlDeIntegridad.js';
 import { CONTEXTOS_DE_REDACCION } from '../../../shared/nucleo/integridad/canalPrivado.js';

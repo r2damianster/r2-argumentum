@@ -17,6 +17,7 @@ export function PantallaDeRanking({
   onNuevoDebate,
   integridadActiva = false,
   registrosDeIntegridad = [],
+  sugerenciasDelPatron = [],
   incluirAnexoDeIntegridad = false,
   onAlternarAnexoDeIntegridad = () => {},
 }) {
@@ -39,7 +40,7 @@ export function PantallaDeRanking({
   }
 
   function manejarDescargaDelAnexoDeIntegridad() {
-    const anexo = exportarAnexoDeIntegridad({ registros: registrosDeIntegridad, estado, programa, presencia });
+    const anexo = exportarAnexoDeIntegridad({ registros: registrosDeIntegridad, sugerenciasDelPatron, estado, programa, presencia });
     descargarComoJSON(anexo, `r2-argumentum-${programa.programId}-integridad-${Date.now()}.json`);
   }
 
@@ -167,7 +168,7 @@ export function PantallaDeRanking({
         </button>
         {integridadActiva && (
           <button type="button" className="boton-secundario" onClick={manejarDescargaDelAnexoDeIntegridad}>
-            🛡️ Descargar anexo de integridad (.json)
+            🛡️ Descargar anexo confidencial (.json)
           </button>
         )}
         {sesionCerrada && (
@@ -179,7 +180,7 @@ export function PantallaDeRanking({
       {integridadActiva && (
         <label className="casilla-de-falta">
           <input type="checkbox" checked={incluirAnexoDeIntegridad} onChange={onAlternarAnexoDeIntegridad} />
-          Incluir el anexo de integridad en el PDF (confidencial)
+          Incluir el anexo confidencial (integridad y patrón de escritura) en el PDF
         </label>
       )}
       <p className="texto-de-ayuda">

@@ -1,4 +1,6 @@
-// Estructuras de escritura (PEEL, SPRE…) — ver docs/14-control-de-lectura.md.
+// Patrones de escritura (PEEL, SPRE, PREP, CER, Toulmin…): núcleo reutilizable por las actividades
+// (control de lectura hoy; debate hablado y foro escrito a continuación). Ver docs/14-control-de-lectura.md.
+// En el Programa el campo se sigue llamando `estructura`.
 //
 // Una estructura es una lista de partes con una guía de qué va en cada una. Cada Programa elige una
 // de serie por su `id` o trae una propia en el JSON. La app solo MUESTRA la guía y cuenta palabras y
@@ -180,6 +182,58 @@ export const ESTRUCTURAS_DE_SERIE = {
       {
         nombre: { es: 'Razonamiento', en: 'Reasoning' },
         descripcion: { es: 'La lógica que une la evidencia con la afirmación.', en: 'The logic that links the evidence to the claim.' },
+      },
+    ],
+  },
+  toulmin: {
+    id: 'toulmin',
+    nombre: { es: 'Toulmin', en: 'Toulmin' },
+    queEs: {
+      es: 'Modelo de argumento completo en seis partes: afirmas algo (Afirmación), das el dato en que te apoyas (Datos), explicas por qué ese dato sostiene la afirmación (Garantía), respaldas esa garantía (Respaldo), matizas hasta dónde vale (Calificador) y reconoces cuándo no se cumpliría (Refutación).',
+      en: 'A full argument model in six parts: you claim something (Claim), give the data you rely on (Grounds), explain why that data supports the claim (Warrant), back up that warrant (Backing), say how far it holds (Qualifier) and admit when it would not apply (Rebuttal).',
+    },
+    ejemplo: {
+      es: [
+        'Un puntaje de un detector de IA no debería bastar para sancionar a un estudiante.',
+        'Varios estudios muestran que estos detectores marcan como IA textos escritos por personas, sobre todo por quienes escriben en una segunda lengua.',
+        'Si una herramienta se equivoca con frecuencia, su resultado no puede ser una prueba por sí solo.',
+        'En otros ámbitos, como las pruebas médicas, un resultado dudoso exige una segunda comprobación antes de decidir.',
+        'Por lo general, un puntaje alto sirve como señal para investigar, no como veredicto.',
+        'Podría bastar si el estudiante admite el uso o si hay un historial de versiones que lo confirme.',
+      ],
+      en: [
+        'An AI detector score should not be enough to sanction a student.',
+        'Several studies show that these detectors flag human-written texts as AI, especially those written by second-language speakers.',
+        'If a tool is often wrong, its result cannot be proof on its own.',
+        'In other fields, such as medical tests, a doubtful result requires a second check before any decision.',
+        'In general, a high score works as a signal to investigate, not as a verdict.',
+        'It could be enough if the student admits using AI or if a version history confirms it.',
+      ],
+    },
+    partes: [
+      {
+        nombre: { es: 'Afirmación', en: 'Claim' },
+        descripcion: { es: 'La tesis que defiendes.', en: 'The thesis you defend.' },
+      },
+      {
+        nombre: { es: 'Datos', en: 'Grounds' },
+        descripcion: { es: 'Los hechos, cifras o casos en que te apoyas.', en: 'The facts, figures or cases you rely on.' },
+      },
+      {
+        nombre: { es: 'Garantía', en: 'Warrant' },
+        descripcion: { es: 'El principio que explica por qué los datos sostienen la afirmación.', en: 'The principle that explains why the grounds support the claim.' },
+      },
+      {
+        nombre: { es: 'Respaldo', en: 'Backing' },
+        descripcion: { es: 'Lo que respalda la garantía: una norma, una analogía o una fuente.', en: 'What supports the warrant: a rule, an analogy or a source.' },
+      },
+      {
+        nombre: { es: 'Calificador', en: 'Qualifier' },
+        descripcion: { es: 'Hasta dónde vale la afirmación (por lo general, en la mayoría de los casos…).', en: 'How far the claim holds (generally, in most cases…).' },
+      },
+      {
+        nombre: { es: 'Refutación', en: 'Rebuttal' },
+        descripcion: { es: 'La excepción o condición en que la afirmación no se cumpliría.', en: 'The exception or condition in which the claim would not hold.' },
       },
     ],
   },

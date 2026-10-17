@@ -10,6 +10,7 @@
 import { normalizarModeracion } from '../shared/nucleo/coModeracion/calcularCoModeradores.js';
 import { normalizarIntegridad } from '../shared/nucleo/integridad/nivelesDeIntegridad.js';
 import { normalizarModoDeAhorro } from '../shared/nucleo/capacidad/modosDeAhorro.js';
+import { normalizarPatronDeArgumento } from '../shared/nucleo/patronesDeEscritura/patronDeArgumento.js';
 import { aplicarCriteriosElegidos } from '../shared/nucleo/criteriosAdicionales/criteriosAdicionales.js';
 
 const MINIMO_DE_POSTURAS = 2;
@@ -34,6 +35,7 @@ export function armarProgramaDeLaSesion({
   integridad,
   modoDeAhorro,
   idsDeCriteriosActivos,
+  patronDeArgumento,
 }) {
   const posturasElegidas = posturasDelPrograma.filter((postura) => idsDePosturasSeleccionadas.has(postura.id));
   if (posturasElegidas.length < MINIMO_DE_POSTURAS) {
@@ -59,6 +61,8 @@ export function armarProgramaDeLaSesion({
             idsDeCriteriosActivos ?? activosPorDefecto(programaBase.criteriosAdicionales)
           ),
         }),
+    // Patrón de escritura que se espera en los argumentos (apagado por defecto). Solo lo pide el debate hablado.
+    ...(patronDeArgumento === undefined ? {} : { patronDeArgumento: normalizarPatronDeArgumento(patronDeArgumento) }),
     // Solo las actividades donde importa (foro) lo piden; el debate hablado no lo trae y rige el comportamiento de siempre.
     ...(modoDeAhorro === undefined ? {} : { modoDeAhorro: normalizarModoDeAhorro(modoDeAhorro) }),
     // Programas guardados antes de retirar la apertura simultánea pueden traer esa fase: se

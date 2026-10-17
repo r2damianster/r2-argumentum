@@ -103,7 +103,7 @@ export function exportarSesion({ eventos, estado, programa, presencia = [] }) {
 
 // Las señales de integridad son confidenciales y solo las ve el moderador: van en su propio archivo
 // para que no viajen dentro del informe general, que se comparte o se proyecta con más facilidad.
-export function exportarAnexoDeIntegridad({ registros, estado, programa, presencia = [] }) {
+export function exportarAnexoDeIntegridad({ registros, sugerenciasDelPatron = [], estado, programa, presencia = [] }) {
   return {
     exportadoEn: new Date().toISOString(),
     confidencial: true,
@@ -111,6 +111,17 @@ export function exportarAnexoDeIntegridad({ registros, estado, programa, presenc
       'Son señales que ayudan a revisar, no pruebas de nada: el dictado por voz, el autocorrector y el uso del celular pueden generarlas. Decide con criterio y conversa con la persona antes de actuar.',
     nivelDeIntegridad: resolverNivelDeIntegridad(estado.programa ?? programa),
     programa: { programId: programa.programId, titulo: programa.titulo },
+    // Qué partes del patrón de escritura reconoció la IA en cada argumento (solo sugerencia, solo moderador).
+    patronDeEscritura: sugerenciasDelPatron.map((sugerencia) => ({
+      participantId: sugerencia.participantId,
+      nombre: nombreDeParticipante(presencia, sugerencia.participantId),
+      argumentId: sugerencia.argumentId,
+      textoDelAporte: estado.argumentos[sugerencia.argumentId]?.texto ?? null,
+      modo: sugerencia.modo,
+      patron: sugerencia.nombre,
+      partesPresentes: sugerencia.partesPresentes,
+      partesFaltantes: sugerencia.partesFaltantes,
+    })),
     personas: agruparSenalesPorParticipante(registros).map((grupo) => ({
       participantId: grupo.participantId,
       nombre: nombreDeParticipante(presencia, grupo.participantId),

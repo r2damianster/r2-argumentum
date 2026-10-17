@@ -1,3 +1,11 @@
+import { NOMBRE_DEL_EVENTO_DEL_PATRON } from '../../shared/nucleo/integridad/canalPrivado.js';
+import { patronDeArgumentoActivo } from '../../shared/nucleo/patronesDeEscritura/patronDeArgumento.js';
+import {
+  cargaDelPatronParaElModerador,
+  mensajeDeRetroalimentacionDelPatron,
+  patronParaLaIA,
+} from '../../shared/nucleo/patronesDeEscritura/retroalimentacionDelPatron.js';
+import { GuiaDelPatronDeArgumento } from '../../shared/componentes/GuiaDelPatronDeArgumento.jsx';
 import { TarjetaDeExposicionEnCurso } from './TarjetaDeExposicionEnCurso.jsx';
 import { AdvertenciaDeIntegridad, AvisoDeIntegridad } from '../../shared/componentes/foro/AdvertenciaDeIntegridad.jsx';
 import { useControlDeIntegridad } from '../../shared/nucleo/integridad/useControlDeIntegridad.js';
@@ -78,6 +86,10 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
   const [texto, setTexto] = useState(borradorGuardado?.texto ?? '');
   const [revisando, setRevisando] = useState(false);
   const [resultado, setResultado] = useState(null);
+  // Patrón de escritura pedido por el moderador (apagado por defecto): la IA solo sugiere y el argumento pasa igual.
+  const patronActivo = patronDeArgumentoActivo(estado.programa ?? programa, resolverIdiomaDelDebate(programa));
+  const [sugerenciaDelPatron, setSugerenciaDelPatron] = useState('');
+  const [patronDetectado, setPatronDetectado] = useState(null);
   const [avisoDeCampoFaltante, setAvisoDeCampoFaltante] = useState('');
   const [argumentoRepetido, setArgumentoRepetido] = useState(null);
   // Se queda a la vista después de publicar: avisa que Groq no pudo pre-revisar el último argumento.
@@ -141,12 +153,15 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
     // Si Groq no responde, el argumento pasa con un aviso: la IA nunca condiciona participar.
     const respuesta = await validarArgumentoConGroq({
       texto,
+      patron: patronParaLaIA(patronActivo),
       ejemplos: programa.ejemplosPorTema,
       posturas: programa.posturas,
       idioma: resolverIdiomaDelDebate(programa),
       razonamiento: perfilDeAhorro({ programa: estado.programa ?? programa, estado }).razonamientoDeGroq,
     });
 
+    setSugerenciaDelPatron(mensajeDeRetroalimentacionDelPatron(patronActivo, respuesta.patron));
+    setPatronDetectado(respuesta.patron ?? null);
     const decision = decidirValidacion({
       resultadoDeGroq: respuesta,
       stanceElegido: stanceId,
@@ -168,6 +183,11 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
   // Groq ni que la persona conecte a mano (igual que en un bid aprobado): sin ella el nodo quedaba
   // suelto en la fila raíz del grafo.
   function publicarArgumentoAprobado(argumentId) {
+    // En ambos modos el moderador recibe qué partes del patrón detectó la IA (canal privado); quien escribe solo en el modo de práctica.
+    const cargaDelPatron = cargaDelPatronParaElModerador(patronActivo, patronDetectado, argumentId);
+    if (cargaDelPatron && publicarIntegridad) {
+      publicarIntegridad(cargaDelPatron, NOMBRE_DEL_EVENTO_DEL_PATRON);
+    }
     const objetivoElegido = requiereObjetivo ? argumentoObjetivoId : null;
     setPublicando(true);
     publicar(EVENTOS.ARGUMENTO_PUBLICADO, {
@@ -308,6 +328,8 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
         </label>
       )}
 
+      <GuiaDelPatronDeArgumento programa={estado.programa ?? programa} />
+      {sugerenciaDelPatron && <p className="texto-de-ayuda">💡 {sugerenciaDelPatron}</p>}
       <AvisoDeIntegridad nivel={integridad.nivel} />
       <label>
         Tu argumento

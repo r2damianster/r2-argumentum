@@ -1,7 +1,7 @@
 import { IDIOMAS_DEL_DEBATE, resolverIdiomaDelDebate } from '../../../shared/programa/idiomaDelDebate.js';
 import {
   describirLaEstructuraPedida,
-} from '../../../shared/nucleo/escritura/estructurasDeEscritura.js';
+} from '../../../shared/nucleo/patronesDeEscritura/estructurasDeEscritura.js';
 import {
   ETIQUETA_DEL_NIVEL_DE_INTEGRIDAD,
   resolverNivelDeIntegridad,

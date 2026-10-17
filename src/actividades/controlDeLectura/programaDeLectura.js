@@ -12,7 +12,7 @@ import { normalizarPenalizacionPorPegado } from '../../shared/nucleo/integridad/
 import {
   DISTRIBUCIONES_DE_ESTRUCTURA,
   resolverEstructuraDelPrograma,
-} from '../../shared/nucleo/escritura/estructurasDeEscritura.js';
+} from '../../shared/nucleo/patronesDeEscritura/estructurasDeEscritura.js';
 
 export const ID_CONTROL_DE_LECTURA = 'control_de_lectura';
 

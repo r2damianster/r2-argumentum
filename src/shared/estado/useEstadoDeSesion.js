@@ -385,8 +385,9 @@ export function useEstadoDeSesion({ clientId, sessionId, datosDePresencia = null
 
   // Las señales de integridad viajan por un canal aparte que solo el host puede leer. Es «lo mejor
   // posible»: si falla, el aporte ya se publicó y no se pierde nada del debate.
-  function publicarIntegridad(carga) {
-    return publicarEnElCanalDeIntegridad(sessionId, clientId, NOMBRE_DEL_EVENTO_DE_INTEGRIDAD, {
+  // `nombreDelEvento` permite usar el mismo canal privado para otra sugerencia solo del moderador (patrón de escritura).
+  function publicarIntegridad(carga, nombreDelEvento = NOMBRE_DEL_EVENTO_DE_INTEGRIDAD) {
+    return publicarEnElCanalDeIntegridad(sessionId, clientId, nombreDelEvento, {
       ...carga,
       participantId: clientId,
       enviadoEn: Date.now(),

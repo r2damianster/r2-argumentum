@@ -18,13 +18,14 @@ export const RESPUESTA_SIN_REVISION_DE_IA = Object.freeze({
   sinRevisarPorIA: true,
 });
 
+// `patron`: { nombre, partes } opcional (ver patronesDeEscritura); la respuesta trae `patron` con lo detectado, o null.
 // `razonamiento`: 'bajo' pide al modelo poco esfuerzo de razonamiento (menos tokens; lo fija el modo de ahorro de la sala).
-export async function validarArgumentoConGroq({ texto, ejemplos = [], posturas = [], idioma, razonamiento = 'normal' }) {
+export async function validarArgumentoConGroq({ texto, ejemplos = [], posturas = [], idioma, razonamiento = 'normal', patron = null }) {
   try {
     const peticion = await fetch('/api/groq-validar-argumento', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ texto, ejemplos, posturas, idioma, razonamiento }),
+      body: JSON.stringify({ texto, ejemplos, posturas, idioma, razonamiento, ...(patron ? { patron } : {}) }),
     });
     if (!peticion.ok) {
       return { ...RESPUESTA_SIN_REVISION_DE_IA };

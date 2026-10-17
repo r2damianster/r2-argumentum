@@ -2,7 +2,7 @@ import { resolverIdiomaDelDebate } from '../../programa/idiomaDelDebate.js';
 import {
   describirLaEstructuraPedida,
   resolverEstructuraDelPrograma,
-} from '../../nucleo/escritura/estructurasDeEscritura.js';
+} from '../../nucleo/patronesDeEscritura/estructurasDeEscritura.js';
 
 // La consigna del control de lectura y la guía de la estructura pedida: lo que ve quien escribe y lo
 // que proyecta el docente. No muestra nada de la rúbrica ni de las claves de la lectura.

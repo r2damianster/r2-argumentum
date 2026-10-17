@@ -31,6 +31,59 @@ export const ESQUEMA_DE_VALIDACION = {
   additionalProperties: false,
 };
 
+// Patrón de escritura opcional (PEEL, CER, Toulmin…): el moderador lo pide y la IA solo SUGIERE cuáles partes se
+// detectaron, en la misma llamada (sin gastar otra). No cambia `aprobado` ni puntúa. Ante la duda no señala nada.
+const MAXIMO_DE_PARTES_DEL_PATRON = 8;
+const MAXIMO_DE_CARACTERES_DE_UN_TEXTO_DEL_PATRON = 200;
+export const CONFIANZA_MINIMA_DEL_PATRON = 0.6;
+
+function acotarTexto(valor) {
+  return String(valor ?? '').trim().slice(0, MAXIMO_DE_CARACTERES_DE_UN_TEXTO_DEL_PATRON);
+}
+
+// Devuelve { nombre, partes: [{ nombre, descripcion }] } limpio, o null si el cliente no mandó un patrón usable.
+export function normalizarPatronRecibido(patron) {
+  const partes = Array.isArray(patron?.partes)
+    ? patron.partes
+        .slice(0, MAXIMO_DE_PARTES_DEL_PATRON)
+        .map((parte) => ({ nombre: acotarTexto(parte?.nombre), descripcion: acotarTexto(parte?.descripcion) }))
+        .filter((parte) => parte.nombre)
+    : [];
+  return partes.length > 0 ? { nombre: acotarTexto(patron?.nombre), partes } : null;
+}
+
+// Sin patrón el esquema es el de siempre: no cambia ni el costo ni el comportamiento de las salas que no lo piden.
+export function esquemaDeValidacion(patron) {
+  if (!patron) {
+    return ESQUEMA_DE_VALIDACION;
+  }
+  return {
+    ...ESQUEMA_DE_VALIDACION,
+    properties: {
+      ...ESQUEMA_DE_VALIDACION.properties,
+      partesPresentes: { type: 'array', items: { type: 'string' } },
+      confianzaDelPatron: { type: 'number' },
+    },
+    required: [...ESQUEMA_DE_VALIDACION.required, 'partesPresentes', 'confianzaDelPatron'],
+  };
+}
+
+// De la respuesta del modelo, solo lo que se puede afirmar: partes que existen en el patrón y confianza suficiente.
+export function interpretarPatronDetectado(patron, resultado) {
+  if (!patron || typeof resultado?.confianzaDelPatron !== 'number' || resultado.confianzaDelPatron < CONFIANZA_MINIMA_DEL_PATRON) {
+    return null;
+  }
+  const nombresValidos = patron.partes.map((parte) => parte.nombre);
+  const mencionadas = new Set(Array.isArray(resultado.partesPresentes) ? resultado.partesPresentes : []);
+  const partesPresentes = nombresValidos.filter((nombre) => mencionadas.has(nombre));
+  return {
+    nombre: patron.nombre,
+    partesPresentes,
+    partesFaltantes: nombresValidos.filter((nombre) => !partesPresentes.includes(nombre)),
+    confianza: resultado.confianzaDelPatron,
+  };
+}
+
 // Idioma en que se escribe el debate (lo fija el docente en el Programa). Duplica los códigos de
 // src/shared/programa/idiomaDelDebate.js: la carpeta api/ no importa código del cliente.
 const INSTRUCCIONES_POR_IDIOMA = {
@@ -62,7 +115,29 @@ function etiquetaLegibleDePostura(posturaSugerida, posturas) {
   return texto.includes('_') && !texto.includes(' ') ? texto.replace(/_/g, ' ') : texto;
 }
 
-export function construirPromptSistema({ instruccionesDelIdioma, posturasFormateadas, ejemplosFormateados }) {
+function construirBloqueDelPatron(patron, instruccionesDelIdioma) {
+  if (!patron) {
+    return '';
+  }
+  const partes = patron.partes
+    .map((parte, indice) => `${indice + 1}. "${parte.nombre}"${parte.descripcion ? `: ${parte.descripcion}` : ''}`)
+    .join('\n');
+  return `TAREA 3 — Detectar un patrón de escritura (solo una ayuda; NO cambia "aprobado").
+El moderador pidió que el argumento siga el patrón ${patron.nombre || 'indicado'}. Partes:
+${partes}
+En "partesPresentes" devuelve los nombres EXACTOS (tal como están entre comillas) de las partes que el texto cumple.
+Reconoce cada parte por su FUNCIÓN, no por palabras literales: una oración, una frase o una analogía breve bastan
+(por ejemplo, un matiz como "por lo general" o "en la mayoría de los casos" cumple un calificador; una condición como
+"salvo que" o "podría bastar si" cumple una refutación; una comparación con otro ámbito cumple un respaldo), aunque el
+texto no nombre la parte ni siga el orden. Recorre las partes UNA POR UNA antes de responder. Un argumento corto puede
+usar pocas partes: eso es normal. No juzgues si el contenido es correcto, solo si la parte está. Omite una parte solo
+si en el texto no hay nada que cumpla su función; si dudas del conjunto, baja "confianzaDelPatron" (0 a 1).
+Escribe los nombres de las partes en ${instruccionesDelIdioma.nombre}, tal como se te dieron.
+
+`;
+}
+
+export function construirPromptSistema({ instruccionesDelIdioma, posturasFormateadas, ejemplosFormateados, patron = null }) {
   return `Eres un validador de FORMA de argumentos escritos en ${instruccionesDelIdioma.nombre}, no un juez de contenido.
 
 TAREA 1 — Validar la forma.
@@ -97,11 +172,11 @@ Decide cuál de esas posturas defiende el texto. Reglas:
 - "posturaSugerida" se usa TAL CUAL en una frase que lee el estudiante: escríbela como una
   etiqueta corta en ${instruccionesDelIdioma.nombre}, legible, nunca como un identificador técnico con guiones bajos.
 
-${ejemplosFormateados}
+${construirBloqueDelPatron(patron, instruccionesDelIdioma)}${ejemplosFormateados}
 
 Escribe "motivo", "sugerenciaDeCorreccion" y "posturaSugerida" en ${instruccionesDelIdioma.nombre}, el mismo idioma del argumento.
 Devuelve SOLO JSON válido con esta forma exacta:
-{"aprobado": boolean, "motivo": "máximo 20 palabras", "sugerenciaDeCorreccion": "vacío si aprobado es true", "posturaDetectada": "id o null", "esPosturaNueva": boolean, "posturaSugerida": "etiqueta corta o vacío", "confianza": number entre 0 y 1}`;
+{"aprobado": boolean, "motivo": "máximo 20 palabras", "sugerenciaDeCorreccion": "vacío si aprobado es true", "posturaDetectada": "id o null", "esPosturaNueva": boolean, "posturaSugerida": "etiqueta corta o vacío", "confianza": number entre 0 y 1${patron ? ', "partesPresentes": ["nombres exactos de las partes detectadas"], "confianzaDelPatron": number entre 0 y 1' : ''}}`;
 }
 
 export default async function handler(request, response) {
@@ -115,6 +190,7 @@ export default async function handler(request, response) {
   }
 
   const { texto, ejemplos = [], posturas = [], idioma, razonamiento } = request.body;
+  const patron = normalizarPatronRecibido(request.body.patron);
   const instruccionesDelIdioma = INSTRUCCIONES_POR_IDIOMA[idioma] ?? INSTRUCCIONES_POR_IDIOMA.es;
 
   // Antes de gastar una llamada: un texto sin razón real ("... porque ....") no se manda a
@@ -144,7 +220,7 @@ export default async function handler(request, response) {
     .map((postura) => `- id: "${postura.id}" → ${postura.etiqueta}`)
     .join('\n');
 
-  const promptSistema = construirPromptSistema({ instruccionesDelIdioma, posturasFormateadas, ejemplosFormateados });
+  const promptSistema = construirPromptSistema({ instruccionesDelIdioma, posturasFormateadas, ejemplosFormateados, patron });
 
   const consulta = await consultarGroqConEsquema(
     {
@@ -167,7 +243,7 @@ export default async function handler(request, response) {
       // respondió". Reporte de prueba en vivo con 8 participantes.
       max_tokens: 1500,
     },
-    { nombre: 'validacion_de_argumento', esquema: ESQUEMA_DE_VALIDACION }
+    { nombre: 'validacion_de_argumento', esquema: esquemaDeValidacion(patron) }
   );
   if (consulta.error) {
     response.status(502).json({ error: consulta.error, detalle: consulta.detalle });
@@ -188,5 +264,6 @@ export default async function handler(request, response) {
     esPosturaNueva: posturaDetectada === null && Boolean(resultado.esPosturaNueva),
     posturaSugerida: etiquetaLegibleDePostura(resultado.posturaSugerida, posturas),
     confianza: typeof resultado.confianza === 'number' ? resultado.confianza : null,
+    ...(patron ? { patron: interpretarPatronDetectado(patron, resultado) } : {}),
   });
 }

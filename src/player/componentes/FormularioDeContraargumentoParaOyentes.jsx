@@ -1,3 +1,11 @@
+import { NOMBRE_DEL_EVENTO_DEL_PATRON } from '../../shared/nucleo/integridad/canalPrivado.js';
+import { patronDeArgumentoActivo } from '../../shared/nucleo/patronesDeEscritura/patronDeArgumento.js';
+import {
+  cargaDelPatronParaElModerador,
+  mensajeDeRetroalimentacionDelPatron,
+  patronParaLaIA,
+} from '../../shared/nucleo/patronesDeEscritura/retroalimentacionDelPatron.js';
+import { GuiaDelPatronDeArgumento } from '../../shared/componentes/GuiaDelPatronDeArgumento.jsx';
 import { useState } from 'react';
 import { EVENTOS, TIPOS_DE_RELACION } from '../../shared/eventos/nombresDeEventos.js';
 import { decidirValidacion, DECISIONES } from '../../shared/argumentos/decidirValidacion.js';
@@ -29,6 +37,10 @@ export function FormularioDeContraargumentoParaOyentes({
   const [revisando, setRevisando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null);
+  // Patrón de escritura pedido por el moderador (apagado por defecto): la IA solo sugiere y el argumento pasa igual.
+  const patronActivo = patronDeArgumentoActivo(programa, resolverIdiomaDelDebate(programa));
+  const [sugerenciaDelPatron, setSugerenciaDelPatron] = useState('');
+  const [patronDetectado, setPatronDetectado] = useState(null);
   const [ultimaRespuestaDeGroq, setUltimaRespuestaDeGroq] = useState(null);
   // Texto exacto que Groq revisó: solo ese texto se puede publicar como aprobado.
   const [textoRevisado, setTextoRevisado] = useState('');
@@ -70,6 +82,7 @@ export function FormularioDeContraargumentoParaOyentes({
     // Si Groq no responde, el contraargumento pasa con un aviso: la IA nunca condiciona participar.
     const respuesta = await validarArgumentoConGroq({
       texto,
+      patron: patronParaLaIA(patronActivo),
       ejemplos: programa.ejemplosPorTema,
       posturas: programa.posturas,
       idioma: resolverIdiomaDelDebate(programa),
@@ -78,6 +91,8 @@ export function FormularioDeContraargumentoParaOyentes({
 
     setUltimaRespuestaDeGroq(respuesta);
     setTextoRevisado(texto);
+    setSugerenciaDelPatron(mensajeDeRetroalimentacionDelPatron(patronActivo, respuesta.patron));
+    setPatronDetectado(respuesta.patron ?? null);
     const decisionCalculada = decidirValidacion({
       resultadoDeGroq: respuesta,
       stanceElegido: posturaElegidaId,
@@ -99,6 +114,11 @@ export function FormularioDeContraargumentoParaOyentes({
   }
 
   function publicarContraargumento(argumentId) {
+    // En ambos modos el moderador recibe qué partes del patrón detectó la IA (canal privado); quien escribe solo en el modo de práctica.
+    const cargaDelPatron = cargaDelPatronParaElModerador(patronActivo, patronDetectado, argumentId);
+    if (cargaDelPatron && publicarIntegridad) {
+      publicarIntegridad(cargaDelPatron, NOMBRE_DEL_EVENTO_DEL_PATRON);
+    }
     setEnviando(true);
     const attemptId = generarId('intento');
     const stanceId = posturaElegidaId;
@@ -211,6 +231,8 @@ export function FormularioDeContraargumentoParaOyentes({
             </select>
           </label>
 
+          <GuiaDelPatronDeArgumento programa={programa} />
+          {sugerenciaDelPatron && <p className="texto-de-ayuda">💡 {sugerenciaDelPatron}</p>}
           <AvisoDeIntegridad nivel={integridad.nivel} />
           <label style={{ marginTop: '12px' }}>
             Tu contraargumento (debe incluir premisa y razón)
