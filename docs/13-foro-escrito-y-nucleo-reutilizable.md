@@ -55,6 +55,7 @@ src/shared/nucleo/
 src/actividades/
   registroDeActividades.js
   debateHablado/   (envuelve lo existente, sin cambiar comportamiento)
+  exposicionDePosturas/   (versión ligera del debate hablado: mismo motor, una fase, sin conexiones; ver `04`)
   foroEscrito/
 ```
 

@@ -16,6 +16,10 @@ import { resolverIdiomaDelDebate } from '../../shared/programa/idiomaDelDebate.j
 import { validarArgumentoConGroq } from '../../shared/argumentos/validarArgumentoConGroq.js';
 import { decidirValidacion, DECISIONES } from '../../shared/argumentos/decidirValidacion.js';
 import { buscarArgumentoParecido } from '../../shared/argumentos/buscarArgumentoParecido.js';
+import {
+  esExposicionDePosturas,
+  posicionesQueSePuedenCompletar,
+} from '../../actividades/exposicionDePosturas/reglasDeLaExposicion.js';
 import { perfilDeAhorro } from '../../shared/nucleo/capacidad/modosDeAhorro.js';
 import { nombreDeParticipante, siguientePosicionParaParticipante } from '../../shared/estado/seleccionesDerivadas.js';
 import {
@@ -93,10 +97,14 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
   const patronDetectadoRef = useRef(null);
   // En modo práctica, si la IA ve partes faltantes, el argumento ya aprobado espera un «Publicar así» para que la persona pueda mejorarlo.
   const [esperandoPublicarAsi, setEsperandoPublicarAsi] = useState(false);
+  // Quien aún no expuso el que ya tiene en el mapa puede redactar y revisar el siguiente; queda aprobado en espera y se
+  // publica con un clic cuando termine de exponer (la ruleta asume un solo argumento pendiente por persona).
+  const [aprobadoEnEspera, setAprobadoEnEspera] = useState(false);
   // Si cambia el texto (o se publica y queda vacío), la sugerencia y lo detectado ya no corresponden.
   useEffect(() => {
     setSugerenciaDelPatron('');
     setEsperandoPublicarAsi(false);
+    setAprobadoEnEspera(false);
     patronDetectadoRef.current = null;
   }, [texto]);
   const [avisoDeCampoFaltante, setAvisoDeCampoFaltante] = useState('');
@@ -126,7 +134,13 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
   // la pestaña o se abra la sala desde otro navegador.
   const argumentoPendiente = estado.argumentos[estado.participantes[participantId]?.argumentoPendienteId] ?? null;
   const parametrosDePuntaje = resolverParametrosDePuntaje(estado.programa ?? programa);
-  const yaCompleteTodasMisPosiciones = posicionEnRonda > parametrosDePuntaje.valoresBasePosicion.length;
+  // En la exposición de posturas la única posición es la postura de ingreso: no hay segundo argumento que preparar.
+  const soloExponePostura = esExposicionDePosturas(estado.programa ?? programa);
+  const posicionesDisponibles = posicionesQueSePuedenCompletar(
+    estado.programa ?? programa,
+    parametrosDePuntaje.valoresBasePosicion.length
+  );
+  const yaCompleteTodasMisPosiciones = posicionEnRonda > posicionesDisponibles;
   const penalidadPorRechazar = Math.abs(calcularPenalidadPorRechazoDeTurno(parametrosDePuntaje));
 
   async function revisarYPreparar() {
@@ -183,7 +197,10 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
     setAvisoSinRevisionDeIA(decision.sinRevisarPorIA ? decision.mensaje : '');
 
     if (decision.decision === DECISIONES.APROBADO) {
-      if (mensajeDelPatron) {
+      if (yaTengoUnoListo) {
+        // Todavía no expuso su argumento actual: este queda revisado y se publica cuando termine de exponer.
+        setAprobadoEnEspera(true);
+      } else if (mensajeDelPatron) {
         // La sugerencia solo sirve si se ve antes de publicar: se espera a que la persona decida.
         setEsperandoPublicarAsi(true);
       } else {
@@ -278,26 +295,31 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
     );
   }
 
-  if (yaTengoUnoListo) {
-    return (
-      <section className="tarjeta-de-formulario-de-argumento">
-        <p className="mensaje-de-exito">✅ Tu argumento ya está en el mapa y suma puntos.</p>
-        {argumentoPendiente && <blockquote className="cita-de-argumento">{argumentoPendiente.texto}</blockquote>}
-        <p className="texto-de-ayuda">
-          Entraste a la ruleta: en cualquier momento te pueden dar la palabra para exponerlo en voz alta.
-          Rechazar ese turno te resta {penalidadPorRechazar} puntos de los que ya ganaste; exponerlo bien puede
-          sumarte más.
-        </p>
-      </section>
-    );
+  const tarjetaDelArgumentoEnElMapa = (
+    <>
+      <p className="mensaje-de-exito">
+        {soloExponePostura ? '✅ Tu postura ya está registrada y suma puntos.' : '✅ Tu argumento ya está en el mapa y suma puntos.'}
+      </p>
+      {argumentoPendiente && <blockquote className="cita-de-argumento">{argumentoPendiente.texto}</blockquote>}
+      <p className="texto-de-ayuda">
+        Entraste a la ruleta: en cualquier momento te pueden dar la palabra para exponerlo en voz alta.
+        Rechazar ese turno te resta {penalidadPorRechazar} puntos de los que ya ganaste; exponerlo bien puede
+        sumarte más.
+      </p>
+    </>
+  );
+
+  if (yaTengoUnoListo && yaCompleteTodasMisPosiciones) {
+    return <section className="tarjeta-de-formulario-de-argumento">{tarjetaDelArgumentoEnElMapa}</section>;
   }
 
   if (yaCompleteTodasMisPosiciones) {
     return (
       <section className="tarjeta-de-formulario-de-argumento">
         <p className="mensaje-de-exito">
-          ✅ Ya publicaste todos tus argumentos ({parametrosDePuntaje.valoresBasePosicion.length}). Escucha a los
-          demás y conecta lo tuyo con el mapa.
+          {soloExponePostura
+            ? '✅ Ya expusiste tu postura. Escucha a los demás: aquí no se rebate, solo se expone.'
+            : `✅ Ya publicaste todos tus argumentos (${parametrosDePuntaje.valoresBasePosicion.length}). Escucha a los demás y conecta lo tuyo con el mapa.`}
         </p>
       </section>
     );
@@ -305,11 +327,24 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
 
   return (
     <section className="tarjeta-de-formulario-de-argumento">
-      <p className="texto-de-ayuda">
-        Prepara tu próximo argumento mientras escuchas a los demás. Cuando quede aprobado se publica en el mapa,
-        suma puntos y entras a la ruleta: el turno será para exponerlo en voz alta. Sin argumento preparado no se
-        te ofrece la palabra.
-      </p>
+      {yaTengoUnoListo ? (
+        <>
+          {tarjetaDelArgumentoEnElMapa}
+          <p className="texto-de-ayuda">
+            <strong>Mientras esperas tu turno</strong> puedes redactar y revisar tu siguiente argumento: quedará
+            aprobado y lo publicas con un clic cuando termines de exponer el de arriba.
+            {turnoEnCurso && turnoEnCurso.participantId !== participantId
+              ? ' Si quieres reaccionar ahora a lo que dice quien habla, usa «Lanzar bid» (desmontar o fortalecer) más abajo.'
+              : ''}
+          </p>
+        </>
+      ) : (
+        <p className="texto-de-ayuda">
+          Prepara tu próximo argumento mientras escuchas a los demás. Cuando quede aprobado se publica en el mapa,
+          suma puntos y entras a la ruleta: el turno será para exponerlo en voz alta. Sin argumento preparado no se
+          te ofrece la palabra.
+        </p>
+      )}
       <p className="texto-de-ayuda">Sería tu posición {posicionEnRonda}</p>
 
       <label>
@@ -418,9 +453,29 @@ export function PrepararArgumento({ estado, programa, presencia = [], participan
         />
       )}
 
-      {!integridad.advertenciaPendiente && (
+      {aprobadoEnEspera && yaTengoUnoListo && (
+        <p className="mensaje-de-exito">
+          ✅ Argumento revisado y aprobado. Cuando termines de exponer el actual, aquí podrás publicarlo con un clic.
+        </p>
+      )}
+
+      {aprobadoEnEspera && !yaTengoUnoListo && !integridad.advertenciaPendiente && (
+        <button
+          type="button"
+          className="boton-exito"
+          disabled={publicando}
+          onClick={() => {
+            setAprobadoEnEspera(false);
+            integridad.intentarEnviar({ alEnviar: publicarArgumentoAprobado });
+          }}
+        >
+          Publicar tu argumento ya revisado
+        </button>
+      )}
+
+      {!integridad.advertenciaPendiente && !(aprobadoEnEspera && !yaTengoUnoListo) && (
         <button type="button" disabled={revisando || publicando} onClick={revisarYPreparar}>
-          {revisando ? 'Revisando…' : 'Revisar y publicar en el mapa'}
+          {revisando ? 'Revisando…' : yaTengoUnoListo ? 'Revisar (se publica cuando termines de exponer)' : 'Revisar y publicar en el mapa'}
         </button>
       )}
     </section>

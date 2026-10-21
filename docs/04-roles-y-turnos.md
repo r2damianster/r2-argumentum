@@ -57,6 +57,17 @@ Cuando el estudiante tiene que actuar, la pantalla se lo hace imposible de ignor
 
 Solo con `asignacionPostura: "aleatoria"` (modo Rolplay) el reparto de posturas debe ser equitativo. Cada cliente elige la menos representada con lo que ya sabe y, justo antes de confirmar el ingreso, comprueba el **cupo**: ninguna postura puede pasar de `ceil(personas en la sala / posturas)`. Si mientras escribía otras personas la llenaron, se le asigna la menos representada y se le pide ajustar su argumento y revisarlo otra vez. En «libre» y «postura propia» no se fuerza nada: que una postura la defienda una sola persona es válido.
 
+### Versión ligera: exposición de posturas
+
+Actividad `exposicion_de_posturas` (octubre de 2026), pensada para clases en que solo se quiere que cada estudiante diga su postura en voz alta. Usa **el mismo motor** del debate hablado (ruleta, exposición, co-moderación, puntaje por la fórmula única), recortado así:
+
+- **Una sola fase de turnos** (`escritura_argumentos`) y el cierre. Sin conexión sugerida, sin conexión libre, sin Ronda 2.
+- **La postura es el argumento de ingreso** (posición 1 del perfil). No hay un segundo argumento que preparar: tras exponer, la persona ya completó su única posición (`posicionesQueSePuedenCompletar`, en `src/actividades/exposicionDePosturas/reglasDeLaExposicion.js`) y no se le pide nada más.
+- **Sin bids, sugerencias de conexión ni contraargumento de oyentes**: en el celular desaparecen esos paneles. Quien no confirmó su postura al iniciar queda como oyente y solo mira (no se admiten atrasados por defecto, igual que el debate hablado).
+- **Sin tope de tiempo por intervención**: el turno termina cuando la persona pulsa «Ya lo expuse».
+- Groq sigue siendo opcional y solo valida la forma (afirmación + razón), con el patrón de escritura si el moderador lo pide. No hay llamada de conexiones porque no existe esa fase.
+- Los co-moderadores califican la exposición con los mismos cuatro niveles; el ajuste se aplica una vez al cerrar.
+
 ### Priorización de posturas en la primera fase (Ronda 1)
 
 Para garantizar la pluralidad del debate desde el inicio, el algoritmo de la ruleta de turnos (`elegirCandidatoParaTurno` en `src/actividades/debateHablado/motorDelDebateHablado.js`) aplica una regla de **cobertura por postura en Ronda 1**:
@@ -76,6 +87,8 @@ Para evitar que los argumentos largos queden recortados o descontextualizados en
 - Permite expandir o inspeccionar el texto íntegro, autor, postura y conector del argumento seleccionado antes de confirmar una acción o emitir una calificación.
 
 Mientras escucha a los demás, cada participante prepara sus siguientes argumentos; en cuanto quedan aprobados entran al mapa, suman sus puntos y su autor entra nuevamente a la ruleta.
+
+**Quien aún no expuso el argumento que ya tiene en el mapa** (por ejemplo, todos al empezar, con el de ingreso) **no publica otro todavía**, porque la ruleta asume un solo argumento pendiente por persona. Desde el 20-oct-2026 sí puede **redactarlo y revisarlo con Groq mientras espera**: queda «revisado y aprobado» sin publicarse, y al terminar de exponer aparece «Publicar tu argumento ya revisado» (un clic). El aviso le recuerda que, para reaccionar a lo que dice quien habla en ese momento, puede usar **«Lanzar bid»**. Antes solo veía la tarjeta «tu argumento ya está en el mapa» y no podía escribir nada (reporte del aula del 19-oct-2026). No se cambió la ruleta ni el puntaje.
 
 ```
 Participante prepara su argumento (tipo + objetivo si corresponde + texto)

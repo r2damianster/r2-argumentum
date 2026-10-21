@@ -12,7 +12,7 @@ En v1, un Programa se guarda y se carga como un **archivo JSON exportable/import
 
 ```
 programId, titulo, version, creadoPor, fechaCreacion
-actividad: "debate_hablado" | "foro_escrito" | "control_de_lectura"   // por defecto "debate_hablado"
+actividad: "debate_hablado" | "exposicion_de_posturas" | "foro_escrito" | "control_de_lectura"   // por defecto "debate_hablado"
 ```
 
 El **control de lectura** no tiene posturas y trae campos propios (`consigna`, `estructura`, `rubrica`, `revisionDePares`…): ver `14-control-de-lectura.md`.
@@ -74,6 +74,17 @@ fases: [
 ```
 
 Cada fase tiene inicio y fin controlado explícitamente por el moderador — evita descontrol y llamadas a Groq impredecibles.
+
+**Exposición de posturas** (`actividad: "exposicion_de_posturas"`, versión ligera del debate hablado): una sola fase de turnos y el cierre. Cada quien expone en voz alta su propia postura; no se argumenta contra nadie ni se conectan argumentos.
+
+```
+fases: [
+  { tipo: "escritura_argumentos", limiteArgumentos: 1 },   // sin ronda: no hay Ronda 2
+  { tipo: "cierre_y_ranking" }
+]
+```
+
+Solo entiende esos dos tipos de fase (`src/actividades/exposicionDePosturas/definicion.js`). Los campos de conexión (`maxConexionesSalientesPorArgumento`, `requiereSeleccionDeTipo`) y `promptSistemaFase2` no aplican. El patrón de escritura sí está disponible. Ejemplo: `posturas-ia-en-la-universidad.json`.
 
 **Foro escrito** (`actividad: "foro_escrito"`): una sola fase con tiempo total y el cierre.
 

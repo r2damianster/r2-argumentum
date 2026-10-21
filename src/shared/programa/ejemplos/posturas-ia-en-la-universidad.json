@@ -1,0 +1,55 @@
+{
+  "programId": "posturas-ia-en-la-universidad-2026",
+  "titulo": "Exposición de posturas: ¿debe usarse la inteligencia artificial en la universidad?",
+  "categoria": "Educación (exposición de posturas)",
+  "actividad": "exposicion_de_posturas",
+  "version": "1.0.0",
+  "creadoPor": "Profesor Arturo Rodríguez",
+  "fechaCreacion": "2026-10-21",
+
+  "temaCentral": "Las herramientas de inteligencia artificial ya forman parte de la vida universitaria. ¿Deben usarse de forma sistemática en las clases y en las evaluaciones?",
+  "preguntaGuia": "¿Cuál es tu postura y qué razón la sostiene?",
+  "objetivoAprendizaje": "Expresión oral de una postura propia: decir con claridad qué se piensa y por qué, sin necesidad de rebatir a nadie.",
+  "instruccionesParaEstudiantes": "Elige tu postura y escribe en una o dos frases qué piensas y por qué (una razón, un caso o un ejemplo). Después espera tu turno: cuando te den la palabra, expón tu postura en voz alta y pulsa «Ya lo expuse». Aquí no se responde ni se rebate a nadie: solo se escucha y se expone.",
+
+  "posturas": [
+    { "id": "a_favor", "etiqueta": "A favor de usarla", "color": "#2a9d8f" },
+    { "id": "en_contra", "etiqueta": "En contra de usarla", "color": "#d1495b" },
+    { "id": "matizada", "etiqueta": "Depende / con condiciones", "color": "#8a8a8a", "esMatizada": true }
+  ],
+  "asignacionPostura": "libre",
+  "permiteCambioPostura": false,
+
+  "fases": [
+    { "tipo": "escritura_argumentos", "limiteArgumentos": 1 },
+    { "tipo": "cierre_y_ranking" }
+  ],
+
+  "mecanismoTurno": "ruleta_ponderada_con_prioridad_a_no_participantes",
+  "timeoutAceptacion": 20,
+  "maxRechazosAntesDeForzar": 3,
+
+  "criterioValidacion": "claim_mas_razon",
+  "ejemplosPorTema": [
+    {
+      "malo": "La IA es mala.",
+      "bueno": "Estoy en contra de usarla en los exámenes porque entonces no se puede saber qué aprendió cada estudiante por sí mismo.",
+      "porque": "El malo es una valoración sin razón; el bueno afirma una postura y da el motivo."
+    },
+    {
+      "malo": "Todo el mundo la usa.",
+      "bueno": "Estoy a favor de usarla porque ya está en el celular de todos y es más útil enseñar a verificar sus respuestas que fingir que no existe.",
+      "porque": "El malo apela a la mayoría sin explicar nada; el bueno dice qué piensa y por qué."
+    }
+  ],
+  "promptSistemaFase1": "Evalúa si la postura tiene una afirmación y una razón explícita (un caso, un dato, un ejemplo, 'porque', 'ya que'). No evalúes si la opinión sobre la inteligencia artificial es favorable o crítica. Solo sugiere: la decisión es de las personas que moderan.",
+
+  "formulaCoModeradores": "ceil(n * 0.10)_min_1",
+  "topeMaximoCoModeradores": null,
+  "exclusionMutua": true,
+
+  "exportaJSON": { "eventLogCompleto": true, "mapaArgumental": true, "rankingPorPostura": true, "perfilPorEstudiante": true },
+  "exportaPDF": true,
+
+  "duracionTotalEstimada": 20
+}

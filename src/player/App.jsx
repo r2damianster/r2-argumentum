@@ -36,6 +36,7 @@ import { calcularInstruccionesDelForo } from '../shared/instrucciones/calcularIn
 import { calcularInstruccionesDelControlDeLectura } from '../shared/instrucciones/calcularInstruccionesDelControlDeLectura.js';
 import { resolverActividadDelPrograma } from '../actividades/registroDeActividades.js';
 import { ID_FORO_ESCRITO } from '../actividades/foroEscrito/definicion.js';
+import { esExposicionDePosturas } from '../actividades/exposicionDePosturas/reglasDeLaExposicion.js';
 import { ID_CONTROL_DE_LECTURA } from '../actividades/controlDeLectura/definicion.js';
 
 // Mismo set de emojis que R2 Quiz, ver docs/07-acceso-y-paginas.md.
@@ -306,6 +307,8 @@ function SesionDeParticipante({ codigoDeSala, participantId, secreto, nombre, em
   // El foro escrito tiene su propia pantalla; el resto del debate hablado sigue igual.
   const esForo = resolverActividadDelPrograma(programa).id === ID_FORO_ESCRITO;
   const esControlDeLectura = resolverActividadDelPrograma(programa).id === ID_CONTROL_DE_LECTURA;
+  // Exposición de posturas: sin segundo argumento, bids, sugerencias ni conexiones; solo se expone y se escucha.
+  const soloExponePostura = esExposicionDePosturas(programa);
 
   // Quien aún no confirmó su ingreso puede hacerlo antes de iniciar y, con la sesión en marcha, solo si el
   // moderador admite atrasados. Por defecto el foro y el control de lectura los admiten; el debate hablado, no.
@@ -446,20 +449,22 @@ function SesionDeParticipante({ codigoDeSala, participantId, secreto, nombre, em
         <>
           <section className="tarjeta-de-turno-ofrecido">
             <p className="mensaje-de-error">
-              Estás como oyente: el debate empezó antes de que confirmaras tu argumento de ingreso. Puedes seguir
+              Estás como oyente: el debate empezó antes de que confirmaras tu {soloExponePostura ? 'postura' : 'argumento de ingreso'}. Puedes seguir
               todo lo que pasa, pero no recibes turnos ni puntaje.
             </p>
           </section>
-          <FormularioDeContraargumentoParaOyentes
-            estado={estado}
-            programa={programa}
-            presencia={presencia}
-            participantId={participantId}
-            nombre={nombre}
-            emoji={emoji}
-            publicar={publicar}
-            publicarIntegridad={publicarIntegridad}
-          />
+          {!soloExponePostura && (
+            <FormularioDeContraargumentoParaOyentes
+              estado={estado}
+              programa={programa}
+              presencia={presencia}
+              participantId={participantId}
+              nombre={nombre}
+              emoji={emoji}
+              publicar={publicar}
+              publicarIntegridad={publicarIntegridad}
+            />
+          )}
         </>
       )}
 
@@ -508,17 +513,18 @@ function SesionDeParticipante({ codigoDeSala, participantId, secreto, nombre, em
       {!sesionCerrada &&
         !soyComoderador &&
         ingresoConfirmado &&
+        !soloExponePostura &&
         !tengoElTurno &&
         estado.turnos.turnoEnCurso &&
         estado.turnos.turnoEnCurso.participantId !== participantId && (
           <PanelDeBid estado={estado} participantId={participantId} turnoEnCurso={estado.turnos.turnoEnCurso} publicar={publicar} />
         )}
 
-      {!sesionCerrada && ingresoConfirmado && sugerenciasVisibles.length > 0 && (
+      {!sesionCerrada && ingresoConfirmado && !soloExponePostura && sugerenciasVisibles.length > 0 && (
         <PanelDeSugerencias estado={estado} participantId={participantId} publicar={publicar} />
       )}
 
-      {!sesionCerrada && !soyComoderador && ingresoConfirmado && misArgumentosLibres.length > 0 && (
+      {!sesionCerrada && !soyComoderador && ingresoConfirmado && !soloExponePostura && misArgumentosLibres.length > 0 && (
         <PanelDeConexionLibre estado={estado} participantId={participantId} publicar={publicar} />
       )}
 

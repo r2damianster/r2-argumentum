@@ -1,4 +1,5 @@
 import { TIPOS_DE_FASE } from '../../shared/eventos/nombresDeEventos.js';
+import { esExposicionDePosturas } from '../../actividades/exposicionDePosturas/reglasDeLaExposicion.js';
 import { ControlDelTiempoDelForo } from './ControlDelTiempoDelForo.jsx';
 import { ControlDeIngresoDeAtrasados } from './ControlDeIngresoDeAtrasados.jsx';
 
@@ -15,6 +16,7 @@ const ETIQUETA_DE_FASE = {
 export function ControlDeFases({ estado, motor, programa, publicar }) {
   const esForo = programa?.actividad === 'foro_escrito';
   const esLectura = programa?.actividad === 'control_de_lectura';
+  const esExposicion = esExposicionDePosturas(programa);
   const sesionIniciada = estado.fase.actual !== null || estado.fase.historial.length > 0;
   const faseActual = estado.fase.actual;
   // Mientras la sesión no se cierra, el moderador decide si se admite a quien llega tarde.
@@ -52,7 +54,9 @@ export function ControlDeFases({ estado, motor, programa, publicar }) {
       <h3>
         {esLectura && faseActual.tipo === TIPOS_DE_FASE.CIERRE_Y_RANKING
           ? 'Calificación y devolución'
-          : ETIQUETA_DE_FASE[faseActual.tipo] || faseActual.tipo}
+          : esExposicion && faseActual.tipo === TIPOS_DE_FASE.ESCRITURA_ARGUMENTOS
+            ? 'Exposición de posturas'
+            : ETIQUETA_DE_FASE[faseActual.tipo] || faseActual.tipo}
         {faseActual.ronda ? ` · Ronda ${faseActual.ronda}` : ''}
       </h3>
       {faseActual.tipo !== TIPOS_DE_FASE.CIERRE_Y_RANKING && (

@@ -7,6 +7,10 @@
 
 import { TIPOS_DE_FASE } from '../eventos/nombresDeEventos.js';
 import { ingresoEstaCerrado, personaPuedeIngresar } from '../ingreso/reglasDeIngreso.js';
+import {
+  esExposicionDePosturas,
+  posicionesQueSePuedenCompletar,
+} from '../../actividades/exposicionDePosturas/reglasDeLaExposicion.js';
 import { calcularPenalidadPorRechazoDeTurno, resolverParametrosDePuntaje } from '../puntaje/formulaDePuntaje.js';
 import {
   obtenerIntervencionesSinCalificar,
@@ -143,7 +147,10 @@ function accionObligatoria(estado, participantId, esCoModerador, ingresoConfirma
 
   if (!estado.participantes[participantId]?.argumentoListo) {
     // Con las posiciones completas ya no queda nada que preparar: no se le pide.
-    const posicionesDelPerfil = resolverParametrosDePuntaje(estado.programa).valoresBasePosicion.length;
+    const posicionesDelPerfil = posicionesQueSePuedenCompletar(
+      estado.programa,
+      resolverParametrosDePuntaje(estado.programa).valoresBasePosicion.length
+    );
     if ((estado.participantes[participantId]?.posicionesCompletadas ?? 0) >= posicionesDelPerfil) {
       return null;
     }
@@ -173,7 +180,16 @@ function accionesOpcionales(estado, participantId, esCoModerador, ingresoConfirm
   const tengoLaPalabra = turno?.participantId === participantId;
 
   if (estado.participantes[participantId]?.argumentoListo && !tengoLaPalabra) {
-    opciones.push('Esperar tu turno: tu argumento ya está listo');
+    opciones.push(
+      esExposicionDePosturas(estado.programa)
+        ? 'Esperar tu turno: tu postura ya está lista'
+        : 'Esperar tu turno: tu argumento ya está listo'
+    );
+  }
+
+  // La exposición de posturas no tiene intervenciones ni conexiones: solo se expone y se escucha.
+  if (esExposicionDePosturas(estado.programa)) {
+    return opciones;
   }
 
   if (turno && !tengoLaPalabra) {

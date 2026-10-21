@@ -36,7 +36,7 @@ No se registra solo quién habla, sino cómo se relacionan los argumentos entre 
 | Tiempo real | Ably (canales pub/sub + presence), event-sourcing puro — sin base de datos para el estado de la sesión en vivo. Historial retenido ~2 min por defecto (ver `docs/02-arquitectura.md`) |
 | IA asistencial | Groq (`openai/gpt-oss-20b` para validar forma y clasificar postura, `openai/gpt-oss-120b` para sugerir conexiones) — nunca puntúa de forma autoritativa sin confirmación humana y **nunca condiciona el trabajo**: si falla, se avisa y se sigue. La función serverless reintenta ante fallos transitorios |
 | Persistencia de sesión | Event log de Ably (con copia local en `localStorage` de cada cliente, más identidad y borrador del participante) + export a JSON e informe imprimible a PDF, parciales o finales |
-| Persistencia de plantillas | "Programas de Debate" como archivos JSON exportables/importables, catálogo por categoría en la consola del host (12 de ejemplo en `src/shared/programa/ejemplos/`) |
+| Persistencia de plantillas | "Programas de Debate" como archivos JSON exportables/importables, catálogo por categoría en la consola del host (13 de ejemplo en `src/shared/programa/ejemplos/`) |
 
 ## Por qué no hay base de datos ni reconocimiento de voz en v1
 

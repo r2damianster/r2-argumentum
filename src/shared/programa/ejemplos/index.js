@@ -9,6 +9,7 @@ import educacionUtilidadDeLaInvestigacion from './educacion-utilidad-de-la-inves
 import educacionDeteccionDeIaEnTrabajosAcademicos from './educacion-deteccion-de-ia-en-trabajos-academicos.json';
 import historiaEcuadorCausasDelPresente from './historia-ecuador-herencia-global-o-decisiones.json';
 import saludAzucarNaturalVsEdulcoranteArtificial from './salud-azucar-natural-vs-edulcorante-artificial.json';
+import posturasIaEnLaUniversidad from './posturas-ia-en-la-universidad.json';
 import foroIaEnLaUniversidad from './foro-ia-en-la-universidad.json';
 import foroFormacionEnInvestigacion from './foro-formacion-en-investigacion.json';
 import foroNaranjaMecanicaLibreAlbedrio from './foro-naranja-mecanica-libre-albedrio.json';
@@ -23,6 +24,7 @@ export const PROGRAMAS_DE_EJEMPLO = [
   educacionDeteccionDeIaEnTrabajosAcademicos,
   historiaEcuadorCausasDelPresente,
   saludAzucarNaturalVsEdulcoranteArtificial,
+  posturasIaEnLaUniversidad,
   foroIaEnLaUniversidad,
   foroFormacionEnInvestigacion,
   foroNaranjaMecanicaLibreAlbedrio,

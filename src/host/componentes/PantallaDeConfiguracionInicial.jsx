@@ -16,6 +16,7 @@ import { SelectorDeModoDeAhorro } from './SelectorDeModoDeAhorro.jsx';
 import { normalizarModoDeAhorro } from '../../shared/nucleo/capacidad/modosDeAhorro.js';
 import { ID_DEBATE_HABLADO } from '../../actividades/debateHablado/definicion.js';
 import { ID_FORO_ESCRITO } from '../../actividades/foroEscrito/definicion.js';
+import { ID_EXPOSICION_DE_POSTURAS } from '../../actividades/exposicionDePosturas/definicion.js';
 import { resolverActividadDelPrograma } from '../../actividades/registroDeActividades.js';
 import { normalizarIntegridad } from '../../shared/nucleo/integridad/nivelesDeIntegridad.js';
 
@@ -42,7 +43,8 @@ export function PantallaDeConfiguracionInicial({ programaBase, onConfirmarConfig
   // El modo de ahorro solo importa donde muchas personas escriben a la vez (foro); el debate hablado no lo usa.
   const esForo = resolverActividadDelPrograma(programaBase).id === ID_FORO_ESCRITO;
   // El patrón de escritura lo pide el debate hablado (el foro tiene criterios adicionales y la lectura su estructura).
-  const esDebateHablado = resolverActividadDelPrograma(programaBase).id === ID_DEBATE_HABLADO;
+  const idDeActividad = resolverActividadDelPrograma(programaBase).id;
+  const esDebateHablado = idDeActividad === ID_DEBATE_HABLADO || idDeActividad === ID_EXPOSICION_DE_POSTURAS;
   const [patronDeArgumento, setPatronDeArgumento] = useState(() => normalizarPatronDeArgumento(programaBase.patronDeArgumento));
   const [modoDeAhorro, setModoDeAhorro] = useState(() => normalizarModoDeAhorro(programaBase.modoDeAhorro));
 

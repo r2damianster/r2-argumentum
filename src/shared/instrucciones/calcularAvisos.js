@@ -8,6 +8,7 @@
 import { TIPOS_DE_FASE } from '../eventos/nombresDeEventos.js';
 import { ingresoEstaCerrado, analizarBalanceDePosturas } from '../ingreso/reglasDeIngreso.js';
 import { resolverParametrosDePuntaje } from '../puntaje/perfilesDePuntaje.js';
+import { posicionesQueSePuedenCompletar } from '../../actividades/exposicionDePosturas/reglasDeLaExposicion.js';
 import {
   obtenerBidsAbiertos,
   obtenerExposicionesSinCalificar,
@@ -105,7 +106,10 @@ export function calcularAvisosParaElModerador(estado, presencia, ahora = Date.no
   );
 
   // Quien ya publicó todas sus posiciones no tiene nada más que preparar.
-  const posicionesDelPerfil = resolverParametrosDePuntaje(estado.programa).valoresBasePosicion.length;
+  const posicionesDelPerfil = posicionesQueSePuedenCompletar(
+    estado.programa,
+    resolverParametrosDePuntaje(estado.programa).valoresBasePosicion.length
+  );
   const sinArgumentoListo = argumentadores.filter(
     (presente) =>
       !estado.participantes[presente.participantId]?.argumentoListo &&
