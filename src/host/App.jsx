@@ -622,7 +622,7 @@ function ConsolaDeSesion({ programa, codigoDeSala, identificadorDeSesion, onCamb
             <QRCodeSVG value={urlDeIngreso} size={200} bgColor="#ffffff" fgColor="#0f172a" />
             <p className="texto-de-ayuda">
               Los estudiantes escanean el QR, o entran a <code>{urlDeIngreso}</code>, o entran a{' '}
-              <code>/player.html</code> e ingresan el código a mano.
+              <code>{window.location.origin}</code> y escriben el código de 4 dígitos.
             </p>
             <BotonCopiarLink url={urlDeIngreso} />
           </div>

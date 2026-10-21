@@ -225,10 +225,13 @@ export default function App() {
           </div>
           <p className="texto-de-ayuda">Toca un emoji: así es como te van a ver en el marcador.</p>
         </fieldset>
-        <button type="submit" disabled={!codigoDeSala || !nombre || !emojiElegido}>
+        <button type="submit" disabled={codigoDeSala.length !== 4 || !nombre || !emojiElegido}>
           Entrar
         </button>
       </form>
+      <p className="texto-de-ayuda">
+        ¿Eres el moderador? <a href="/host.html">Entra a la consola</a>.
+      </p>
       <Creditos />
     </main>
   );

@@ -6,6 +6,6 @@
       "destination": "/player.html?sala=:codigo",
       "permanent": false
     },
-    { "source": "/", "destination": "/host.html", "permanent": false }
+    { "source": "/", "destination": "/player.html", "permanent": false }
   ]
 }
